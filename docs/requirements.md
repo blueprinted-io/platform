@@ -6,7 +6,7 @@
 
 *Confidential. Internal Use Only*
 
-github.com/blueprinted-io/core
+github.com/blueprinted-io/platform
 
 v4.1 changes from v4.0: Relationship kinds deferred to v1.1 (§9.4). Tests-immutable rule clarified with TEST_REVISED process (§10.4). Authentik scoped to human auth only in Sprint 2; machine auth moved to Sprint 10 (§5, §5.3, §26). Sprint plan reframed with effort hours and confidence ratings (§26). Iterative ingestion established as primary model (§11, §11.5, §11.7). Embedding dimension behaviour clarified (§12). ARQ resumability corrected — application code responsibility, not framework (§14). Agent role relationship_suggester moved to v1.1 (§5.2). Relationship screen write UI deferred to v1.1 (§23.9). Key decisions log updated throughout (§25).
 
@@ -949,7 +949,7 @@ tenant_demo:   current
 
 # 19. Repository Structure
 
-## 19.1 blueprinted-io/core — Backend Monorepo
+## 19.1 blueprinted-io/platform — Backend Monorepo
 
 ```
 /api          FastAPI application, versioned routes, middleware, auth
@@ -1232,6 +1232,6 @@ The confidence column reflects how well-understood the scope is at planning time
 
 ---
 
-*blueprinted.io · github.com/blueprinted-io/core · AGPL 3.0*
+*blueprinted.io · github.com/blueprinted-io/platform · AGPL 3.0*
 
 *Requirements Specification v4.1 · May 2026*
