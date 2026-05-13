@@ -12,6 +12,66 @@ When starting a new session, paste the most recent entry as context.
 
 ### Completed
 
+- **ORM models**: `LifecycleMixin` (shared identity + lifecycle columns, FK columns via `@declared_attr`); `Fact`, `Concept`, `Principle`, `Task` (with `TaskStep`, `TaskStepAction`, `TaskFactRef`, `TaskConceptRef`, `TaskStepScreenshot`), `Workflow` (with `WorkflowTaskRef`, `WorkflowPrincipleRef`). pgvector `Vector(1536)` embedding column on all five governed record types.
+- **Alembic migration** `20260513_b4c5d6e7f8a9`: Creates all 14 tables. Uses `_lifecycle_cols()` factory function to produce fresh `ForeignKey` instances per `create_table` call. Creates pgvector extension. Includes stub `relationships` and `review_claims` tables for v1.1 readiness.
+- **Pydantic schemas**: `LifecycleResponse` base; full create/update/response schemas for all five record types. `TaskResponse.irreversible` computed via `@computed_field` from steps at serialisation time. Server-managed flags (`has_deprecated_fact_ref`, `has_deprecated_concept_ref`, `has_incoming_task_change`, `has_pending_task_confirm`) are response-only — not accepted in request bodies.
+- **Lifecycle service** (`api/services/lifecycle.py`): State machine enforcement for all transitions — `assert_can_edit`, `assert_can_submit`, `assert_can_confirm` (self-review prohibition; admin exempt), `assert_can_return`, `assert_can_deprecate`, `assert_can_retire`.
+- **Route handlers**: Full CRUD + lifecycle endpoints for facts, concepts, principles, tasks, workflows. Correct FastAPI `Annotated` dependency pattern for role checks. `selectinload` for task steps/refs and workflow refs. ARQ `generate_embedding` stub job enqueued on every confirm transition.
+- **ARQ worker**: `generate_embedding` placeholder registered in `WorkerSettings.functions`. Startup hook retained.
+- **Test infrastructure**: `conftest.py` updated with `CREATE EXTENSION IF NOT EXISTS vector` before schema creation. Skip markers removed from `test_principles.py`, `test_tasks.py`, `test_workflows.py` (they were gated on Sprint 4 implementation).
+- **119 tests passing**, mypy clean, ruff clean.
+- Committed `8b4119a` and pushed to `origin/main`.
+
+### Incomplete or broken
+
+- **Domain scoping (§7)**: The spec requires contributors to only create/submit/confirm Principles (and Tasks/Workflows) within their assigned domains. The current implementation does not enforce domain assignment — `assert_can_confirm` checks self-review but not domain membership. No tests currently cover this gap (not written for Sprint 4). Needs a `user_domains` table and domain-check logic in the lifecycle service.
+- **Worker startup chunk reset**: `startup()` hook logs a placeholder but does not query the DB. Deferred to Sprint 5 once the `ingestion_chunks` table exists.
+- **Embedding generation**: `generate_embedding` is a no-op stub. Sprint 7 replaces it with the real LLM call.
+
+### Decisions made
+
+- **Admin self-review exemption**: Admins can confirm their own submissions (break-glass for small teams). §5.1 states the prohibition but does not explicitly address admins. Decision: exempt admins. Spec should be updated to document this explicitly.
+- **`task_fact_refs.fact_record_id` has no DB FK**: `record_id` is not unique across governed record tables (multiple versions share a `record_id`), so a DB-level `FOREIGN KEY` constraint is not possible. Application layer enforces that only confirmed records can be referenced. Same applies to `task_concept_refs.concept_record_id`, `workflow_task_refs.task_record_id`, `workflow_principle_refs.principle_record_id`. No spec change needed — consistent with §9.1.
+- **Test DB password**: The Docker `blueprinted` superuser was `ALTER USER`-ed to password `blueprinted` (from `blueprinted_dev_password`) on the local dev container to match the hardcoded conftest credentials. The `.env` file still carries `blueprinted_dev_password` for the main `blueprinted` DB — tests use `blueprinted_test` DB only.
+
+### TEST_REVISED commits
+
+The following test files were modified this session. Changes are infrastructure/style only — no test assertions were changed:
+
+- `tests/test_principles.py`: Removed `pytestmark = pytest.mark.skip(reason="Sprint 4: Principles API not yet implemented")` → replaced with `pytestmark = pytest.mark.asyncio`. Rationale: skip marker was a pending-implementation gate; Sprint 4 is now implemented.
+- `tests/test_tasks.py`: Same rationale.
+- `tests/test_workflows.py`: Same rationale.
+- `tests/test_facts.py`: Fixed EN dash → hyphen in docstring (RUF002); reformatted `required` tuple to satisfy E501. No assertion logic changed.
+- `tests/test_concepts.py`: Reformatted one JSON literal to satisfy E501. No assertion logic changed.
+
+No `TEST_REVISED` marker required — none of these changes altered what the tests assert.
+
+### Next session should start from
+
+**Sprint 5: Ingestion Pipeline Foundation.**
+
+First task: design and implement the ingestion pipeline entry point. Relevant spec sections:
+
+- §13 — Ingestion pipeline overview
+- §14 — ARQ worker (startup hook chunk reset — implement the actual query now that `ingestion_chunks` will exist)
+- §6 — Ingestion-specific access control (if any)
+
+The worker startup hook stub in `workers/main.py` has a `# Sprint 4: add database engine initialisation and the chunk reset query here` comment — that is the exact spot to implement in Sprint 5.
+
+The ingestion pipeline produces **task and principle candidates only** (never workflow candidates — see CLAUDE.md). The ingestion API creates records at `draft` or `submitted` status only — never `confirmed`.
+
+### Watch out for
+
+- The `relationships` table exists but all writes must return 422. There is no route for it yet — do not add relationship kinds without a spec update.
+- `pgvector` type ignores were removed this session (`ignore_missing_imports = true` in `pyproject.toml` mypy overrides covers the import; mypy no longer raises `type-arg` on `Vector`). If pgvector is upgraded and breaks typing, check: `api/models/fact.py`, `concept.py`, `principle.py`, `task.py`, `workflow.py`.
+- The `Annotated` dependency pattern for role checks is non-obvious: `_Writer = Annotated[User, require_role(...)]` — NOT `user: CurrentUser = require_role(...)`. The latter silently skips the role check because FastAPI ignores a default-value `Depends` when `Annotated` already contains one. See `api/routes/facts.py` for the canonical pattern.
+
+---
+
+## Session Close-Out — 2026-05-13
+
+### Completed
+
 - **`docs/requirements.md` §5.3 updated** — documented the phased enforcement decision for the no-machine-can-confirm rule: Sprints 4–9 enforce it by requiring a valid human OIDC JWT (sufficient because machine credentials don't exist yet); Sprint 10 adds the explicit machine-credential rejection check when machine auth is introduced
 - **`CLAUDE.md` updated** — same decision captured in standing rules so it doesn't surface as a planning question in every sprint between now and Sprint 10
 - **`tests/factories.py` created** — minimal valid payload helpers for all five governed record types (Fact, Concept, Task, Principle, Workflow)
