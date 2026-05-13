@@ -12,6 +12,7 @@ from api.auth import Role
 from api.dependencies import CurrentUser, DBSession, require_role
 from api.models.principle import Principle
 from api.models.user import User
+from api.schemas.base import ConfirmRequest
 from api.schemas.principle import PrincipleCreate, PrincipleResponse, PrincipleUpdate, ReturnRequest
 from api.services import lifecycle
 
@@ -33,6 +34,8 @@ async def _get_or_404(session: AsyncSession, principle_id: uuid.UUID) -> Princip
 
 @router.post("", response_model=PrincipleResponse, status_code=status.HTTP_201_CREATED)
 async def create_principle(body: PrincipleCreate, session: DBSession, user: _Writer) -> Principle:
+    await lifecycle.assert_domain_active(body.domain, session)
+    await lifecycle.assert_domain_access(body.domain, user, session)
     principle = Principle(
         title=body.title,
         summary=body.summary,
@@ -77,6 +80,8 @@ async def update_principle(
     if body.analogies is not None:
         principle.analogies = body.analogies
     if body.domain is not None:
+        await lifecycle.assert_domain_active(body.domain, session)
+        await lifecycle.assert_domain_access(body.domain, user, session)
         principle.domain = body.domain
     if body.tags is not None:
         principle.tags = body.tags
@@ -92,6 +97,7 @@ async def submit_principle(
 ) -> Principle:
     principle = await _get_or_404(session, principle_id)
     lifecycle.assert_can_submit(principle.status, user)
+    await lifecycle.assert_domain_access(principle.domain, user, session)
     principle.status = "submitted"
     principle.updated_by = user.id
     await session.commit()
@@ -101,11 +107,18 @@ async def submit_principle(
 
 @router.post("/{principle_id}/confirm", response_model=PrincipleResponse)
 async def confirm_principle(
-    principle_id: uuid.UUID, session: DBSession, user: _Writer
+    principle_id: uuid.UUID,
+    session: DBSession,
+    user: _Writer,
+    body: ConfirmRequest | None = None,
 ) -> Principle:
     principle = await _get_or_404(session, principle_id)
-    lifecycle.assert_can_confirm(principle.status, principle.created_by, user)
+    await lifecycle.assert_domain_access(principle.domain, user, session)
+    is_break_glass = lifecycle.assert_can_confirm(
+        principle.status, principle.created_by, user, body.justification if body else None
+    )
     principle.status = "confirmed"
+    principle.self_confirmed_by_admin = is_break_glass
     principle.reviewed_by = user.id
     principle.updated_by = user.id
     await session.commit()
@@ -119,6 +132,7 @@ async def return_principle(
 ) -> Principle:
     principle = await _get_or_404(session, principle_id)
     lifecycle.assert_can_return(principle.status, user)
+    await lifecycle.assert_domain_access(principle.domain, user, session)
     principle.status = "returned"
     if body.note:
         principle.change_note = body.note

@@ -302,8 +302,10 @@ async def test_deprecate_concept_admin_only(
         f"/api/v1/concepts/{concept_id}/submit",
         headers={"Authorization": f"Bearer {admin_token}"},
     )
+    # TEST_REVISED: admin self-confirm now requires non-empty justification (§5.1 break-glass)
     await client.post(
         f"/api/v1/concepts/{concept_id}/confirm",
+        json={"justification": "Admin break-glass confirm for test."},
         headers={"Authorization": f"Bearer {admin_token}"},
     )
 

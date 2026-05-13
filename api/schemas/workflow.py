@@ -34,7 +34,7 @@ class WorkflowPrincipleRefResponse(BaseModel):
 class WorkflowCreate(BaseModel):
     title: str
     objective: str
-    domain: str | None = None
+    domain: str
     tags: list[str] = []
 
 
@@ -52,7 +52,7 @@ class ReturnRequest(BaseModel):
 class WorkflowResponse(LifecycleResponse):
     title: str
     objective: str
-    domain: str | None
+    domain: str
     tags: list[str]
     has_incoming_task_change: bool
     has_pending_task_confirm: bool

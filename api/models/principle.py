@@ -21,7 +21,7 @@ class Principle(LifecycleMixin, Base):
     summary: Mapped[str] = mapped_column(Text, nullable=False)
     explanation: Mapped[str] = mapped_column(Text, nullable=False)
     analogies: Mapped[str | None] = mapped_column(Text, nullable=True)
-    domain: Mapped[str | None] = mapped_column(Text, nullable=True)
+    domain: Mapped[str] = mapped_column(Text, nullable=False)
     tags: Mapped[list[str]] = mapped_column(
         ARRAY(String), nullable=False, default=list, server_default="{}"
     )

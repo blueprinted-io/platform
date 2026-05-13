@@ -12,6 +12,7 @@ from api.auth import Role
 from api.dependencies import CurrentUser, DBSession, require_role
 from api.models.concept import Concept
 from api.models.user import User
+from api.schemas.base import ConfirmRequest
 from api.schemas.concept import ConceptCreate, ConceptResponse, ConceptUpdate, ReturnRequest
 from api.services import lifecycle
 
@@ -93,10 +94,18 @@ async def submit_concept(concept_id: uuid.UUID, session: DBSession, user: _Write
 
 
 @router.post("/{concept_id}/confirm", response_model=ConceptResponse)
-async def confirm_concept(concept_id: uuid.UUID, session: DBSession, user: _Writer) -> Concept:
+async def confirm_concept(
+    concept_id: uuid.UUID,
+    session: DBSession,
+    user: _Writer,
+    body: ConfirmRequest | None = None,
+) -> Concept:
     concept = await _get_or_404(session, concept_id)
-    lifecycle.assert_can_confirm(concept.status, concept.created_by, user)
+    is_break_glass = lifecycle.assert_can_confirm(
+        concept.status, concept.created_by, user, body.justification if body else None
+    )
     concept.status = "confirmed"
+    concept.self_confirmed_by_admin = is_break_glass
     concept.reviewed_by = user.id
     concept.updated_by = user.id
     await session.commit()

@@ -144,7 +144,7 @@ All upload endpoints enforce: maximum file size (configurable via system_setting
 
 **Machine auth:** OIDC client credentials flow and scoped API keys — Sprint 10, see §5.3
 
-Authentik is operationally non-trivial. Sprint 2 delivers human OIDC only: Docker Compose configuration, Authentik up and running, FastAPI token validation, and a working PKCE flow in the React frontend. This is the hard dependency for all subsequent development — contributors can log in, sessions work, role-based access is enforced.
+Authentik is operationally non-trivial. Sprint 2 delivers human OIDC only: Docker Compose configuration, Authentik up and running, FastAPI token validation, and JWT validation tested with mock JWTs against the JWKS endpoint. The PKCE flow in the React frontend is implemented in Sprint 8 when the blueprinted-io/app repository exists. This is the hard dependency for all subsequent development — contributors can log in, sessions work, role-based access is enforced.
 
 Machine credentials and scoped API keys are deliberately deferred to Sprint 10. They are needed for agent access and third-party integrations, but those use cases do not exist until the core platform exists. Attempting to specify and implement machine auth before the API surface is stable adds complexity with no immediate return.
 
@@ -163,6 +163,14 @@ The Authentik configuration guide — covering Docker Compose setup, realm confi
 Self-review prohibition: a Contributor cannot confirm or return content they created. Enforced at the API layer, not the UI layer.
 
 **Small team note:** Self-hosted installs frequently operate with two or three contributors. The self-review prohibition can create review queue starvation in very small teams. Admin break-glass confirm (with mandatory justification, audit log entry, and visible UI scar on the confirmed record) is the relief valve for this scenario. This is not a normal flow and should feel like a controlled breach.
+
+The break-glass flow requires two concrete data changes:
+
+1. A `self_confirmed_by_admin BOOLEAN NOT NULL DEFAULT FALSE` field on all governed record tables (facts, concepts, tasks, workflows, principles). Set to TRUE when an admin confirms their own content.
+
+2. The confirm endpoint must require a non-empty `justification` string in the request body when `self_confirmed_by_admin` would fire. Confirm requests from an admin on their own content that omit `justification` are rejected with HTTP 422.
+
+The audit log entry and visible UI scar are downstream of this flag. The flag is the data integrity piece that makes the rest possible. The `audit_log` table does not exist yet — that is a sequencing gap, not a reason to defer the flag.
 
 ## 5.2 Agent Roles
 
@@ -213,6 +221,73 @@ Domains are admin-managed organisational subdivisions of knowledge within a tena
 - Viewer, Audit, and Content Publisher see all confirmed content across all domains without assignment
 - Facts and Concepts are domain-agnostic; domain scoping applies to Tasks, Workflows, and Principles only
 
+## 7.1 Domain Registry
+
+Domains are admin-managed records in a central registry. They are not security boundaries — tenants provide isolation. Domains are organisational subdivisions within a tenant.
+
+```
+domains
+  name          TEXT PRIMARY KEY       -- slug: [a-z0-9][a-z0-9_-]*
+  created_at    TIMESTAMPTZ NOT NULL
+  created_by    UUID FK → users.id
+  disabled_at   TIMESTAMPTZ            -- NULL = active; soft-delete only
+
+user_domains
+  user_id       UUID FK → users.id     NOT NULL
+  domain        TEXT FK → domains.name NOT NULL
+  created_at    TIMESTAMPTZ NOT NULL
+  created_by    UUID FK → users.id     NOT NULL
+  PRIMARY KEY (user_id, domain)
+```
+
+Domain names are normalised to lowercase slugs on creation: `[a-z0-9][a-z0-9_-]*`. Names containing uppercase or spaces are rejected with HTTP 422. A domain cannot be deleted once created — disable it instead. Disabled domains remain on existing records but cannot be assigned to new records or users.
+
+## 7.2 Domain Assignment
+
+Domain assignment is admin-only. Users cannot self-assign domains.
+
+| Role | Domain behaviour |
+| --- | --- |
+| Admin | Implicitly entitled to all active domains. No user_domains entries required or stored. |
+| Contributor | Entitled only to explicitly assigned domains. |
+| Viewer | Domain-agnostic. Sees all confirmed content. Cannot be assigned domains. |
+| Audit | Domain-agnostic. Same as Viewer. |
+| Content Publisher | Domain-agnostic. Same as Viewer. |
+
+Attempting to assign domains to a domain-agnostic role returns HTTP 400.
+
+## 7.3 Domain Enforcement
+
+Enforcement fires at the API layer on write operations. Read operations are not domain-gated for confirmed content — any authenticated user can read any confirmed record regardless of domain assignment.
+
+| Operation | Enforcement |
+| --- | --- |
+| Create Task / Workflow / Principle | Contributor must be assigned to the domain. HTTP 403 if not. |
+| Submit Task / Workflow / Principle | Same check as create. |
+| Review / Confirm | Reviewer must be assigned to the record's domain. HTTP 403. |
+| Create with no domain | HTTP 422. Domain required. |
+| Create with disabled domain | HTTP 422. Must be active. |
+| Create Fact / Concept | No domain field. Not enforced. |
+
+Admin bypasses all domain enforcement.
+
+## 7.4 Domain on Records
+
+`domain` is a `TEXT NOT NULL` field on Tasks, Workflows, and Principles. It stores the domain name slug. It is **not** a database-level FK — referential integrity is application-enforced at write time. Facts and Concepts have no domain field and are domain-agnostic.
+
+## 7.5 Domain API Endpoints
+
+```
+GET  /api/v1/admin/domains                    List all domains
+POST /api/v1/admin/domains                    Create domain (Admin only)
+POST /api/v1/admin/domains/{name}/disable     Soft-delete (Admin only)
+POST /api/v1/admin/domains/{name}/enable      Re-enable (Admin only)
+GET  /api/v1/admin/users/{id}/domains         List user's domain assignments
+PUT  /api/v1/admin/users/{id}/domains         Replace user's domain assignments
+```
+
+`PUT /api/v1/admin/users/{id}/domains` is a full replace — deletes all existing assignments and inserts the new set atomically. Partial update is not supported.
+
 ---
 
 # 8. Review Queue and Claiming
@@ -259,16 +334,17 @@ version     INT   NOT NULL     -- incrementing per record_id
 ## 9.2 Shared Lifecycle Fields
 
 ```
-status               TEXT         -- draft | submitted | confirmed | deprecated | returned | retired
-created_at           TIMESTAMPTZ
-updated_at           TIMESTAMPTZ
-created_by           UUID FK → users.id
-updated_by           UUID FK → users.id
-reviewed_at          TIMESTAMPTZ  -- drives staleness calculation
-reviewed_by          UUID FK → users.id
-change_note          TEXT
-needs_review_flag    BOOL NOT NULL DEFAULT FALSE
-needs_review_note    TEXT
+status                    TEXT         -- draft | submitted | confirmed | deprecated | returned | retired
+created_at                TIMESTAMPTZ
+updated_at                TIMESTAMPTZ
+created_by                UUID FK → users.id
+updated_by                UUID FK → users.id
+reviewed_at               TIMESTAMPTZ  -- drives staleness calculation
+reviewed_by               UUID FK → users.id
+change_note               TEXT
+needs_review_flag         BOOL NOT NULL DEFAULT FALSE
+needs_review_note         TEXT
+self_confirmed_by_admin   BOOL NOT NULL DEFAULT FALSE  -- set when admin confirms own content (§5.1 break-glass)
 ```
 
 ## 9.3 Lifecycle State Machine
@@ -370,12 +446,12 @@ tasks
 
 task_fact_refs
   task_id            UUID FK → tasks.id
-  fact_record_id     UUID FK → facts.record_id  -- resolves to latest confirmed
+  fact_record_id     UUID  -- application-enforced: must reference a confirmed fact record_id
   order_index        INT NOT NULL
 
 task_concept_refs
   task_id            UUID FK → tasks.id
-  concept_record_id  UUID FK → concepts.record_id  -- resolves to latest confirmed
+  concept_record_id  UUID  -- application-enforced: must reference a confirmed concept record_id
   order_index        INT NOT NULL
 
 task_steps
@@ -418,12 +494,12 @@ workflows
 
 workflow_task_refs
   workflow_id        UUID FK → workflows.id
-  task_record_id     UUID FK → tasks.record_id  -- resolves to latest confirmed
+  task_record_id     UUID  -- application-enforced: must reference a confirmed task record_id
   order_index        INT NOT NULL
 
 workflow_principle_refs
   workflow_id          UUID FK → workflows.id
-  principle_record_id  UUID FK → principles.record_id  -- resolves to latest confirmed
+  principle_record_id  UUID  -- application-enforced: must reference a confirmed principle record_id
   attached_at          TIMESTAMPTZ
   attached_by          UUID FK → users.id
 ```
@@ -1185,6 +1261,10 @@ A flat inventory of all views. Role column shows minimum role required. Primary 
 | Ingestion produces tasks and principles only | Workflows are human-composed judgment. LLM extracts raw material; humans sequence it. |
 | TEST_REVISED process over immutable tests | Immutable tests cause legitimate spec gaps to become permanent bugs. TEST_REVISED commits preserve the protection against silent weakening while allowing honest corrections. |
 | Seeded documentation tenant deferred | Requires stable platform and second reviewer for self-review prohibition. Post-v1 demonstration project. |
+| Domain as soft-deletable slug registry | Replicates MVP pattern. Hard delete orphans existing records. Domain name stored as free-text slug on records, not a DB FK — application-enforced at write time. Disabled domains remain on historical records for audit integrity. |
+| Admin break-glass requires justification + scar flag | `self_confirmed_by_admin` flag added to shared lifecycle fields. Confirm endpoint requires non-empty justification when admin confirms own content. Audit log entry deferred until `audit_log` table exists in Sprint 10. |
+| `record_id` ref columns are application-enforced not DB FK | `record_id` is not unique across versions. DB-level FK cannot reference it. Application validates existence of a confirmed record with that `record_id` before inserting into ref tables. |
+| PKCE frontend flow deferred to Sprint 8 | blueprinted-io/app repository did not exist during Sprint 2. Backend JWT validation tested with mock JWTs. PKCE implemented when React frontend exists. |
 
 ---
 

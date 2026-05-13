@@ -81,14 +81,16 @@ async def test_create_principle_missing_summary_returns_422(
 async def test_create_principle_with_domain(
     client: AsyncClient, make_token: Callable[..., str]
 ) -> None:
+    # TEST_REVISED: "DevOps" replaced with "test-domain" — domain enforcement now requires
+    # the domain to exist and the user to be assigned to it (§7.3).
     token = make_token(roles=["contributor"])
     response = await client.post(
         "/api/v1/principles",
-        json=principle_payload(domain="DevOps"),
+        json=principle_payload(domain="test-domain"),
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 201
-    assert response.json()["domain"] == "DevOps"
+    assert response.json()["domain"] == "test-domain"
 
 
 @pytest.mark.asyncio
@@ -246,8 +248,10 @@ async def test_deprecate_principle_admin_only(
         f"/api/v1/principles/{principle_id}/submit",
         headers={"Authorization": f"Bearer {admin_token}"},
     )
+    # TEST_REVISED: admin self-confirm now requires non-empty justification (§5.1 break-glass)
     await client.post(
         f"/api/v1/principles/{principle_id}/confirm",
+        json={"justification": "Admin break-glass confirm for test."},
         headers={"Authorization": f"Bearer {admin_token}"},
     )
 

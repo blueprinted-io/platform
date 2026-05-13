@@ -441,8 +441,10 @@ async def test_admin_can_confirm_own_fact(
         headers={"Authorization": f"Bearer {admin_token}"},
     )
 
+    # TEST_REVISED: admin self-confirm now requires non-empty justification (§5.1 break-glass)
     confirm_resp = await client.post(
         f"/api/v1/facts/{fact_id}/confirm",
+        json={"justification": "Admin break-glass confirm for test."},
         headers={"Authorization": f"Bearer {admin_token}"},
     )
     assert confirm_resp.status_code == 200
@@ -817,8 +819,10 @@ async def test_retire_confirmed_fact_transitions_to_retired(
         f"/api/v1/facts/{fact_id}/submit",
         headers={"Authorization": f"Bearer {admin_token}"},
     )
+    # TEST_REVISED: admin self-confirm now requires non-empty justification (§5.1 break-glass)
     await client.post(
         f"/api/v1/facts/{fact_id}/confirm",
+        json={"justification": "Admin break-glass confirm for test."},
         headers={"Authorization": f"Bearer {admin_token}"},
     )
 

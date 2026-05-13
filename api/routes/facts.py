@@ -19,6 +19,7 @@ from api.auth import Role
 from api.dependencies import CurrentUser, DBSession, require_role
 from api.models.fact import Fact
 from api.models.user import User
+from api.schemas.base import ConfirmRequest
 from api.schemas.fact import FactCreate, FactResponse, FactUpdate, ReturnRequest
 from api.services import lifecycle
 
@@ -96,10 +97,18 @@ async def submit_fact(fact_id: uuid.UUID, session: DBSession, user: _Writer) -> 
 
 
 @router.post("/{fact_id}/confirm", response_model=FactResponse)
-async def confirm_fact(fact_id: uuid.UUID, session: DBSession, user: _Writer) -> Fact:
+async def confirm_fact(
+    fact_id: uuid.UUID,
+    session: DBSession,
+    user: _Writer,
+    body: ConfirmRequest | None = None,
+) -> Fact:
     fact = await _get_or_404(session, fact_id)
-    lifecycle.assert_can_confirm(fact.status, fact.created_by, user)
+    is_break_glass = lifecycle.assert_can_confirm(
+        fact.status, fact.created_by, user, body.justification if body else None
+    )
     fact.status = "confirmed"
+    fact.self_confirmed_by_admin = is_break_glass
     fact.reviewed_by = user.id
     fact.updated_by = user.id
     await session.commit()

@@ -21,6 +21,7 @@ from api.models.concept import Concept
 from api.models.fact import Fact
 from api.models.task import Task, TaskConceptRef, TaskFactRef, TaskStep, TaskStepAction
 from api.models.user import User
+from api.schemas.base import ConfirmRequest
 from api.schemas.task import (
     ReturnRequest,
     TaskConceptRefCreate,
@@ -63,6 +64,8 @@ async def _get_task_with_refs(session: AsyncSession, task_id: uuid.UUID) -> Task
 
 @router.post("", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
 async def create_task(body: TaskCreate, session: DBSession, user: _Writer) -> TaskResponse:
+    await lifecycle.assert_domain_active(body.domain, session)
+    await lifecycle.assert_domain_access(body.domain, user, session)
     task = Task(
         title=body.title,
         outcome=body.outcome,
@@ -112,6 +115,8 @@ async def update_task(
     if body.procedure_name is not None:
         task.procedure_name = body.procedure_name
     if body.domain is not None:
+        await lifecycle.assert_domain_active(body.domain, session)
+        await lifecycle.assert_domain_access(body.domain, user, session)
         task.domain = body.domain
     if body.software_name is not None:
         task.software_name = body.software_name
@@ -130,6 +135,7 @@ async def update_task(
 async def submit_task(task_id: uuid.UUID, session: DBSession, user: _Writer) -> TaskResponse:
     task = await _get_task_with_refs(session, task_id)
     lifecycle.assert_can_submit(task.status, user)
+    await lifecycle.assert_domain_access(task.domain, user, session)
     task.status = "submitted"
     task.updated_by = user.id
     await session.commit()
@@ -137,10 +143,19 @@ async def submit_task(task_id: uuid.UUID, session: DBSession, user: _Writer) -> 
 
 
 @router.post("/{task_id}/confirm", response_model=TaskResponse)
-async def confirm_task(task_id: uuid.UUID, session: DBSession, user: _Writer) -> TaskResponse:
+async def confirm_task(
+    task_id: uuid.UUID,
+    session: DBSession,
+    user: _Writer,
+    body: ConfirmRequest | None = None,
+) -> TaskResponse:
     task = await _get_task_with_refs(session, task_id)
-    lifecycle.assert_can_confirm(task.status, task.created_by, user)
+    await lifecycle.assert_domain_access(task.domain, user, session)
+    is_break_glass = lifecycle.assert_can_confirm(
+        task.status, task.created_by, user, body.justification if body else None
+    )
     task.status = "confirmed"
+    task.self_confirmed_by_admin = is_break_glass
     task.reviewed_by = user.id
     task.updated_by = user.id
     await session.commit()
@@ -154,6 +169,7 @@ async def return_task(
 ) -> TaskResponse:
     task = await _get_task_with_refs(session, task_id)
     lifecycle.assert_can_return(task.status, user)
+    await lifecycle.assert_domain_access(task.domain, user, session)
     task.status = "returned"
     if body.note:
         task.change_note = body.note

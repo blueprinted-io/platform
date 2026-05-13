@@ -21,7 +21,7 @@ class Task(LifecycleMixin, Base):
     title: Mapped[str] = mapped_column(Text, nullable=False)
     outcome: Mapped[str] = mapped_column(Text, nullable=False)
     procedure_name: Mapped[str] = mapped_column(Text, nullable=False)
-    domain: Mapped[str | None] = mapped_column(Text, nullable=True)
+    domain: Mapped[str] = mapped_column(Text, nullable=False)
     software_name: Mapped[str | None] = mapped_column(Text, nullable=True)
     software_version: Mapped[str | None] = mapped_column(Text, nullable=True)
     media_url: Mapped[str | None] = mapped_column(Text, nullable=True)

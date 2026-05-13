@@ -21,7 +21,7 @@ class Workflow(LifecycleMixin, Base):
 
     title: Mapped[str] = mapped_column(Text, nullable=False)
     objective: Mapped[str] = mapped_column(Text, nullable=False)
-    domain: Mapped[str | None] = mapped_column(Text, nullable=True)
+    domain: Mapped[str] = mapped_column(Text, nullable=False)
     tags: Mapped[list[str]] = mapped_column(
         ARRAY(String), nullable=False, default=list, server_default="{}"
     )

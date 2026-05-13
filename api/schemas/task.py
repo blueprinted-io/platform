@@ -72,7 +72,7 @@ class TaskCreate(BaseModel):
     title: str
     outcome: str
     procedure_name: str
-    domain: str | None = None
+    domain: str
     software_name: str | None = None
     software_version: str | None = None
     media_url: str | None = None
@@ -98,7 +98,7 @@ class TaskResponse(LifecycleResponse):
     title: str
     outcome: str
     procedure_name: str
-    domain: str | None
+    domain: str
     software_name: str | None
     software_version: str | None
     media_url: str | None

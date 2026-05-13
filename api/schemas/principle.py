@@ -12,7 +12,7 @@ class PrincipleCreate(BaseModel):
     summary: str
     explanation: str
     analogies: str | None = None
-    domain: str | None = None
+    domain: str
     tags: list[str] = []
 
 
@@ -34,6 +34,6 @@ class PrincipleResponse(LifecycleResponse):
     summary: str
     explanation: str
     analogies: str | None
-    domain: str | None
+    domain: str
     tags: list[str]
     ingestion_id: uuid.UUID | None

@@ -43,6 +43,7 @@ def principle_payload(**overrides: Any) -> dict[str, Any]:
             "Comments that explain why — a constraint, a workaround, a non-obvious invariant — "
             "are signal. Signal earns its place; noise erodes reader trust."
         ),
+        "domain": "test-domain",
     }
     base.update(overrides)
     return base
@@ -55,6 +56,7 @@ def task_payload(**overrides: Any) -> dict[str, Any]:
             "The superuser password has been changed and all dependent service credentials updated."
         ),
         "procedure_name": "postgres-superuser-rotation",
+        "domain": "test-domain",
     }
     base.update(overrides)
     return base
@@ -88,6 +90,7 @@ def workflow_payload(**overrides: Any) -> dict[str, Any]:
             "Rotate all service credentials on a quarterly schedule "
             "to limit blast radius of any credential compromise."
         ),
+        "domain": "test-domain",
     }
     base.update(overrides)
     return base

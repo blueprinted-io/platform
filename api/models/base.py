@@ -38,6 +38,10 @@ class LifecycleMixin:
         Boolean, nullable=False, default=False, server_default="false"
     )
     needs_review_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Set TRUE when an admin confirms their own content (§5.1 break-glass).
+    self_confirmed_by_admin: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
 
     # FK columns use declared_attr so each mapped class gets its own ForeignKey instance.
     @declared_attr

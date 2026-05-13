@@ -21,6 +21,7 @@ from api.models.principle import Principle
 from api.models.task import Task
 from api.models.user import User
 from api.models.workflow import Workflow, WorkflowPrincipleRef, WorkflowTaskRef
+from api.schemas.base import ConfirmRequest
 from api.schemas.workflow import (
     ReturnRequest,
     WorkflowCreate,
@@ -60,6 +61,8 @@ async def _get_workflow_with_refs(session: AsyncSession, workflow_id: uuid.UUID)
 async def create_workflow(
     body: WorkflowCreate, session: DBSession, user: _Writer
 ) -> WorkflowResponse:
+    await lifecycle.assert_domain_active(body.domain, session)
+    await lifecycle.assert_domain_access(body.domain, user, session)
     workflow = Workflow(
         title=body.title,
         objective=body.objective,
@@ -101,6 +104,8 @@ async def update_workflow(
     if body.objective is not None:
         workflow.objective = body.objective
     if body.domain is not None:
+        await lifecycle.assert_domain_active(body.domain, session)
+        await lifecycle.assert_domain_access(body.domain, user, session)
         workflow.domain = body.domain
     if body.tags is not None:
         workflow.tags = body.tags
@@ -115,6 +120,7 @@ async def submit_workflow(
 ) -> WorkflowResponse:
     workflow = await _get_workflow_with_refs(session, workflow_id)
     lifecycle.assert_can_submit(workflow.status, user)
+    await lifecycle.assert_domain_access(workflow.domain, user, session)
     workflow.status = "submitted"
     workflow.updated_by = user.id
     await session.commit()
@@ -123,11 +129,18 @@ async def submit_workflow(
 
 @router.post("/{workflow_id}/confirm", response_model=WorkflowResponse)
 async def confirm_workflow(
-    workflow_id: uuid.UUID, session: DBSession, user: _Writer
+    workflow_id: uuid.UUID,
+    session: DBSession,
+    user: _Writer,
+    body: ConfirmRequest | None = None,
 ) -> WorkflowResponse:
     workflow = await _get_workflow_with_refs(session, workflow_id)
-    lifecycle.assert_can_confirm(workflow.status, workflow.created_by, user)
+    await lifecycle.assert_domain_access(workflow.domain, user, session)
+    is_break_glass = lifecycle.assert_can_confirm(
+        workflow.status, workflow.created_by, user, body.justification if body else None
+    )
     workflow.status = "confirmed"
+    workflow.self_confirmed_by_admin = is_break_glass
     workflow.reviewed_by = user.id
     workflow.updated_by = user.id
     await session.commit()
@@ -141,6 +154,7 @@ async def return_workflow(
 ) -> WorkflowResponse:
     workflow = await _get_workflow_with_refs(session, workflow_id)
     lifecycle.assert_can_return(workflow.status, user)
+    await lifecycle.assert_domain_access(workflow.domain, user, session)
     workflow.status = "returned"
     if body.note:
         workflow.change_note = body.note
