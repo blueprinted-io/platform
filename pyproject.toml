@@ -1,0 +1,107 @@
+[project]
+name = "blueprinted"
+version = "0.1.0"
+description = "Blueprinted — AI-native knowledge governance platform"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    # Web framework
+    "fastapi==0.115.12",
+    "uvicorn[standard]==0.34.2",
+    # Configuration
+    "pydantic-settings==2.9.1",
+    # Database
+    "sqlalchemy[asyncio]==2.0.41",
+    "alembic==1.15.2",
+    "asyncpg==0.30.0",
+    "psycopg2-binary==2.9.10",
+    # Structured logging
+    "structlog==25.3.0",
+    # Background jobs
+    "arq==0.26.1",
+    "redis==5.2.1",
+    # CLI
+    "typer==0.15.2",
+    # Rate limiting
+    "slowapi==0.1.9",
+    # Security headers
+    "secure==1.0.1",
+    # Async HTTP (ingestion pipeline uses the versioned API)
+    "httpx==0.28.1",
+]
+
+[project.scripts]
+blueprinted = "cli.main:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "pytest==8.3.5",
+    "pytest-asyncio==0.25.3",
+    "pytest-cov==6.1.0",
+    "httpx==0.28.1",
+    "asgi-lifespan==2.1.0",
+    "ruff==0.11.9",
+    "mypy==1.15.0",
+    "pip-audit==2.9.0",
+    # Type stubs
+    "types-redis==4.6.0.20241004",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["api", "cli", "workers", "ingestion"]
+
+# ---------------------------------------------------------------------------
+# Ruff
+# ---------------------------------------------------------------------------
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+    "N",   # pep8-naming
+    "ANN", # flake8-annotations
+    "S",   # flake8-bandit (security)
+    "T20", # flake8-print (no print statements)
+    "RUF", # ruff-specific rules
+]
+ignore = [
+    "S101",   # assert allowed in tests
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["ANN", "S"]
+"migrations/**/*.py" = ["ANN"]
+
+# ---------------------------------------------------------------------------
+# mypy
+# ---------------------------------------------------------------------------
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+# Alembic generates code that doesn't type-check cleanly with strict; exclude it
+exclude = ["migrations/"]
+
+[[tool.mypy.overrides]]
+module = ["arq.*", "slowapi.*", "secure.*"]
+ignore_missing_imports = true
+
+# ---------------------------------------------------------------------------
+# pytest
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+testpaths = ["tests"]

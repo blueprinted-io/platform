@@ -1,0 +1,29 @@
+---
+# Development overrides — applied automatically by docker compose.
+# Not committed to production deployments.
+#
+# Changes from production compose:
+#   - api: mounts source code for live reload
+#   - api: enables --reload flag
+#   - api: exposes port 5678 for debugpy
+#   - auth: disables HTTPS-only cookie restrictions
+
+services:
+  api:
+    command: uvicorn api.main:create_app --factory --host 0.0.0.0 --port 8000 --reload
+    environment:
+      APP_ENV: development
+      LOG_LEVEL: DEBUG
+    volumes:
+      - ../api:/app/api
+      - ../cli:/app/cli
+      - ../workers:/app/workers
+      - ../ingestion:/app/ingestion
+
+  worker:
+    environment:
+      APP_ENV: development
+      LOG_LEVEL: DEBUG
+    volumes:
+      - ../api:/app/api
+      - ../workers:/app/workers
