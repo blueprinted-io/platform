@@ -18,6 +18,7 @@ from typing import Any
 import jwt
 import pytest
 import pytest_asyncio
+import sqlalchemy as sa
 from asgi_lifespan import LifespanManager
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey, RSAPublicKey
@@ -67,6 +68,8 @@ def setup_test_db(test_settings: Settings) -> Generator[None, None, None]:
     async def _create() -> None:
         engine = create_engine(test_settings)
         async with engine.begin() as conn:
+            # pgvector extension must exist before vector(1536) columns are created
+            await conn.execute(sa.text("CREATE EXTENSION IF NOT EXISTS vector"))
             await conn.run_sync(Base.metadata.drop_all)
             await conn.run_sync(Base.metadata.create_all)
         await engine.dispose()

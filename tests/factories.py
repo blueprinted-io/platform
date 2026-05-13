@@ -22,7 +22,9 @@ def fact_payload(**overrides: Any) -> dict[str, Any]:
 def concept_payload(**overrides: Any) -> dict[str, Any]:
     base: dict[str, Any] = {
         "title": "Idempotency",
-        "summary": "An operation that produces the same result regardless of how many times it is applied.",
+        "summary": (
+            "An operation that produces the same result regardless of how many times it is applied."
+        ),
         "explanation": (
             "An idempotent operation is safe to retry. Applying it again after it has "
             "already succeeded leaves the system in the same state as after the first application."
@@ -49,7 +51,9 @@ def principle_payload(**overrides: Any) -> dict[str, Any]:
 def task_payload(**overrides: Any) -> dict[str, Any]:
     base: dict[str, Any] = {
         "title": "Rotate a PostgreSQL superuser password",
-        "outcome": "The superuser password has been changed and all dependent service credentials updated.",
+        "outcome": (
+            "The superuser password has been changed and all dependent service credentials updated."
+        ),
         "procedure_name": "postgres-superuser-rotation",
     }
     base.update(overrides)
@@ -59,7 +63,9 @@ def task_payload(**overrides: Any) -> dict[str, Any]:
 def task_step_payload(**overrides: Any) -> dict[str, Any]:
     base: dict[str, Any] = {
         "step": "Connect to the database as the current superuser",
-        "completion": "You are connected and have verified the current user with SELECT current_user.",
+        "completion": (
+            "You are connected and have verified the current user with SELECT current_user."
+        ),
         "notes": None,
         "irreversible": False,
     }

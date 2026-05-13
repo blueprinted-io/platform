@@ -4,7 +4,7 @@ Spec refs:
   §9.3  Lifecycle state machine (draft → submitted → confirmed → deprecated/retired)
   §9.5  Facts schema (title, body, tags, embedding)
   §10.1 Immutability once confirmed
-  §10.2 No machine can confirm (Sprint 4–9: requiring valid OIDC JWT is sufficient)
+  §10.2 No machine can confirm (Sprint 4-9: requiring valid OIDC JWT is sufficient)
   §5.1  Human roles and the self-review prohibition
 
 Assumptions captured here (flag as TEST_REVISED if Sprint 4 diverges):
@@ -25,7 +25,7 @@ from httpx import AsyncClient
 
 from tests.factories import fact_payload
 
-pytestmark = pytest.mark.skip(reason="Sprint 4: Facts API not yet implemented")
+pytestmark = pytest.mark.asyncio
 
 
 # ---------------------------------------------------------------------------
@@ -136,7 +136,10 @@ async def test_create_fact_response_has_required_fields(
         headers={"Authorization": f"Bearer {token}"},
     )
     body = response.json()
-    required = ("id", "record_id", "version", "status", "title", "body", "tags", "created_at", "updated_at", "created_by")
+    required = (
+        "id", "record_id", "version", "status",
+        "title", "body", "tags", "created_at", "updated_at", "created_by",
+    )
     for field in required:
         assert field in body, f"Missing field: {field}"
 

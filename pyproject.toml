@@ -29,6 +29,8 @@ dependencies = [
     "PyJWT[crypto]==2.10.1",
     # Async HTTP (ingestion pipeline uses the versioned API)
     "httpx==0.28.1",
+    # Vector storage and semantic search
+    "pgvector==0.4.2",
 ]
 
 [project.scripts]
@@ -97,7 +99,7 @@ warn_unused_configs = true
 exclude = ["migrations/"]
 
 [[tool.mypy.overrides]]
-module = ["arq.*", "slowapi.*", "secure.*"]
+module = ["arq.*", "slowapi.*", "secure.*", "pgvector.*"]
 ignore_missing_imports = true
 
 # ---------------------------------------------------------------------------

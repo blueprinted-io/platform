@@ -20,7 +20,7 @@ from httpx import AsyncClient
 
 from tests.factories import concept_payload
 
-pytestmark = pytest.mark.skip(reason="Sprint 4: Concepts API not yet implemented")
+pytestmark = pytest.mark.asyncio
 
 
 # ---------------------------------------------------------------------------
@@ -71,7 +71,10 @@ async def test_create_concept_missing_summary_returns_422(
     token = make_token(roles=["contributor"])
     response = await client.post(
         "/api/v1/concepts",
-        json={"title": "Idempotency", "explanation": "Repeated application has no additional effect."},
+        json={
+            "title": "Idempotency",
+            "explanation": "Repeated application has no additional effect.",
+        },
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 422

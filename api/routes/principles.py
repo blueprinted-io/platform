@@ -1,0 +1,155 @@
+"""Principles API endpoints."""
+
+import uuid
+from typing import Annotated
+
+import structlog
+from fastapi import APIRouter, HTTPException, status
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from api.auth import Role
+from api.dependencies import CurrentUser, DBSession, require_role
+from api.models.principle import Principle
+from api.models.user import User
+from api.schemas.principle import PrincipleCreate, PrincipleResponse, PrincipleUpdate, ReturnRequest
+from api.services import lifecycle
+
+log = structlog.get_logger(__name__)
+
+router = APIRouter(prefix="/principles", tags=["principles"])
+
+_Writer = Annotated[User, require_role(Role.CONTRIBUTOR, Role.ADMIN)]
+_Admin = Annotated[User, require_role(Role.ADMIN)]
+
+
+async def _get_or_404(session: AsyncSession, principle_id: uuid.UUID) -> Principle:
+    result = await session.execute(select(Principle).where(Principle.id == principle_id))
+    principle = result.scalar_one_or_none()
+    if principle is None:
+        raise HTTPException(status_code=404, detail="Principle not found.")
+    return principle
+
+
+@router.post("", response_model=PrincipleResponse, status_code=status.HTTP_201_CREATED)
+async def create_principle(body: PrincipleCreate, session: DBSession, user: _Writer) -> Principle:
+    principle = Principle(
+        title=body.title,
+        summary=body.summary,
+        explanation=body.explanation,
+        analogies=body.analogies,
+        domain=body.domain,
+        tags=body.tags,
+        created_by=user.id,
+        updated_by=user.id,
+    )
+    session.add(principle)
+    await session.commit()
+    await session.refresh(principle)
+    return principle
+
+
+@router.get("", response_model=list[PrincipleResponse])
+async def list_principles(session: DBSession, user: CurrentUser) -> list[Principle]:
+    result = await session.execute(select(Principle).order_by(Principle.created_at.desc()))
+    return list(result.scalars().all())
+
+
+@router.get("/{principle_id}", response_model=PrincipleResponse)
+async def get_principle(
+    principle_id: uuid.UUID, session: DBSession, user: CurrentUser
+) -> Principle:
+    return await _get_or_404(session, principle_id)
+
+
+@router.patch("/{principle_id}", response_model=PrincipleResponse)
+async def update_principle(
+    principle_id: uuid.UUID, body: PrincipleUpdate, session: DBSession, user: _Writer
+) -> Principle:
+    principle = await _get_or_404(session, principle_id)
+    lifecycle.assert_can_edit(principle.status)
+    if body.title is not None:
+        principle.title = body.title
+    if body.summary is not None:
+        principle.summary = body.summary
+    if body.explanation is not None:
+        principle.explanation = body.explanation
+    if body.analogies is not None:
+        principle.analogies = body.analogies
+    if body.domain is not None:
+        principle.domain = body.domain
+    if body.tags is not None:
+        principle.tags = body.tags
+    principle.updated_by = user.id
+    await session.commit()
+    await session.refresh(principle)
+    return principle
+
+
+@router.post("/{principle_id}/submit", response_model=PrincipleResponse)
+async def submit_principle(
+    principle_id: uuid.UUID, session: DBSession, user: _Writer
+) -> Principle:
+    principle = await _get_or_404(session, principle_id)
+    lifecycle.assert_can_submit(principle.status, user)
+    principle.status = "submitted"
+    principle.updated_by = user.id
+    await session.commit()
+    await session.refresh(principle)
+    return principle
+
+
+@router.post("/{principle_id}/confirm", response_model=PrincipleResponse)
+async def confirm_principle(
+    principle_id: uuid.UUID, session: DBSession, user: _Writer
+) -> Principle:
+    principle = await _get_or_404(session, principle_id)
+    lifecycle.assert_can_confirm(principle.status, principle.created_by, user)
+    principle.status = "confirmed"
+    principle.reviewed_by = user.id
+    principle.updated_by = user.id
+    await session.commit()
+    await session.refresh(principle)
+    return principle
+
+
+@router.post("/{principle_id}/return", response_model=PrincipleResponse)
+async def return_principle(
+    principle_id: uuid.UUID, body: ReturnRequest, session: DBSession, user: _Writer
+) -> Principle:
+    principle = await _get_or_404(session, principle_id)
+    lifecycle.assert_can_return(principle.status, user)
+    principle.status = "returned"
+    if body.note:
+        principle.change_note = body.note
+    principle.reviewed_by = user.id
+    principle.updated_by = user.id
+    await session.commit()
+    await session.refresh(principle)
+    return principle
+
+
+@router.post("/{principle_id}/deprecate", response_model=PrincipleResponse)
+async def deprecate_principle(
+    principle_id: uuid.UUID, session: DBSession, user: _Admin
+) -> Principle:
+    principle = await _get_or_404(session, principle_id)
+    lifecycle.assert_can_deprecate(principle.status, user)
+    principle.status = "deprecated"
+    principle.updated_by = user.id
+    await session.commit()
+    await session.refresh(principle)
+    return principle
+
+
+@router.post("/{principle_id}/retire", response_model=PrincipleResponse)
+async def retire_principle(
+    principle_id: uuid.UUID, session: DBSession, user: _Admin
+) -> Principle:
+    principle = await _get_or_404(session, principle_id)
+    lifecycle.assert_can_retire(principle.status, user)
+    principle.status = "retired"
+    principle.updated_by = user.id
+    await session.commit()
+    await session.refresh(principle)
+    return principle

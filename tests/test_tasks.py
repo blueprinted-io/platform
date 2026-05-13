@@ -42,7 +42,7 @@ from tests.factories import (
     task_step_payload,
 )
 
-pytestmark = pytest.mark.skip(reason="Sprint 4: Tasks API not yet implemented")
+pytestmark = pytest.mark.asyncio
 
 
 # ---------------------------------------------------------------------------

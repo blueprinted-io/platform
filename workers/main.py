@@ -18,6 +18,14 @@ from api.logging import configure_logging
 log = structlog.get_logger(__name__)
 
 
+async def generate_embedding(ctx: dict, record_type: str, record_id: str) -> None:  # type: ignore[type-arg]
+    """Triggered on every confirmed state transition (§12.1, §14).
+
+    Sprint 7 replaces this stub with the actual LLM embedding call.
+    """
+    log.info("embedding_job_noop", record_type=record_type, record_id=record_id)
+
+
 async def startup(ctx: dict) -> None:  # type: ignore[type-arg]
     """Worker startup hook — LOAD-BEARING, do not remove (§14).
 
@@ -50,7 +58,7 @@ async def shutdown(ctx: dict) -> None:  # type: ignore[type-arg]
 class WorkerSettings:
     """ARQ worker configuration."""
 
-    functions: ClassVar[list[object]] = []  # Jobs registered from Sprint 4 onwards
+    functions: ClassVar[list[object]] = [generate_embedding]
 
     on_startup = startup
     on_shutdown = shutdown

@@ -20,7 +20,7 @@ from httpx import AsyncClient
 
 from tests.factories import principle_payload
 
-pytestmark = pytest.mark.skip(reason="Sprint 4: Principles API not yet implemented")
+pytestmark = pytest.mark.asyncio
 
 
 # ---------------------------------------------------------------------------
