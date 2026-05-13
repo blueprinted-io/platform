@@ -14,6 +14,7 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import create_engine, pool
 
+import api.models  # noqa: F401 — registers all ORM models in Base.metadata
 from api.database import Base
 
 # Alembic Config object — provides access to .ini file values

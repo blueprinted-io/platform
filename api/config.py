@@ -35,11 +35,18 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
 
     # -----------------------------------------------------------------------
-    # Authentik OIDC (populated in Sprint 2)
+    # Authentik OIDC
     # -----------------------------------------------------------------------
     oidc_issuer: str = ""
     oidc_client_id: str = ""
     oidc_client_secret: SecretStr = SecretStr("")
+    # JWKS URI for RS256 token verification.
+    # Find this in Authentik: Applications → Providers → your provider → "JWKS URL".
+    oidc_jwks_uri: str = ""
+    # Audience claim expected in tokens ("aud"). Set to the Authentik application client ID.
+    oidc_audience: str = ""
+    # JWT claim that carries the user's roles list. Configure in Authentik property mappings.
+    oidc_roles_claim: str = "roles"
 
     # -----------------------------------------------------------------------
     # Storage

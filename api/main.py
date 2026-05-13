@@ -7,11 +7,12 @@ import secure
 import structlog
 from fastapi import FastAPI, Request, Response
 
+from api.auth import TokenVerifier
 from api.config import Settings, get_settings
 from api.database import create_engine, create_session_factory
 from api.logging import configure_logging
 from api.middleware import RequestIDMiddleware
-from api.routes import health
+from api.routes import health, v1
 
 log = structlog.get_logger(__name__)
 
@@ -22,6 +23,19 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     engine = create_engine(settings)
     app.state.engine = engine
     app.state.session_factory = create_session_factory(engine)
+
+    # TokenVerifier is only initialised when OIDC is configured.
+    # Tests replace app.state.token_verifier with a StubTokenVerifier.
+    if settings.oidc_jwks_uri:
+        app.state.token_verifier = TokenVerifier(
+            jwks_uri=settings.oidc_jwks_uri,
+            issuer=settings.oidc_issuer,
+            audience=settings.oidc_audience,
+            roles_claim=settings.oidc_roles_claim,
+        )
+    else:
+        app.state.token_verifier = None
+
     log.info("startup_complete", env=settings.app_env)
     yield
     await engine.dispose()
@@ -58,5 +72,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     # Routes
     app.include_router(health.router)
+    app.include_router(v1.router)
 
     return app

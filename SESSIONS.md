@@ -12,6 +12,63 @@ When starting a new session, paste the most recent entry as context.
 
 ### Completed
 
+- Fixed `deploy/docker-compose.yml`: changed `MINIO_ROOT_PASSWORD` from `:?` (required marker) to `:-changeme` (default) so the storage profile service no longer blocks non-storage startups
+- Created `deploy/authentik/media`, `deploy/authentik/certs`, `deploy/authentik/custom-templates` directories with correct ownership (UID 1000) for the Authentik container
+- Started Authentik stack (`auth`, `auth-db`, `auth-redis`, `auth-worker`) successfully
+- Completed Authentik first-time setup wizard (akadmin account created)
+- Created Authentik groups matching all five Blueprinted roles: `admin`, `contributor`, `content_publisher`, `viewer`, `audit`
+- Created Authentik OAuth2/OpenID provider named `blueprinted` (confidential client, RS256, implicit consent flow)
+- Created Authentik application `blueprinted` linked to the provider
+- Created `blueprinted-roles` scope mapping (expression: `return [group.name for group in request.user.ak_groups.all()]`) and added it to the provider
+- Populated all OIDC env vars in `.env`:
+  - `OIDC_ISSUER=http://192.168.1.82:9000/application/o/blueprinted/`
+  - `OIDC_CLIENT_ID=REDACTED_CLIENT_ID`
+  - `OIDC_CLIENT_SECRET=REDACTED_CLIENT_SECRET`
+  - `OIDC_JWKS_URI=http://192.168.1.82:9000/application/o/blueprinted/jwks/`
+  - `OIDC_AUDIENCE=REDACTED_CLIENT_ID`
+- Verified JWKS endpoint is live and returning an RS256 signing key
+
+### Incomplete or broken
+
+Nothing is incomplete or broken. Sprint 2 (Human Auth) is fully complete including the Authentik browser setup.
+
+### Decisions made
+
+No decisions deviate from the spec.
+
+One infrastructure note that doesn't affect the spec: the `MINIO_ROOT_PASSWORD` required-marker change means the storage service will start with password `changeme` if `--profile storage` is used without setting the env var. Operators should set `MINIO_ROOT_PASSWORD` in `.env` before enabling the storage profile in production.
+
+### TEST_REVISED commits
+
+No test files were modified this session.
+
+### Next session should start from
+
+**Sprint 3** — the first sprint that introduces governed content. Read spec §7 (Facts) and §8 (lifecycle state machine: draft → submitted → confirmed) before starting.
+
+The first task is the Alembic migration and CRUD API for Facts, including:
+- `facts` table with lifecycle state, version, tenant schema awareness
+- `POST /api/v1/facts` (creates draft)
+- `GET /api/v1/facts/{id}`
+- `PATCH /api/v1/facts/{id}` (update draft/submitted)
+- `POST /api/v1/facts/{id}/submit`
+- `POST /api/v1/facts/{id}/confirm` — must reject non-human credentials (§5 absolute rule)
+
+The Blueprinted API is not yet running as a service — the Docker Compose stack only has Authentik + Postgres + Redis. Sprint 3 should also wire up the app service in `docker-compose.yml` if end-to-end smoke testing is wanted.
+
+### Watch out for
+
+- The `.env` contains real credentials (OIDC client secret, Authentik DB password, etc). It is gitignored — confirm before any `git add .`
+- The `OIDC_*` env vars use the host IP `192.168.1.82`. If the machine IP changes or the API runs inside Docker (where `192.168.1.82` may not resolve correctly), the JWKS URI and issuer will need updating. When the API is containerised, consider using the Docker service name `auth` internally.
+- The `blueprinted-roles` scope must be explicitly requested by OAuth2 clients (`scope=openid email roles`) for the `roles` claim to appear in tokens. It will not appear in tokens that only request `openid email`.
+- Multi-tenancy (schema-per-tenant, §11) is not yet implemented. Sprint 3 facts work should not assume it is in place, but should be designed to accommodate it — don't hardcode `public` schema.
+
+---
+
+## Session Close-Out — 2026-05-13
+
+### Completed
+
 - **Tooling audit** — confirmed uv 0.11.14, Docker 29.4.3, Docker Compose v5.1.3, Python 3.10 system / 3.12 via uv are all present and working
 - **`pyproject.toml`** — Python 3.12, all production and dev dependencies pinned, Ruff config, mypy strict config, pytest config, `blueprinted` CLI entry point
 - **`api/`** — `config.py` (Pydantic `BaseSettings`), `logging.py` (structlog JSON, secret redaction), `middleware.py` (request ID, structlog context binding), `database.py` (async SQLAlchemy engine + session factory), `dependencies.py` (`DBSession` annotated type), `main.py` (app factory, lifespan, secure.py headers), `routes/health.py` (`GET /healthz`)

@@ -25,6 +25,8 @@ dependencies = [
     "slowapi==0.1.9",
     # Security headers
     "secure==1.0.1",
+    # JWT verification (RS256 via OIDC)
+    "PyJWT[crypto]==2.10.1",
     # Async HTTP (ingestion pipeline uses the versioned API)
     "httpx==0.28.1",
 ]
