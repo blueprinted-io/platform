@@ -118,6 +118,11 @@ _CONTRIBUTOR_SUBS: list[str] = [
     "self-wf-001",
     "author-wf-immut-002", "reviewer-wf-immut-002",
     "author-wf-ret-001", "reviewer-wf-ret-001",
+    # Sprint 5 — review queue and claiming tests
+    "author-rv-001",
+    "reviewer-rv-001",
+    "claimer-rv-001",
+    "self-rv-001",
 ]
 
 

@@ -3,6 +3,7 @@ from api.models.concept import Concept  # noqa: F401
 from api.models.domain import Domain, UserDomain  # noqa: F401
 from api.models.fact import Fact  # noqa: F401
 from api.models.principle import Principle  # noqa: F401
+from api.models.review_claim import ReviewClaim  # noqa: F401
 from api.models.task import (  # noqa: F401
     Task,
     TaskConceptRef,
