@@ -12,6 +12,68 @@ When starting a new session, paste the most recent entry as context.
 
 ### Completed
 
+- **Domain enforcement (§7.3)** fully implemented across all domain-scoped record types:
+  - `api/models/domain.py`: `Domain` and `UserDomain` ORM models
+  - `api/models/__init__.py`: domain models imported so Alembic and `Base.metadata` see them
+  - `api/models/base.py`: added `self_confirmed_by_admin` to shared lifecycle mixin
+  - `api/models/task.py`, `workflow.py`, `principle.py`: `domain` changed from `Mapped[str | None]` (nullable) to `Mapped[str]` (NOT NULL)
+  - `api/services/lifecycle.py`: added `assert_domain_active`, `assert_domain_access`; `assert_can_confirm` now returns `bool` (break-glass flag) and requires `justification` for admin self-confirms
+  - `api/routes/tasks.py`, `workflows.py`: domain enforcement on create, update (domain change only), submit, confirm, return
+  - `api/routes/principles.py`: already had domain enforcement; updated `ConfirmRequest | None` fix
+  - `api/routes/facts.py`, `concepts.py`: added `ConfirmRequest` import and optional body to confirm endpoint; set `self_confirmed_by_admin`
+  - `api/schemas/base.py`: `ConfirmRequest` model and `self_confirmed_by_admin` field on `LifecycleResponse`
+  - `api/schemas/principle.py`, `task.py`, `workflow.py`: `domain` field made required (not optional)
+  - Migration `20260513_d6e7f8a9b0c1`: creates `domains` and `user_domains` tables; adds `self_confirmed_by_admin` to all governed tables; backfills and makes `domain` NOT NULL on domain-scoped tables
+
+- **Spec updated** (5 changes: §5, §5.1, §7.1–7.5 inserted, §9.2, §9.5, §25)
+
+- **Test infrastructure**: `tests/conftest.py` `setup_test_domain_and_users` fixture pre-seeds `test-domain` and all known contributor users with domain assignments. `tests/factories.py` adds `domain="test-domain"` defaults to `principle_payload`, `task_payload`, `workflow_payload`.
+
+- All changes committed as `a8d5919`. **119 tests passing, mypy clean, ruff clean.**
+
+### Incomplete or broken
+
+Nothing incomplete or broken.
+
+### Decisions made
+
+All decisions were already captured in the spec during this session (§25 decision log). No additional deviations.
+
+- `ConfirmRequest | None = None` used instead of `ConfirmRequest = ConfirmRequest()` — ruff B008 fires on function calls in default arguments. Using `None` with inline `body.justification if body else None` is the idiomatic fix. Spec does not need updating (implementation detail).
+
+### TEST_REVISED commits
+
+Commit `a8d5919` modifies the following test files:
+
+- **`tests/test_facts.py`**: `test_admin_can_confirm_own_fact` — added `json={"justification": "Admin break-glass confirm for test."}` to confirm POST. `test_retire_confirmed_fact_transitions_to_retired` — same fix (admin-rtire-001 self-confirms, was not in the original list but is the same pattern).
+- **`tests/test_concepts.py`**: `test_deprecate_concept_admin_only` — same justification fix.
+- **`tests/test_principles.py`**: `test_deprecate_principle_admin_only` — same justification fix. `test_create_principle_with_domain` — changed `domain="DevOps"` to `domain="test-domain"` because "DevOps" is not a registered domain under the new domain enforcement rules (§7.3).
+- **`tests/test_tasks.py`**: `test_deprecate_task_admin_only` — justification fix.
+- **`tests/test_workflows.py`**: `test_deprecate_workflow_admin_only` — justification fix.
+
+All TEST_REVISED changes authorised by user ("Confirmed on both counts" earlier, plus explicit approval for the `test_create_principle_with_domain` change during this session).
+
+### Next session should start from
+
+**Sprint 5**: the next sprint in the roadmap. Read `docs/requirements.md` §10–§12 (embedding generation, vector search) and §14 (ARQ worker) before starting. The sprint will likely introduce the ARQ background worker, embedding generation on confirm transitions, and the similarity search endpoints.
+
+Context that won't be obvious from the code:
+- The `domains` and `user_domains` tables exist but there is **no admin API** for managing them (§7.5 was explicitly deferred). The test suite bypasses this by inserting directly. Any sprint that needs a management API should revisit §7.5.
+- The migration `20260513_d6e7f8a9b0c1` needs to be run against any non-test database. The `domain` column on tasks/workflows/principles is now NOT NULL with no application default — any existing rows would have been backfilled with `'unknown'` by the migration.
+
+### Watch out for
+
+- `assert_can_return` in `lifecycle.py` does **not** enforce self-review prohibition (contributors can return their own submissions). This is spec-correct — only `confirm` has the prohibition. Don't add it.
+- The `ConfirmRequest` body is `| None` in all confirm endpoints. FastAPI treats an absent body and a body of `{}` identically (both result in `ConfirmRequest(justification=None)`). This is intentional.
+- The `setup_test_domain_and_users` conftest fixture uses `uuid.uuid5(_SYSTEM_USER_ID, sub)` to generate deterministic UUIDs for pre-seeded users. When `get_current_user` upserts on first request, it finds the user by `sub` and updates without changing the UUID — so `user_domains` continues to resolve.
+- The "event loop closed" error in test teardown (visible in some failure traces) is a known asyncpg/asgi-lifespan interaction on test teardown. It does not affect correctness and was present before this session.
+
+---
+
+## Session Close-Out — 2026-05-13
+
+### Completed
+
 - **ORM models**: `LifecycleMixin` (shared identity + lifecycle columns, FK columns via `@declared_attr`); `Fact`, `Concept`, `Principle`, `Task` (with `TaskStep`, `TaskStepAction`, `TaskFactRef`, `TaskConceptRef`, `TaskStepScreenshot`), `Workflow` (with `WorkflowTaskRef`, `WorkflowPrincipleRef`). pgvector `Vector(1536)` embedding column on all five governed record types.
 - **Alembic migration** `20260513_b4c5d6e7f8a9`: Creates all 14 tables. Uses `_lifecycle_cols()` factory function to produce fresh `ForeignKey` instances per `create_table` call. Creates pgvector extension. Includes stub `relationships` and `review_claims` tables for v1.1 readiness.
 - **Pydantic schemas**: `LifecycleResponse` base; full create/update/response schemas for all five record types. `TaskResponse.irreversible` computed via `@computed_field` from steps at serialisation time. Server-managed flags (`has_deprecated_fact_ref`, `has_deprecated_concept_ref`, `has_incoming_task_change`, `has_pending_task_confirm`) are response-only — not accepted in request bodies.
