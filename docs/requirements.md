@@ -186,7 +186,7 @@ Machine auth is implemented in Sprint 10 alongside the CLI and admin tooling it 
 | OIDC client credentials | For long-running agent processes. Client ID and secret registered in Authentik. |
 | Scoped API keys | For short-lived integrations and operator scripts. Managed via Admin UI and CLI. |
 
-The no-machine-can-confirm constraint is implemented in Sprint 4 as a property of the confirm endpoints. It does not wait for Sprint 10.
+**No-machine-can-confirm enforcement approach (decided Sprint 3):** The rule is absolute and permanent, but the *mechanical enforcement* is phased. In Sprints 4–9, confirm endpoints require a valid human OIDC JWT. Since machine credentials do not exist before Sprint 10, this is sufficient — there is nothing else to reject. In Sprint 10, when machine credentials are introduced, the confirm endpoints gain an explicit check that rejects them. The rule is not weakened between sprints; the threat model simply does not yet have the credential type that the check guards against.
 
 ---
 

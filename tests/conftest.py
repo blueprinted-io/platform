@@ -38,7 +38,12 @@ TEST_AUDIENCE = "blueprinted-test"
 
 @pytest.fixture(scope="session")
 def test_settings() -> Settings:
+    # _env_file=None prevents pydantic-settings from reading the project .env,
+    # which contains Docker Compose keys (AUTHENTIK_*, API_PORT, etc.) that are
+    # not in the Settings model. Settings uses extra="forbid", so those keys
+    # would cause a ValidationError. Tests supply all required values explicitly.
     return Settings(
+        _env_file=None,  # type: ignore[call-arg]
         app_env="test",
         database_url="postgresql+asyncpg://blueprinted:blueprinted@localhost:5432/blueprinted_test",
         database_url_sync="postgresql+psycopg2://blueprinted:blueprinted@localhost:5432/blueprinted_test",

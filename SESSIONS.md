@@ -12,6 +12,56 @@ When starting a new session, paste the most recent entry as context.
 
 ### Completed
 
+- **`docs/requirements.md` §5.3 updated** — documented the phased enforcement decision for the no-machine-can-confirm rule: Sprints 4–9 enforce it by requiring a valid human OIDC JWT (sufficient because machine credentials don't exist yet); Sprint 10 adds the explicit machine-credential rejection check when machine auth is introduced
+- **`CLAUDE.md` updated** — same decision captured in standing rules so it doesn't surface as a planning question in every sprint between now and Sprint 10
+- **`tests/factories.py` created** — minimal valid payload helpers for all five governed record types (Fact, Concept, Task, Principle, Workflow)
+- **`tests/test_facts.py` created** — 37 tests covering the full lifecycle: create draft, read, update, submit, confirm, self-review prohibition, admin break-glass, immutability after confirm, return/resubmit path, deprecate, retire; all roles tested; all skipped pending Sprint 4
+- **`tests/test_concepts.py` created** — 20 tests; full lifecycle + Concept-specific fields (summary, explanation, analogies); skipped pending Sprint 4
+- **`tests/test_tasks.py` created** — 22 tests; lifecycle + steps (add, update, delete, irreversible derivation), fact-refs and concept-refs (confirmed-only constraint, blocked on confirmed task); skipped pending Sprint 4
+- **`tests/test_principles.py` created** — 15 tests; lifecycle + domain field; skipped pending Sprint 4
+- **`tests/test_workflows.py` created** — 20 tests; lifecycle + task-refs (confirmed-only constraint) + principle-refs (confirmed-only constraint); skipped pending Sprint 4
+- **`tests/conftest.py` patched** — added `_env_file=None` to `test_settings` fixture to prevent pydantic-settings from reading the project `.env`, which contains Docker Compose keys (`AUTHENTIK_*`, `API_PORT`, etc.) that `Settings` rejects with `extra="forbid"`; comment explains why
+
+### Incomplete or broken
+
+Nothing incomplete or broken. 104 new tests collect and skip cleanly. Remaining test errors when running locally are `ConnectionRefusedError` from no database running — expected, CI has Postgres as a service.
+
+### Decisions made
+
+**No-machine-can-confirm enforcement is phased (extends spec §5.3):** The rule is absolute, but the mechanical check is deferred. Sprints 4–9: confirm endpoints require a valid human OIDC JWT, which is sufficient as machine credentials don't exist. Sprint 10: explicit machine-credential rejection added. Spec updated in §5.3 and CLAUDE.md — no further action needed.
+
+**API path assumptions documented in test files:** Tests assume `/api/v1/{record-type}` REST paths, `{id}` as version-specific UUID, sub-resources at `/{id}/steps`, `/{id}/fact-refs`, `/{id}/concept-refs`, `/{id}/task-refs`, `/{id}/principle-refs`. If Sprint 4 diverges on any path, those tests need `TEST_REVISED` commits.
+
+### TEST_REVISED commits
+
+No existing test files were modified. All new test files were written from scratch.
+
+### Next session should start from
+
+**Sprint 4 — Core Data Model and Lifecycle API** (spec §9, §10, §5.1, §18).
+
+Read before starting:
+- §9.1–9.3 — shared identity pattern, lifecycle fields, state machine
+- §9.5 — schema for whichever record type you're implementing first (Facts recommended — simplest, no sub-resources)
+- §10.1–10.2 — immutability and no-machine-can-confirm rules
+- §18.1 — Alembic multi-tenant migration pattern
+
+First task: write the Alembic migration for the core schema — `facts`, `concepts`, `principles`, `tasks`, `task_steps`, `task_step_actions`, `task_fact_refs`, `task_concept_refs`, `workflows`, `workflow_task_refs`, `workflow_principle_refs`, plus the shared identity/lifecycle columns on each. Then wire up the Facts API and un-skip `tests/test_facts.py` as tests pass.
+
+The recommended order: migration → Facts API → Concepts API → Principles API → Tasks API → Workflows API. Facts and Concepts share the same pattern; do Facts first and Concepts will be fast. Tasks are the most complex (steps, refs, irreversible derivation). Workflows depend on Tasks and Principles being confirmable first.
+
+### Watch out for
+
+- **Sprint 4 is rated Low confidence** — re-read the relevant spec sections and identify the first three things that could go wrong before writing any code (per the sprint overview guidance for low-confidence sprints)
+- **App service not yet in Docker Compose** — the stack only has Postgres, Redis, and Authentik. To run end-to-end smoke tests locally, the `api` service needs to be added to `deploy/docker-compose.yml`. The Sprint 1 `Dockerfile` and entrypoint exist; it just hasn't been wired into Compose yet
+- **Multi-tenancy not yet implemented** — the migration must not hardcode `public` schema; the Alembic `env.py` already has a multi-tenant stub (§18) — follow that pattern
+- **`pgvector` extension** — the embedding column (`vector(1536)`) requires the pgvector extension to be enabled in the migration before the column can be created. The `db` service in Docker Compose uses the `pgvector/pgvector:pg16` image which has the extension available but it must be explicitly enabled with `CREATE EXTENSION IF NOT EXISTS vector`
+- **Test API path assumptions** — if Sprint 4 uses different URL structures than assumed in the Sprint 3 tests (e.g. `/api/v1/facts/{record_id}` instead of `/{id}`), those tests need `TEST_REVISED` commits with rationale before being un-skipped
+
+## Session Close-Out — 2026-05-13
+
+### Completed
+
 - Fixed `deploy/docker-compose.yml`: changed `MINIO_ROOT_PASSWORD` from `:?` (required marker) to `:-changeme` (default) so the storage profile service no longer blocks non-storage startups
 - Created `deploy/authentik/media`, `deploy/authentik/certs`, `deploy/authentik/custom-templates` directories with correct ownership (UID 1000) for the Authentik container
 - Started Authentik stack (`auth`, `auth-db`, `auth-redis`, `auth-worker`) successfully

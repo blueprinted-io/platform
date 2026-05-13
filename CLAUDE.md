@@ -91,8 +91,12 @@ access except the core FastAPI service. No exceptions.
 The state transition from `submitted` to `confirmed` on any governed record (Fact,
 Concept, Task, Workflow, Principle) cannot be performed by any automated process, agent
 credential, API key, or background job. Confirm endpoints reject all non-human credentials
-at the API layer regardless of scope. This constraint is enforced from Sprint 4 and does
-not wait for machine auth to exist.
+at the API layer regardless of scope.
+
+**Enforcement is phased (decided Sprint 3):** In Sprints 4–9, confirm endpoints require
+a valid human OIDC JWT. Machine credentials don't exist before Sprint 10, so this is
+sufficient. In Sprint 10, an explicit machine-credential rejection check is added. Do
+not add that check earlier and do not flag the absence of it as a gap — it is intentional.
 
 Background jobs (embedding generation, flag propagation) may write to confirmed records
 but cannot perform the state transition.
