@@ -34,6 +34,8 @@ dependencies = [
     # PDF extraction (§11.9, §4.1) — AGPL3, see operator deployment notes
     "pymupdf==1.25.5",
     "python-multipart==0.0.20",
+    # HTML rendering (§11.10, §4.1) — requires `playwright install chromium` post-install
+    "playwright==1.48.0",
 ]
 
 [project.scripts]
@@ -105,7 +107,7 @@ warn_unused_configs = true
 exclude = ["migrations/"]
 
 [[tool.mypy.overrides]]
-module = ["arq.*", "slowapi.*", "secure.*", "pgvector.*", "fitz.*"]
+module = ["arq.*", "slowapi.*", "secure.*", "pgvector.*", "fitz.*", "playwright.*"]
 ignore_missing_imports = true
 
 # ---------------------------------------------------------------------------

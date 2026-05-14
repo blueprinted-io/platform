@@ -5,6 +5,9 @@ Spec refs:
   §11.5  Section selection screen
   §11.8  Candidate review and commit
   §11.9  PDF ingestion: dedup, chunking, scanned-PDF rejection
+  §11.10 HTML ingestion: single-page and site-nav modes
+  §11.11 Nav discovery and selection
+  §11.12 JSON ingestion: bypass chunking, direct candidates
 
 Behaviour covered:
   - Auth: unauthenticated → 401; viewer → 403 for upload and select
@@ -16,6 +19,9 @@ Behaviour covered:
   - Select: rejects non-ready ingestion statuses; empty chunk_ids → 422
   - Select: queues only pending chunks; others are skipped
   - Candidates: list, accept, discard, commit as task or principle
+  - HTML: URL validation, dedup, job enqueued, force bypass
+  - HTML nav: list nav pages, select nav pages, non-HTML ingestion rejected
+  - JSON: schema_version validation, item validation, dedup, candidates created
 
 Test users (pre-seeded in tests/conftest.py):
   author-ing-001 — contributor, used for all ingestion tests
@@ -910,3 +916,578 @@ async def test_commit_unassigned_domain_returns_403(
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 403
+
+
+# ---------------------------------------------------------------------------
+# HTML ingestion (§11.10)
+# ---------------------------------------------------------------------------
+
+
+async def test_html_ingestion_unauthenticated_returns_401(client: AsyncClient) -> None:
+    response = await client.post(
+        "/api/v1/ingestions/html",
+        json={"url": "https://example.com"},
+    )
+    assert response.status_code == 401
+
+
+async def test_html_ingestion_viewer_returns_403(
+    client: AsyncClient, make_token: Callable[..., str]
+) -> None:
+    token = make_token(roles=["viewer"])
+    response = await client.post(
+        "/api/v1/ingestions/html",
+        json={"url": "https://example.com"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 403
+
+
+async def test_html_ingestion_invalid_scheme_returns_422(
+    client: AsyncClient, make_token: Callable[..., str]
+) -> None:
+    token = make_token(sub="author-ing-001", roles=["contributor"])
+    response = await client.post(
+        "/api/v1/ingestions/html",
+        json={"url": "ftp://example.com/page"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 422
+
+
+async def test_html_ingestion_creates_ingestion_and_enqueues_job(
+    client: AsyncClient, make_token: Callable[..., str]
+) -> None:
+    StubArqPool.enqueued.clear()
+    token = make_token(sub="author-ing-001", roles=["contributor"])
+    response = await client.post(
+        "/api/v1/ingestions/html",
+        json={"url": "https://html-test-unique-01.example.com/"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 201
+    body = response.json()
+    assert body["source_type"] == "html"
+    assert body["status"] == "pending"
+    assert body["source_url"] == "https://html-test-unique-01.example.com/"
+    ingestion_id = body["id"]
+
+    jobs = [j for j in StubArqPool.enqueued if j[0] == "crawl_html"]
+    assert any(j[1].get("ingestion_id") == ingestion_id for j in jobs)
+
+
+async def test_html_ingestion_dedup_returns_existing(
+    client: AsyncClient, make_token: Callable[..., str]
+) -> None:
+    """Second POST with same URL returns the existing ingestion."""
+    token = make_token(sub="author-ing-001", roles=["contributor"])
+    url = "https://html-dedup-unique.example.com/"
+    r1 = await client.post(
+        "/api/v1/ingestions/html",
+        json={"url": url},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert r1.status_code == 201
+    original_id = r1.json()["id"]
+
+    r2 = await client.post(
+        "/api/v1/ingestions/html",
+        json={"url": url},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert r2.json()["id"] == original_id
+
+
+async def test_html_ingestion_force_creates_new(
+    client: AsyncClient, make_token: Callable[..., str]
+) -> None:
+    """force=true bypasses dedup and creates a new ingestion record."""
+    token = make_token(sub="author-ing-001", roles=["contributor"])
+    url = "https://html-force-unique.example.com/"
+    r1 = await client.post(
+        "/api/v1/ingestions/html",
+        json={"url": url},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert r1.status_code == 201
+    original_id = r1.json()["id"]
+
+    r2 = await client.post(
+        "/api/v1/ingestions/html",
+        json={"url": url, "force": True},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert r2.status_code == 201
+    assert r2.json()["id"] != original_id
+
+
+async def test_html_ingestion_sitenav_mode_enqueues_with_mode(
+    client: AsyncClient, make_token: Callable[..., str]
+) -> None:
+    StubArqPool.enqueued.clear()
+    token = make_token(sub="author-ing-001", roles=["contributor"])
+    response = await client.post(
+        "/api/v1/ingestions/html",
+        json={"url": "https://html-sitenav-unique.example.com/", "mode": "site-nav"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 201
+    ingestion_id = response.json()["id"]
+    jobs = [j for j in StubArqPool.enqueued if j[0] == "crawl_html"]
+    matching = [j for j in jobs if j[1].get("ingestion_id") == ingestion_id]
+    assert matching
+    assert matching[0][1]["mode"] == "site-nav"
+
+
+# ---------------------------------------------------------------------------
+# Nav page listing and selection (§11.11)
+# ---------------------------------------------------------------------------
+
+
+async def _seed_html_ingestion(
+    test_settings: Settings,
+    ingestion_id: uuid.UUID,
+    user_id: uuid.UUID = _AUTHOR_ING_001_ID,
+    status: str = "ready",
+) -> None:
+    """Insert a minimal HTML ingestion row."""
+    engine = create_engine(test_settings)
+    async with engine.begin() as conn:
+        await conn.execute(
+            sa.text("""
+                INSERT INTO ingestions (id, source_type, status, created_by, source_url)
+                VALUES (:id, 'html', :status, :uid, 'https://example.com/')
+                ON CONFLICT DO NOTHING
+            """),
+            {"id": ingestion_id, "status": status, "uid": user_id},
+        )
+    await engine.dispose()
+
+
+async def _seed_nav_page(
+    test_settings: Settings,
+    nav_page_id: uuid.UUID,
+    ingestion_id: uuid.UUID,
+    nav_status: str = "pending",
+) -> None:
+    """Insert a minimal ingestion_nav_pages row."""
+    engine = create_engine(test_settings)
+    async with engine.begin() as conn:
+        await conn.execute(
+            sa.text("""
+                INSERT INTO ingestion_nav_pages
+                  (id, ingestion_id, url, nav_level, nav_status, chunk_count)
+                VALUES (:id, :iid, 'https://example.com/page', 1, :status, 0)
+                ON CONFLICT DO NOTHING
+            """),
+            {"id": nav_page_id, "iid": ingestion_id, "status": nav_status},
+        )
+    await engine.dispose()
+
+
+async def test_list_nav_pages_viewer_returns_403(
+    client: AsyncClient, make_token: Callable[..., str]
+) -> None:
+    token = make_token(roles=["viewer"])
+    response = await client.get(
+        f"/api/v1/ingestions/{uuid.uuid4()}/nav-pages",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 403
+
+
+async def test_list_nav_pages_not_found_returns_404(
+    client: AsyncClient, make_token: Callable[..., str]
+) -> None:
+    token = make_token(sub="author-ing-001", roles=["contributor"])
+    response = await client.get(
+        f"/api/v1/ingestions/{uuid.uuid4()}/nav-pages",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 404
+
+
+async def test_list_nav_pages_pdf_ingestion_returns_422(
+    client: AsyncClient,
+    make_token: Callable[..., str],
+    test_settings: Settings,
+) -> None:
+    """Nav pages endpoint rejects non-HTML ingestions."""
+    ingestion_id = uuid.uuid4()
+    await _seed_ingestion(test_settings, ingestion_id)  # PDF ingestion
+
+    token = make_token(sub="author-ing-001", roles=["contributor"])
+    response = await client.get(
+        f"/api/v1/ingestions/{ingestion_id}/nav-pages",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 422
+
+
+async def test_list_nav_pages_returns_pages(
+    client: AsyncClient,
+    make_token: Callable[..., str],
+    test_settings: Settings,
+) -> None:
+    ingestion_id = uuid.uuid4()
+    nav_page_id = uuid.uuid4()
+    await _seed_html_ingestion(test_settings, ingestion_id)
+    await _seed_nav_page(test_settings, nav_page_id, ingestion_id)
+
+    token = make_token(sub="author-ing-001", roles=["contributor"])
+    response = await client.get(
+        f"/api/v1/ingestions/{ingestion_id}/nav-pages",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert isinstance(body, list)
+    assert any(p["id"] == str(nav_page_id) for p in body)
+
+
+async def test_nav_select_empty_ids_returns_422(
+    client: AsyncClient,
+    make_token: Callable[..., str],
+    test_settings: Settings,
+) -> None:
+    ingestion_id = uuid.uuid4()
+    await _seed_html_ingestion(test_settings, ingestion_id)
+
+    token = make_token(sub="author-ing-001", roles=["contributor"])
+    response = await client.post(
+        f"/api/v1/ingestions/{ingestion_id}/nav-select",
+        json={"nav_page_ids": []},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 422
+
+
+async def test_nav_select_pdf_ingestion_returns_422(
+    client: AsyncClient,
+    make_token: Callable[..., str],
+    test_settings: Settings,
+) -> None:
+    ingestion_id = uuid.uuid4()
+    await _seed_ingestion(test_settings, ingestion_id)
+
+    token = make_token(sub="author-ing-001", roles=["contributor"])
+    response = await client.post(
+        f"/api/v1/ingestions/{ingestion_id}/nav-select",
+        json={"nav_page_ids": [str(uuid.uuid4())]},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 422
+
+
+async def test_nav_select_non_ready_ingestion_returns_422(
+    client: AsyncClient,
+    make_token: Callable[..., str],
+    test_settings: Settings,
+) -> None:
+    ingestion_id = uuid.uuid4()
+    await _seed_html_ingestion(test_settings, ingestion_id, status="pending")
+
+    token = make_token(sub="author-ing-001", roles=["contributor"])
+    response = await client.post(
+        f"/api/v1/ingestions/{ingestion_id}/nav-select",
+        json={"nav_page_ids": [str(uuid.uuid4())]},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 422
+    assert "pending" in response.json()["detail"]
+
+
+async def test_nav_select_queues_pending_pages_and_enqueues_job(
+    client: AsyncClient,
+    make_token: Callable[..., str],
+    test_settings: Settings,
+) -> None:
+    ingestion_id = uuid.uuid4()
+    nav_page_id = uuid.uuid4()
+    await _seed_html_ingestion(test_settings, ingestion_id)
+    await _seed_nav_page(test_settings, nav_page_id, ingestion_id)
+
+    StubArqPool.enqueued.clear()
+    token = make_token(sub="author-ing-001", roles=["contributor"])
+    response = await client.post(
+        f"/api/v1/ingestions/{ingestion_id}/nav-select",
+        json={"nav_page_ids": [str(nav_page_id)]},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["queued_count"] == 1
+    assert body["ingestion_id"] == str(ingestion_id)
+
+    jobs = [j for j in StubArqPool.enqueued if j[0] == "render_nav_pages"]
+    assert any(j[1].get("ingestion_id") == str(ingestion_id) for j in jobs)
+
+
+async def test_nav_select_already_selected_page_is_skipped(
+    client: AsyncClient,
+    make_token: Callable[..., str],
+    test_settings: Settings,
+) -> None:
+    """A page already in selected status is not re-queued."""
+    ingestion_id = uuid.uuid4()
+    nav_page_id = uuid.uuid4()
+    await _seed_html_ingestion(test_settings, ingestion_id)
+    await _seed_nav_page(test_settings, nav_page_id, ingestion_id, nav_status="selected")
+
+    token = make_token(sub="author-ing-001", roles=["contributor"])
+    response = await client.post(
+        f"/api/v1/ingestions/{ingestion_id}/nav-select",
+        json={"nav_page_ids": [str(nav_page_id)]},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 200
+    assert response.json()["queued_count"] == 0
+
+
+# ---------------------------------------------------------------------------
+# JSON ingestion (§11.12)
+# ---------------------------------------------------------------------------
+
+_VALID_JSON_TASK = {
+    "type": "task",
+    "title": "Configure SSH key authentication",
+    "outcome": "SSH key authentication is configured and active.",
+    "software_name": "OpenSSH",
+    "software_version": "8.9",
+    "procedure_name": "ssh-key-auth-setup",
+    "domain": "test-domain",
+    "facts": ["SSH uses port 22 by default"],
+    "concepts": ["Public key cryptography"],
+    "dependencies": ["SSH server must be running"],
+    "irreversible": False,
+    "task_order": [],
+    "steps": [
+        {
+            "id": "S001",
+            "text": "Generate an SSH key pair",
+            "completion": "id_rsa and id_rsa.pub present in ~/.ssh/",
+            "actions": ["ssh-keygen -t rsa -b 4096"],
+            "notes": None,
+        }
+    ],
+}
+
+_VALID_JSON_PRINCIPLE = {
+    "type": "principle",
+    "title": "Fail securely",
+    "summary": "Errors should default to a safe state.",
+    "explanation": "When a system fails, it should deny access rather than grant it.",
+    "analogies": "Like a door that locks rather than unlocks on power failure.",
+    "software_name": None,
+    "software_version": None,
+    "domain": "test-domain",
+}
+
+_VALID_JSON_PAYLOAD = {
+    "schema_version": "1.0",
+    "items": [_VALID_JSON_TASK],
+}
+
+
+async def test_json_ingestion_unauthenticated_returns_401(client: AsyncClient) -> None:
+    response = await client.post(
+        "/api/v1/ingestions/json",
+        json=_VALID_JSON_PAYLOAD,
+    )
+    assert response.status_code == 401
+
+
+async def test_json_ingestion_viewer_returns_403(
+    client: AsyncClient, make_token: Callable[..., str]
+) -> None:
+    token = make_token(roles=["viewer"])
+    response = await client.post(
+        "/api/v1/ingestions/json",
+        json=_VALID_JSON_PAYLOAD,
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 403
+
+
+async def test_json_ingestion_invalid_schema_version_returns_422(
+    client: AsyncClient, make_token: Callable[..., str]
+) -> None:
+    token = make_token(sub="author-ing-001", roles=["contributor"])
+    payload = {**_VALID_JSON_PAYLOAD, "schema_version": "2.0"}
+    response = await client.post(
+        "/api/v1/ingestions/json",
+        json=payload,
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 422
+
+
+async def test_json_ingestion_empty_items_returns_422(
+    client: AsyncClient, make_token: Callable[..., str]
+) -> None:
+    token = make_token(sub="author-ing-001", roles=["contributor"])
+    payload = {"schema_version": "1.0", "items": []}
+    response = await client.post(
+        "/api/v1/ingestions/json",
+        json=payload,
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 422
+
+
+async def test_json_ingestion_task_missing_field_returns_422(
+    client: AsyncClient, make_token: Callable[..., str]
+) -> None:
+    """A task item missing a required field is rejected with 422."""
+    bad_task = {k: v for k, v in _VALID_JSON_TASK.items() if k != "outcome"}
+    token = make_token(sub="author-ing-001", roles=["contributor"])
+    response = await client.post(
+        "/api/v1/ingestions/json",
+        json={"schema_version": "1.0", "items": [bad_task]},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 422
+
+
+async def test_json_ingestion_task_empty_steps_returns_422(
+    client: AsyncClient, make_token: Callable[..., str]
+) -> None:
+    bad_task = {**_VALID_JSON_TASK, "steps": []}
+    token = make_token(sub="author-ing-001", roles=["contributor"])
+    response = await client.post(
+        "/api/v1/ingestions/json",
+        json={"schema_version": "1.0", "items": [bad_task]},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 422
+
+
+async def test_json_ingestion_creates_ingestion_ready_with_candidates(
+    client: AsyncClient, make_token: Callable[..., str]
+) -> None:
+    """Valid JSON payload creates ingestion in ready status with candidates immediately."""
+    # Unique payload to avoid dedup with other tests.
+    payload = {
+        "schema_version": "1.0",
+        "items": [{**_VALID_JSON_TASK, "title": "JSON ingestion test unique title A"}],
+    }
+    token = make_token(sub="author-ing-001", roles=["contributor"])
+    response = await client.post(
+        "/api/v1/ingestions/json",
+        json=payload,
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 201
+    body = response.json()
+    assert body["source_type"] == "json"
+    assert body["status"] == "ready"
+    assert body["chunk_count"] == 0
+    ingestion_id = body["id"]
+
+    # Candidates should be immediately queryable.
+    cand_response = await client.get(
+        f"/api/v1/ingestions/{ingestion_id}/candidates",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert cand_response.status_code == 200
+    candidates = cand_response.json()
+    assert len(candidates) == 1
+    assert candidates[0]["record_type"] == "task"
+    assert candidates[0]["candidate_status"] == "pending"
+    assert candidates[0]["chunk_id"] is None
+
+
+async def test_json_ingestion_principle_item_creates_principle_candidate(
+    client: AsyncClient, make_token: Callable[..., str]
+) -> None:
+    payload = {
+        "schema_version": "1.0",
+        "items": [{**_VALID_JSON_PRINCIPLE, "title": "JSON principle unique title B"}],
+    }
+    token = make_token(sub="author-ing-001", roles=["contributor"])
+    response = await client.post(
+        "/api/v1/ingestions/json",
+        json=payload,
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 201
+    ingestion_id = response.json()["id"]
+
+    cand_response = await client.get(
+        f"/api/v1/ingestions/{ingestion_id}/candidates",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    candidates = cand_response.json()
+    assert len(candidates) == 1
+    assert candidates[0]["record_type"] == "principle"
+
+
+async def test_json_ingestion_mixed_items_creates_multiple_candidates(
+    client: AsyncClient, make_token: Callable[..., str]
+) -> None:
+    payload = {
+        "schema_version": "1.0",
+        "items": [
+            {**_VALID_JSON_TASK, "title": "JSON mixed task unique C"},
+            {**_VALID_JSON_PRINCIPLE, "title": "JSON mixed principle unique C"},
+        ],
+    }
+    token = make_token(sub="author-ing-001", roles=["contributor"])
+    response = await client.post(
+        "/api/v1/ingestions/json",
+        json=payload,
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 201
+    ingestion_id = response.json()["id"]
+
+    cand_response = await client.get(
+        f"/api/v1/ingestions/{ingestion_id}/candidates",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert len(cand_response.json()) == 2
+
+
+async def test_json_ingestion_dedup_returns_existing(
+    client: AsyncClient, make_token: Callable[..., str]
+) -> None:
+    """Identical JSON payload returns the existing ingestion."""
+    payload = {
+        "schema_version": "1.0",
+        "items": [{**_VALID_JSON_TASK, "title": "JSON dedup unique title D"}],
+    }
+    token = make_token(sub="author-ing-001", roles=["contributor"])
+    r1 = await client.post(
+        "/api/v1/ingestions/json",
+        json=payload,
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert r1.status_code == 201
+    original_id = r1.json()["id"]
+
+    r2 = await client.post(
+        "/api/v1/ingestions/json",
+        json=payload,
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert r2.json()["id"] == original_id
+
+
+async def test_json_ingestion_no_arq_job_enqueued(
+    client: AsyncClient, make_token: Callable[..., str]
+) -> None:
+    """JSON ingestion is synchronous — no worker job should be enqueued."""
+    StubArqPool.enqueued.clear()
+    payload = {
+        "schema_version": "1.0",
+        "items": [{**_VALID_JSON_TASK, "title": "JSON no arq unique E"}],
+    }
+    token = make_token(sub="author-ing-001", roles=["contributor"])
+    await client.post(
+        "/api/v1/ingestions/json",
+        json=payload,
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    # No job should be enqueued — JSON ingestion is fully synchronous.
+    json_jobs = [j for j in StubArqPool.enqueued if j[0] in ("chunk_pdf", "crawl_html")]
+    assert not json_jobs

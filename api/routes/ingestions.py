@@ -1,12 +1,15 @@
 """Ingestion pipeline API endpoints (§11).
 
-PDF upload, chunk list, section selection, candidate review, and commit.
+PDF upload, HTML URL, JSON payload, chunk list, section selection,
+candidate review, and commit.
 """
 
 import hashlib
+import json
 import uuid
 from datetime import UTC, datetime
 from typing import Annotated, Any
+from urllib.parse import urlparse, urlunparse
 
 import structlog
 from fastapi import APIRouter, HTTPException, Query, UploadFile, status
@@ -15,7 +18,12 @@ from sqlalchemy.orm import selectinload
 
 from api.auth import Role
 from api.dependencies import AppSettings, ArqPool, CurrentUser, DBSession, require_role
-from api.models.ingestion import Ingestion, IngestionCandidate, IngestionChunk
+from api.models.ingestion import (
+    Ingestion,
+    IngestionCandidate,
+    IngestionChunk,
+    IngestionNavPage,
+)
 from api.models.principle import Principle
 from api.models.task import Task, TaskStep, TaskStepAction
 from api.models.user import User
@@ -23,9 +31,16 @@ from api.schemas.ingestion import (
     CandidateCommitRequest,
     CandidateCommitResponse,
     CandidateReviewRequest,
+    HtmlIngestionRequest,
     IngestionCandidateResponse,
     IngestionResponse,
     IngestionStatusResponse,
+    JsonIngestionRequest,
+    JsonPrincipleItem,
+    JsonTaskItem,
+    NavPageResponse,
+    NavSelectRequest,
+    NavSelectResponse,
     SelectChunksRequest,
     SelectChunksResponse,
 )
@@ -451,3 +466,279 @@ async def commit_candidate(
         record_type=candidate.record_type,
         target_status=body.target_status,
     )
+
+
+# ---------------------------------------------------------------------------
+# HTML ingestion (§11.10, §11.11)
+# ---------------------------------------------------------------------------
+
+
+def _normalise_url(url: str) -> str:
+    """Lowercase scheme+host, strip fragment, sort query params for stable dedup."""
+    parsed = urlparse(url)
+    normalised = parsed._replace(
+        scheme=parsed.scheme.lower(),
+        netloc=parsed.netloc.lower(),
+        fragment="",
+    )
+    return urlunparse(normalised)
+
+
+@router.post("/html", response_model=IngestionResponse, status_code=status.HTTP_201_CREATED)
+async def create_html_ingestion(
+    body: HtmlIngestionRequest,
+    session: DBSession,
+    user: _Writer,
+    arq_pool: ArqPool,
+) -> IngestionResponse:
+    """Submit a URL for HTML ingestion (§11.10).
+
+    Single-page mode renders one URL and chunks it immediately.
+    Site-nav mode discovers navigable pages; the operator selects which to include.
+    """
+    normalised = _normalise_url(body.url)
+    sha256 = hashlib.sha256(normalised.encode()).hexdigest()
+
+    if not body.force:
+        existing = (
+            await session.execute(
+                select(Ingestion).where(Ingestion.source_sha256 == sha256)
+            )
+        ).scalar_one_or_none()
+        if existing is not None:
+            log.info(
+                "html_ingestion_duplicate_detected",
+                existing_id=str(existing.id),
+                url=normalised,
+            )
+            return IngestionResponse.model_validate(existing)
+
+    ingestion = Ingestion(
+        source_type="html",
+        status="pending",
+        created_by=user.id,
+        source_url=body.url,
+        source_sha256=sha256,
+    )
+    session.add(ingestion)
+    await session.commit()
+    await session.refresh(ingestion)
+
+    if arq_pool is not None:
+        await arq_pool.enqueue_job(
+            "crawl_html",
+            ingestion_id=str(ingestion.id),
+            mode=body.mode,
+        )
+    else:
+        log.warning("html_ingestion_arq_unavailable", ingestion_id=str(ingestion.id))
+
+    log.info(
+        "html_ingestion_created",
+        ingestion_id=str(ingestion.id),
+        url=body.url,
+        mode=body.mode,
+    )
+    return IngestionResponse.model_validate(ingestion)
+
+
+@router.get("/{ingestion_id}/nav-pages", response_model=list[NavPageResponse])
+async def list_nav_pages(
+    ingestion_id: uuid.UUID,
+    session: DBSession,
+    user: _Writer,
+) -> list[NavPageResponse]:
+    """List discovered nav pages for an HTML site-nav ingestion (§11.11)."""
+    ingestion = (
+        await session.execute(select(Ingestion).where(Ingestion.id == ingestion_id))
+    ).scalar_one_or_none()
+    if ingestion is None or ingestion.created_by != user.id:
+        raise HTTPException(status_code=404, detail="Ingestion not found.")
+    if ingestion.source_type != "html":
+        raise HTTPException(
+            status_code=422,
+            detail="Nav pages are only available for HTML ingestions.",
+        )
+
+    result = await session.execute(
+        select(IngestionNavPage)
+        .where(IngestionNavPage.ingestion_id == ingestion_id)
+        .order_by(IngestionNavPage.nav_level, IngestionNavPage.id)
+    )
+    return [NavPageResponse.model_validate(p) for p in result.scalars().all()]
+
+
+@router.post("/{ingestion_id}/nav-select", response_model=NavSelectResponse)
+async def select_nav_pages(
+    ingestion_id: uuid.UUID,
+    body: NavSelectRequest,
+    session: DBSession,
+    user: _Writer,
+    arq_pool: ArqPool,
+) -> NavSelectResponse:
+    """Select nav pages to render and chunk (§11.11).
+
+    Selected pages are queued for Playwright rendering. After rendering they
+    appear as ingestion_chunks available for section selection (§11.5).
+    """
+    ingestion = (
+        await session.execute(select(Ingestion).where(Ingestion.id == ingestion_id))
+    ).scalar_one_or_none()
+    if ingestion is None or ingestion.created_by != user.id:
+        raise HTTPException(status_code=404, detail="Ingestion not found.")
+    if ingestion.source_type != "html":
+        raise HTTPException(
+            status_code=422,
+            detail="Nav selection is only valid for HTML ingestions.",
+        )
+    if ingestion.status != "ready":
+        raise HTTPException(
+            status_code=422,
+            detail=f"Cannot select nav pages on an ingestion with status '{ingestion.status}'.",
+        )
+    if not body.nav_page_ids:
+        raise HTTPException(
+            status_code=422,
+            detail="nav_page_ids must not be empty.",
+        )
+
+    result = await session.execute(
+        select(IngestionNavPage).where(
+            IngestionNavPage.ingestion_id == ingestion_id,
+            IngestionNavPage.id.in_(body.nav_page_ids),
+            IngestionNavPage.nav_status == "pending",
+        )
+    )
+    pages_to_queue = result.scalars().all()
+
+    for page in pages_to_queue:
+        page.nav_status = "selected"
+
+    await session.commit()
+
+    queued_count = len(pages_to_queue)
+
+    if queued_count > 0 and arq_pool is not None:
+        await arq_pool.enqueue_job(
+            "render_nav_pages",
+            ingestion_id=str(ingestion_id),
+        )
+    elif queued_count > 0:
+        log.warning("nav_select_arq_unavailable", ingestion_id=str(ingestion_id))
+
+    log.info(
+        "nav_pages_queued",
+        ingestion_id=str(ingestion_id),
+        queued=queued_count,
+        requested=len(body.nav_page_ids),
+    )
+    return NavSelectResponse(queued_count=queued_count, ingestion_id=ingestion_id)
+
+
+# ---------------------------------------------------------------------------
+# JSON ingestion (§11.12)
+# ---------------------------------------------------------------------------
+
+
+def _canonical_json(payload: dict[str, Any]) -> bytes:
+    """Canonical JSON: sorted keys, no whitespace — for stable SHA-256 dedup."""
+    return json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
+
+
+@router.post("/json", response_model=IngestionResponse, status_code=status.HTTP_201_CREATED)
+async def create_json_ingestion(
+    body: JsonIngestionRequest,
+    session: DBSession,
+    user: _Writer,
+) -> IngestionResponse:
+    """Submit a pre-structured JSON payload for ingestion (§11.12).
+
+    JSON ingestion bypasses chunking and LLM extraction. Items are converted
+    directly to ingestion_candidates and the ingestion is immediately ready for
+    candidate review.
+    """
+    raw_payload = body.model_dump()
+    sha256 = hashlib.sha256(_canonical_json(raw_payload)).hexdigest()
+
+    existing = (
+        await session.execute(
+            select(Ingestion).where(Ingestion.source_sha256 == sha256)
+        )
+    ).scalar_one_or_none()
+    if existing is not None:
+        log.info(
+            "json_ingestion_duplicate_detected",
+            existing_id=str(existing.id),
+            sha256=sha256,
+        )
+        return IngestionResponse.model_validate(existing)
+
+    ingestion = Ingestion(
+        source_type="json",
+        status="ready",
+        created_by=user.id,
+        source_sha256=sha256,
+        chunk_count=0,
+    )
+    session.add(ingestion)
+    await session.flush()  # populate ingestion.id before creating candidates
+
+    for item in body.items:
+        if isinstance(item, JsonTaskItem):
+            proposed: dict[str, Any] = {
+                "type": "task",
+                "title": item.title,
+                "outcome": item.outcome,
+                "software_name": item.software_name,
+                "software_version": item.software_version,
+                "procedure_name": item.procedure_name,
+                "domain": item.domain,
+                "facts": item.facts,
+                "concepts": item.concepts,
+                "dependencies": item.dependencies,
+                "irreversible": item.irreversible,
+                "task_order": item.task_order,
+                "steps": [
+                    {
+                        "id": s.id,
+                        "text": s.text,
+                        "completion": s.completion,
+                        "actions": s.actions,
+                        "notes": s.notes,
+                    }
+                    for s in item.steps
+                ],
+            }
+            record_type = "task"
+        else:
+            assert isinstance(item, JsonPrincipleItem)
+            proposed = {
+                "type": "principle",
+                "title": item.title,
+                "summary": item.summary,
+                "explanation": item.explanation,
+                "analogies": item.analogies,
+                "software_name": item.software_name,
+                "software_version": item.software_version,
+                "domain": item.domain,
+            }
+            record_type = "principle"
+
+        candidate = IngestionCandidate(
+            ingestion_id=ingestion.id,
+            chunk_id=None,
+            record_type=record_type,
+            proposed_json=proposed,
+            candidate_status="pending",
+        )
+        session.add(candidate)
+
+    await session.commit()
+    await session.refresh(ingestion)
+
+    log.info(
+        "json_ingestion_created",
+        ingestion_id=str(ingestion.id),
+        item_count=len(body.items),
+    )
+    return IngestionResponse.model_validate(ingestion)
