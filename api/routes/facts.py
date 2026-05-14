@@ -16,7 +16,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.auth import Role
-from api.dependencies import CurrentUser, DBSession, require_role
+from api.dependencies import ArqPool, CurrentUser, DBSession, require_role
 from api.models.fact import Fact
 from api.models.user import User
 from api.schemas.base import ConfirmRequest
@@ -101,6 +101,7 @@ async def confirm_fact(
     fact_id: uuid.UUID,
     session: DBSession,
     user: _Writer,
+    arq_pool: ArqPool,
     body: ConfirmRequest | None = None,
 ) -> Fact:
     fact = await _get_or_404(session, fact_id)
@@ -114,6 +115,8 @@ async def confirm_fact(
     await session.commit()
     await session.refresh(fact)
     log.info("fact_confirmed", fact_id=str(fact.id), user_id=str(user.id))
+    if arq_pool is not None:
+        await arq_pool.enqueue_job("generate_embedding", record_type="fact", record_id=str(fact.id))
     return fact
 
 

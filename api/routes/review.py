@@ -19,7 +19,7 @@ from fastapi import APIRouter, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.auth import Role
-from api.dependencies import DBSession, require_role
+from api.dependencies import ArqPool, DBSession, require_role
 from api.models.concept import Concept
 from api.models.fact import Fact
 from api.models.principle import Principle
@@ -462,6 +462,7 @@ async def confirm_via_review(
     entity_id: uuid.UUID,
     session: DBSession,
     user: _Reviewer,
+    arq_pool: ArqPool,
     body: ConfirmRequest | None = None,
 ) -> ReviewActionResponse:
     """Confirm a submitted record and release any active claim held by the current user.
@@ -500,7 +501,10 @@ async def confirm_via_review(
         entity_id=str(entity_id),
         user_id=str(user.id),
     )
-    # Sprint 7: enqueue generate_embedding(record_type=singular_type, record_id=str(entity_id))
+    if arq_pool is not None:
+        await arq_pool.enqueue_job(
+            "generate_embedding", record_type=singular_type, record_id=str(record.id)
+        )
     return ReviewActionResponse(
         id=record.id,
         record_type=singular_type,

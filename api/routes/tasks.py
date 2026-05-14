@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from api.auth import Role
-from api.dependencies import CurrentUser, DBSession, require_role
+from api.dependencies import ArqPool, CurrentUser, DBSession, require_role
 from api.models.concept import Concept
 from api.models.fact import Fact
 from api.models.task import Task, TaskConceptRef, TaskFactRef, TaskStep, TaskStepAction
@@ -147,6 +147,7 @@ async def confirm_task(
     task_id: uuid.UUID,
     session: DBSession,
     user: _Writer,
+    arq_pool: ArqPool,
     body: ConfirmRequest | None = None,
 ) -> TaskResponse:
     task = await _get_task_with_refs(session, task_id)
@@ -160,6 +161,8 @@ async def confirm_task(
     task.updated_by = user.id
     await session.commit()
     log.info("task_confirmed", task_id=str(task.id), user_id=str(user.id))
+    if arq_pool is not None:
+        await arq_pool.enqueue_job("generate_embedding", record_type="task", record_id=str(task.id))
     return TaskResponse.model_validate(await _get_task_with_refs(session, task.id))
 
 

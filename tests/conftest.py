@@ -14,7 +14,7 @@ import asyncio
 import time
 import uuid
 from collections.abc import AsyncGenerator, Callable, Generator
-from typing import Any
+from typing import Any, ClassVar
 
 import jwt
 import pytest
@@ -32,6 +32,15 @@ from api.database import Base, create_engine
 from api.main import create_app
 from api.models.domain import Domain, UserDomain
 from api.models.user import User
+
+
+class StubArqPool:
+    """Test stub for arq.connections.ArqRedis. Records calls without touching Redis."""
+
+    enqueued: ClassVar[list[tuple[str, dict[str, Any]]]] = []
+
+    async def enqueue_job(self, function: str, /, **kwargs: Any) -> None:
+        StubArqPool.enqueued.append((function, kwargs))
 
 # ---------------------------------------------------------------------------
 # Settings
@@ -123,6 +132,9 @@ _CONTRIBUTOR_SUBS: list[str] = [
     "reviewer-rv-001",
     "claimer-rv-001",
     "self-rv-001",
+    # Sprint 7 — search tests
+    "author-srch-001",
+    "reviewer-srch-001",
 ]
 
 
@@ -242,6 +254,11 @@ async def client(
             issuer=TEST_ISSUER,
             audience=TEST_AUDIENCE,
         )
+        # Replace the real ARQ pool with a stub so confirm endpoints don't
+        # enqueue against a live Redis in tests. The real pool (if created by
+        # lifespan) is closed via a local reference in lifespan cleanup.
+        StubArqPool.enqueued.clear()
+        app.state.arq_pool = StubArqPool()
         async with AsyncClient(
             transport=ASGITransport(app=app),
             base_url="http://test",

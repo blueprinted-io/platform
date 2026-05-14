@@ -4,17 +4,31 @@ from collections.abc import AsyncGenerator
 from typing import Annotated
 
 import structlog
+from arq.connections import ArqRedis
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.auth import Role, TokenVerificationError, TokenVerifier
+from api.config import Settings
 from api.models.user import User
 
 log = structlog.get_logger(__name__)
 
 _bearer = HTTPBearer(auto_error=False)
+
+
+# ---------------------------------------------------------------------------
+# Settings (from app.state — uses the instance injected at startup, not a fresh
+# Settings() call which would re-read .env and may fail with extra keys in test)
+# ---------------------------------------------------------------------------
+
+def get_app_settings(request: Request) -> Settings:
+    return request.app.state.settings  # type: ignore[no-any-return]
+
+
+AppSettings = Annotated[Settings, Depends(get_app_settings)]
 
 
 # ---------------------------------------------------------------------------
@@ -28,6 +42,18 @@ async def get_db_session(request: Request) -> AsyncGenerator[AsyncSession, None]
 
 
 DBSession = Annotated[AsyncSession, Depends(get_db_session)]
+
+
+# ---------------------------------------------------------------------------
+# ARQ job queue
+# ---------------------------------------------------------------------------
+
+def get_arq_pool(request: Request) -> ArqRedis | None:
+    """Return the ARQ pool stored on app.state, or None if unavailable."""
+    return request.app.state.arq_pool  # type: ignore[no-any-return]
+
+
+ArqPool = Annotated[ArqRedis | None, Depends(get_arq_pool)]
 
 
 # ---------------------------------------------------------------------------

@@ -54,6 +54,15 @@ class Settings(BaseSettings):
     storage_backend: str = "local"  # "local" | "s3"
     storage_local_root: str = "uploads"
 
+    # -----------------------------------------------------------------------
+    # Embedding (§12)
+    # OpenAI-compatible endpoint. Leave base_url empty to disable embedding.
+    # -----------------------------------------------------------------------
+    llm_embedding_base_url: str = ""
+    llm_embedding_model: str = "text-embedding-3-small"
+    llm_embedding_api_key: SecretStr = SecretStr("")
+    llm_embedding_timeout_seconds: int = 30
+
 
 def get_settings() -> Settings:
     return Settings()

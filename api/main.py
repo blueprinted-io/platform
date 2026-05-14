@@ -5,6 +5,9 @@ from contextlib import asynccontextmanager
 
 import secure
 import structlog
+from arq import create_pool
+from arq.connections import ArqRedis
+from arq.connections import RedisSettings as ArqRedisSettings
 from fastapi import FastAPI, Request, Response
 
 from api.auth import TokenVerifier
@@ -36,9 +39,25 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     else:
         app.state.token_verifier = None
 
+    # ARQ pool for enqueueing background jobs (embedding generation etc.).
+    # Stored via local so lifespan cleanup uses the real pool even if tests
+    # replace app.state.arq_pool with a stub after startup.
+    # conn_retries=0: fail fast if Redis is unavailable rather than blocking startup.
+    arq_pool: ArqRedis | None = None
+    try:
+        redis_settings = ArqRedisSettings.from_dsn(settings.redis_url)
+        redis_settings.conn_retries = 0
+        arq_pool = await create_pool(redis_settings)
+        app.state.arq_pool = arq_pool
+    except Exception:
+        log.warning("arq_pool_unavailable", note="embedding jobs will not be enqueued")
+        app.state.arq_pool = None
+
     log.info("startup_complete", env=settings.app_env)
     yield
     await engine.dispose()
+    if arq_pool is not None:
+        await arq_pool.close()
     log.info("shutdown_complete")
 
 

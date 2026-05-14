@@ -9,7 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.auth import Role
-from api.dependencies import CurrentUser, DBSession, require_role
+from api.dependencies import ArqPool, CurrentUser, DBSession, require_role
 from api.models.concept import Concept
 from api.models.user import User
 from api.schemas.base import ConfirmRequest
@@ -98,6 +98,7 @@ async def confirm_concept(
     concept_id: uuid.UUID,
     session: DBSession,
     user: _Writer,
+    arq_pool: ArqPool,
     body: ConfirmRequest | None = None,
 ) -> Concept:
     concept = await _get_or_404(session, concept_id)
@@ -110,6 +111,10 @@ async def confirm_concept(
     concept.updated_by = user.id
     await session.commit()
     await session.refresh(concept)
+    if arq_pool is not None:
+        await arq_pool.enqueue_job(
+            "generate_embedding", record_type="concept", record_id=str(concept.id)
+        )
     return concept
 
 

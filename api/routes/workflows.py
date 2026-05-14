@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from api.auth import Role
-from api.dependencies import CurrentUser, DBSession, require_role
+from api.dependencies import ArqPool, CurrentUser, DBSession, require_role
 from api.models.principle import Principle
 from api.models.task import Task
 from api.models.user import User
@@ -132,6 +132,7 @@ async def confirm_workflow(
     workflow_id: uuid.UUID,
     session: DBSession,
     user: _Writer,
+    arq_pool: ArqPool,
     body: ConfirmRequest | None = None,
 ) -> WorkflowResponse:
     workflow = await _get_workflow_with_refs(session, workflow_id)
@@ -145,6 +146,10 @@ async def confirm_workflow(
     workflow.updated_by = user.id
     await session.commit()
     log.info("workflow_confirmed", workflow_id=str(workflow.id), user_id=str(user.id))
+    if arq_pool is not None:
+        await arq_pool.enqueue_job(
+            "generate_embedding", record_type="workflow", record_id=str(workflow.id)
+        )
     return WorkflowResponse.model_validate(await _get_workflow_with_refs(session, workflow.id))
 
 

@@ -12,6 +12,78 @@ When starting a new session, paste the most recent entry as context.
 
 ### Completed
 
+- **Review Queue (§8.1)** — `GET /api/v1/review/queue` returns submitted records eligible for the current user to review. Domain-scoped types (tasks, workflows, principles) filtered to the user's assigned domains. Facts and Concepts shown to all reviewers regardless of domain. Own submissions excluded for everyone including admin. Paginated (limit/offset). Active claim info embedded in each queue item.
+
+- **Claiming (§8.2)** — `POST /api/v1/review/{type}/{id}/claim` creates an advisory claim with 48h default expiry. Re-claiming an active claim you already hold refreshes the expiry (200). Claiming when another reviewer holds an active claim returns 409. Facts and Concepts return 422 (not claimable per `review_claims` schema). Invalid entity type returns 422.
+
+- **Release (§8.2)** — `POST /api/v1/review/{type}/{id}/release` explicitly abandons own claim. 404 if no active claim. 403 if claim belongs to another reviewer.
+
+- **Confirm/Return via review** — `POST /api/v1/review/{type}/{id}/confirm` and `.../return` apply the same lifecycle rules as record-level confirm/return and auto-release any active claim held by the acting user. Domain access enforced for domain-scoped types.
+
+- **Claim expiry ARQ job (§14)** — `expire_review_claims` cron job registered in `WorkerSettings`, fires at minute 0, 15, 30, 45 (every 15 minutes). Sets `released_at` on all expired claims.
+
+- **Worker DB initialisation** — `startup()` hook now creates the DB engine and stores it in `ctx["db_engine"]`. This fulfils the Sprint 4 placeholder comment. The chunk reset query remains a placeholder (Sprint 6).
+
+- **Pre-existing ruff issue fixed** — Migration files had pre-existing E501 violations that were silently passing before (the CI runs `ruff check .` which catches them). Added `E501` to `"migrations/**/*.py"` per-file-ignores in `pyproject.toml`. This was in `main` before Sprint 5.
+
+- **New files:** `api/models/review_claim.py`, `api/schemas/review.py`, `api/routes/review.py`, `tests/test_review.py`
+
+- **All changes committed as `6ff6da7`. 145 tests passing, mypy clean, ruff clean.**
+
+### Incomplete or broken
+
+Nothing incomplete or broken.
+
+### Decisions made
+
+- **`REVIEW_CLAIM_EXPIRY_HOURS_DEFAULT = 48` is hardcoded.** The spec says "configurable window (default 48 hours)" but system_settings management API doesn't exist until Sprint 10. The constant is named explicitly and commented to pull from system_settings when that's available. No spec update needed — this is a sequencing gap, not a design deviation.
+
+- **Worker `result.rowcount` requires `# type: ignore[attr-defined]`.** SQLAlchemy's async `session.execute(sa.text(...))` return type stubs don't expose `rowcount` cleanly. The ignore is targeted and annotated. No spec impact.
+
+- **Facts and Concepts are not claimable.** Consistent with the `review_claims.entity_type` comment in migration `b4c5d6e7f8a9` which lists only `'task' | 'workflow' | 'principle'`. Confirmed by user before implementation.
+
+- **Review confirm/return do not enqueue embedding generation.** The existing record-level confirm handlers don't enqueue embedding generation either (stub, Sprint 7). The review confirm handler follows the same pattern with a `# Sprint 7: enqueue generate_embedding` comment.
+
+### TEST_REVISED commits
+
+No existing test assertions were modified. `tests/conftest.py` was modified to add four new contributor subs (`author-rv-001`, `reviewer-rv-001`, `claimer-rv-001`, `self-rv-001`) to `_CONTRIBUTOR_SUBS` so they are pre-seeded with test-domain assignments. This is the same infrastructure pattern used in Sprint 4 and does not require a `TEST_REVISED` marker.
+
+`tests/test_review.py` is a new file — 26 new tests written from scratch, not revisions.
+
+### Next session should start from
+
+**Sprint 6 (Ingestion Pipeline)** or **Sprint 7 (Search and Embeddings)** — both unblocked. Sprint 6 is the larger and lower-confidence sprint; Sprint 7 is more contained.
+
+**If starting Sprint 7 (Search and Embeddings, §12):**
+- Read §12 (search API, embedding lifecycle, hybrid ranking) and §14 (embedding generation job)
+- Replace the `generate_embedding` stub in `workers/main.py` with the real LLM embedding call
+- Implement `GET /api/v1/search` with tsvector full-text and optional pgvector semantic search
+- The ARQ pool is not yet wired into route handlers — this will need to be plumbed so the confirm endpoints can enqueue `generate_embedding`. Currently the queue call is stubbed in review.py with a `# Sprint 7` comment
+
+**If starting Sprint 6 (Ingestion Pipeline, §11):**
+- Read §11 (pipeline stages, section selection, candidate review, iterative model) and §14 (chunk reset in startup hook)
+- First task: implement the ingestion tables (`ingestions`, `ingestion_chunks`, `ingestion_candidates`, `ingestion_nav_pages`) as a new Alembic migration
+- The worker startup hook `startup()` in `workers/main.py` already has a `# Sprint 6` placeholder comment at the exact location for the chunk reset query
+- The ingestion pipeline lives in `/ingestion/` (hard-separated API consumer, no direct DB access)
+
+### Watch out for
+
+- **`reviewer-rv-nodomain`** is intentionally NOT in `_CONTRIBUTOR_SUBS` and has no domain assignments. It is auto-created by the auth upsert on first API call. Any future test that adds this sub to `_CONTRIBUTOR_SUBS` would break the domain-exclusion tests in `test_review.py`.
+
+- **Claim expiry in tests** — `test_expired_claim_not_shown_as_active_in_queue` inserts a claim with `expires_at = NOW() - 2 hours` directly via SQL. The `expire_review_claims` job is not called in tests; the queue handler filters expired claims at read time (`expires_at > NOW()`), so the test verifies the queue behaviour without needing to run the job.
+
+- **`review_claims.entity_type` stores singular form** (`'task'`, `'workflow'`, `'principle'`) even though the URL path uses plural (`tasks`, `workflows`, `principles`). The `_TYPE_TO_SINGULAR` dict in `api/routes/review.py` handles this mapping.
+
+- **The worker `ctx["db_engine"]` is now set in startup.** `shutdown()` disposes of it. Any future job function that needs DB access should use `ctx["db_engine"]` the same way `expire_review_claims` does — create a new `AsyncSession(engine)` per invocation.
+
+- **Embedding generation is still a no-op stub** for all confirm transitions — record-level AND review-path. Sprint 7 must wire up the ARQ pool to FastAPI app state and replace the stub. The review confirm handler has a comment at the exact location.
+
+---
+
+## Session Close-Out — 2026-05-13
+
+### Completed
+
 - **Domain enforcement (§7.3)** fully implemented across all domain-scoped record types:
   - `api/models/domain.py`: `Domain` and `UserDomain` ORM models
   - `api/models/__init__.py`: domain models imported so Alembic and `Base.metadata` see them
