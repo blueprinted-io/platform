@@ -93,11 +93,23 @@ class Settings(BaseSettings):
     def resolved_triage_model(self) -> str:
         return self.llm_triage_model or self.llm_model
 
+    def resolved_triage_api_key(self) -> str:
+        return (
+            self.llm_triage_api_key.get_secret_value()
+            or self.llm_api_key.get_secret_value()
+        )
+
     def resolved_extraction_base_url(self) -> str:
         return self.llm_extraction_base_url or self.llm_base_url
 
     def resolved_extraction_model(self) -> str:
         return self.llm_extraction_model or self.llm_model
+
+    def resolved_extraction_api_key(self) -> str:
+        return (
+            self.llm_extraction_api_key.get_secret_value()
+            or self.llm_api_key.get_secret_value()
+        )
 
 
 def get_settings() -> Settings:

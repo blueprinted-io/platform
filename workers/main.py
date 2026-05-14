@@ -7,6 +7,7 @@ Without it, ingestion chunks left in `processing` state after a worker crash
 are silently skipped on resume, producing missing candidates with no error.
 """
 
+import json
 import uuid
 from typing import Any, ClassVar
 
@@ -20,15 +21,17 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 from sqlalchemy.orm import selectinload
 
+from api import prompts as prompt_store
 from api.config import Settings, get_settings
 from api.database import create_engine
 from api.logging import configure_logging
 from api.models.concept import Concept
 from api.models.fact import Fact
-from api.models.ingestion import Ingestion, IngestionChunk
+from api.models.ingestion import Ingestion, IngestionCandidate, IngestionChunk
 from api.models.principle import Principle
 from api.models.task import Task
 from api.models.workflow import Workflow
+from api.prompts import Prompt
 from api.services.storage import read_ingestion_file
 
 log = structlog.get_logger(__name__)
@@ -342,11 +345,219 @@ async def chunk_pdf(ctx: dict, ingestion_id: str) -> None:  # type: ignore[type-
         raise
 
 
+_TRIAGE_CATEGORIES = frozenset(
+    {"task_candidate", "principle_candidate", "reference_material", "skip"}
+)
+
+
+async def _call_llm(
+    base_url: str,
+    model: str,
+    api_key: str,
+    system: str,
+    user: str,
+    timeout: int,
+) -> str:
+    """POST a chat-completions request and return the assistant message content.
+
+    Raises httpx.HTTPStatusError on non-2xx responses.
+    """
+    headers: dict[str, str] = {"Content-Type": "application/json"}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+    async with httpx.AsyncClient() as http:
+        response = await http.post(
+            f"{base_url}/chat/completions",
+            json={
+                "model": model,
+                "messages": [
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": user},
+                ],
+            },
+            headers=headers,
+            timeout=timeout,
+        )
+        response.raise_for_status()
+    return str(response.json()["choices"][0]["message"]["content"])
+
+
+def _validate_task(candidate: dict[str, Any]) -> str | None:
+    """Return an error string if the task candidate is missing required fields."""
+    required = {"title", "outcome", "procedure_name", "steps"}
+    missing = required - candidate.keys()
+    if missing:
+        return f"Missing required fields: {sorted(missing)}"
+    if not candidate.get("steps"):
+        return "steps array must not be empty"
+    return None
+
+
+def _validate_principle(candidate: dict[str, Any]) -> str | None:
+    """Return an error string if the principle candidate is missing required fields."""
+    required = {"title", "summary", "explanation"}
+    missing = required - candidate.keys()
+    if missing:
+        return f"Missing required fields: {sorted(missing)}"
+    return None
+
+
+async def _process_single_chunk(
+    engine: AsyncEngine,
+    settings: Settings,
+    chunk: IngestionChunk,
+    triage_prompt: Prompt,
+    task_prompt: Prompt,
+    principle_prompt: Prompt,
+) -> None:
+    """Triage one chunk, extract candidates, persist results.
+
+    Chunk status progression: queued → processing → done | error.
+    Any exception marks the chunk error and records the detail.
+    """
+    chunk_id = chunk.id
+    ingestion_id = chunk.ingestion_id
+
+    # Mark processing before any LLM call so the startup hook can recover on crash.
+    async with AsyncSession(engine) as session:
+        ch = await session.get(IngestionChunk, chunk_id)
+        if ch is None or ch.chunk_status != "queued":
+            return
+        ch.chunk_status = "processing"
+        await session.commit()
+
+    try:
+        # ------------------------------------------------------------------ #
+        # Stage 3: triage
+        # ------------------------------------------------------------------ #
+        triage_system, triage_user = triage_prompt.render(
+            section_title=chunk.section_title or "",
+            text=chunk.text[:6000],
+        )
+        raw_triage = await _call_llm(
+            base_url=settings.resolved_triage_base_url(),
+            model=settings.resolved_triage_model(),
+            api_key=settings.resolved_triage_api_key(),
+            system=triage_system,
+            user=triage_user,
+            timeout=settings.llm_triage_timeout_seconds,
+        )
+        triage_result: dict[str, Any] = json.loads(raw_triage)
+        category = triage_result.get("category", "")
+        if category not in _TRIAGE_CATEGORIES:
+            raise ValueError(f"Triage returned unknown category: {category!r}")
+
+        log.info(
+            "chunk_triaged",
+            chunk_id=str(chunk_id),
+            category=category,
+            confidence=triage_result.get("confidence"),
+        )
+
+        # ------------------------------------------------------------------ #
+        # Stage 4: extraction
+        # ------------------------------------------------------------------ #
+        candidates: list[IngestionCandidate] = []
+
+        if category in ("reference_material", "skip"):
+            pass  # no extraction; chunk marked done with zero candidates
+
+        elif category == "task_candidate":
+            extraction_system, extraction_user = task_prompt.render(
+                section_title=chunk.section_title or "",
+                text=chunk.text,
+            )
+            raw_extraction = await _call_llm(
+                base_url=settings.resolved_extraction_base_url(),
+                model=settings.resolved_extraction_model(),
+                api_key=settings.resolved_extraction_api_key(),
+                system=extraction_system,
+                user=extraction_user,
+                timeout=settings.llm_extraction_timeout_seconds,
+            )
+            extraction_result: dict[str, Any] = json.loads(raw_extraction)
+            for task_json in extraction_result.get("tasks", []):
+                err = _validate_task(task_json)
+                status = "invalid" if err else "pending"
+                candidates.append(
+                    IngestionCandidate(
+                        ingestion_id=ingestion_id,
+                        chunk_id=chunk_id,
+                        record_type="task",
+                        proposed_json=task_json,
+                        candidate_status=status,
+                        review_note=err,
+                    )
+                )
+
+        elif category == "principle_candidate":
+            extraction_system, extraction_user = principle_prompt.render(
+                section_title=chunk.section_title or "",
+                text=chunk.text,
+            )
+            raw_extraction = await _call_llm(
+                base_url=settings.resolved_extraction_base_url(),
+                model=settings.resolved_extraction_model(),
+                api_key=settings.resolved_extraction_api_key(),
+                system=extraction_system,
+                user=extraction_user,
+                timeout=settings.llm_extraction_timeout_seconds,
+            )
+            extraction_result = json.loads(raw_extraction)
+            for principle_json in extraction_result.get("principles", []):
+                err = _validate_principle(principle_json)
+                status = "invalid" if err else "pending"
+                candidates.append(
+                    IngestionCandidate(
+                        ingestion_id=ingestion_id,
+                        chunk_id=chunk_id,
+                        record_type="principle",
+                        proposed_json=principle_json,
+                        candidate_status=status,
+                        review_note=err,
+                    )
+                )
+
+        # ------------------------------------------------------------------ #
+        # Persist candidates and mark done
+        # ------------------------------------------------------------------ #
+        valid_count = sum(1 for c in candidates if c.candidate_status == "pending")
+        async with AsyncSession(engine) as session:
+            for candidate in candidates:
+                session.add(candidate)
+            ch = await session.get(IngestionChunk, chunk_id)
+            if ch is not None:
+                ch.chunk_status = "done"
+                ch.candidate_count = valid_count
+            await session.commit()
+
+        log.info(
+            "chunk_processed",
+            chunk_id=str(chunk_id),
+            category=category,
+            candidates_total=len(candidates),
+            candidates_valid=valid_count,
+        )
+
+    except Exception as exc:
+        async with AsyncSession(engine) as session:
+            ch = await session.get(IngestionChunk, chunk_id)
+            if ch is not None:
+                ch.chunk_status = "error"
+                ch.error_detail = str(exc)
+            await session.commit()
+        log.error(
+            "chunk_processing_failed",
+            chunk_id=str(chunk_id),
+            error=str(exc),
+        )
+
+
 async def process_chunks(ctx: dict, ingestion_id: str) -> None:  # type: ignore[type-arg]
     """Run LLM triage and extraction on queued chunks (SS11.3 stages 3-4, SS14).
 
     Only processes chunks in `queued` state. Chunks in any other state are skipped.
-    LLM calls are stubbed — marks chunks done with no candidates when LLM is not configured.
+    When LLM is not configured, queued chunks are marked done with no candidates.
     """
     settings: Settings = ctx["settings"]
     engine: AsyncEngine = ctx["db_engine"]
@@ -373,8 +584,29 @@ async def process_chunks(ctx: dict, ingestion_id: str) -> None:  # type: ignore[
             await session.commit()
         return
 
-    # Real LLM triage + extraction implemented in Sprint 6 session 2.
-    log.info("process_chunks_llm_configured_stub", ingestion_id=ingestion_id)
+    triage_prompt = prompt_store.load("triage")
+    task_prompt = prompt_store.load("extract_task")
+    principle_prompt = prompt_store.load("extract_principle")
+
+    async with AsyncSession(engine) as session:
+        result = await session.execute(
+            select(IngestionChunk).where(
+                IngestionChunk.ingestion_id == iid,
+                IngestionChunk.chunk_status == "queued",
+            )
+        )
+        queued_chunks = result.scalars().all()
+
+    log.info(
+        "process_chunks_started",
+        ingestion_id=ingestion_id,
+        chunk_count=len(queued_chunks),
+    )
+
+    for chunk in queued_chunks:
+        await _process_single_chunk(
+            engine, settings, chunk, triage_prompt, task_prompt, principle_prompt
+        )
 
 
 async def startup(ctx: dict) -> None:  # type: ignore[type-arg]
