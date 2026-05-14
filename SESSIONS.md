@@ -35,7 +35,10 @@ When starting a new session, paste the most recent entry as context.
 
 ### Incomplete or broken
 
-Nothing incomplete or broken. All 219 tests pass, mypy clean, ruff clean.
+- **HTML ingestion not implemented** — §11.10–§11.11 specify single-page and site-nav crawl modes, Playwright rendering, `POST /api/v1/ingestions/html`, nav page discovery and selection. None of this is implemented. `IngestionNavPage` ORM model exists but has no routes or worker jobs.
+- **JSON ingestion not implemented** — §11.12 specifies that JSON payloads bypass chunking and section selection, creating candidates directly. `POST /api/v1/ingestions/json` does not exist.
+
+Both are explicitly in Sprint 6 scope (§11). Sprint 6 is therefore incomplete — only PDF ingestion is end-to-end.
 
 ### Decisions made
 
@@ -51,11 +54,17 @@ No existing test files were modified. `tests/test_process_chunks.py` was created
 
 ### Next session should start from
 
-**Sprint 8** — the next unimplemented sprint (Sprint 6 ingestion pipeline is complete; Sprint 7 Search and Embeddings was completed in a prior session at `dc5e3a4`).
+**Sprint 6 continuation — HTML and JSON ingestion** (§11.10–§11.12), or proceed to Sprint 8 if HTML/JSON ingestion is being deferred.
 
-Before starting Sprint 8, read `SESSIONS.md` for the Sprint 7 close-out to confirm what was delivered, then read the relevant spec sections for Sprint 8.
+If continuing Sprint 6:
+- Read §11.10 (HTML single-page and site-nav crawl), §11.11 (nav discovery and selection flow), §11.12 (JSON ingestion — no chunking, candidates created directly).
+- `POST /api/v1/ingestions/html` and `POST /api/v1/ingestions/json` need implementing.
+- `IngestionNavPage` ORM model is already in place.
+- Playwright is listed as a spec dependency (§4.1) but is not yet installed.
 
-Alternatively, if there is unfinished ingestion work (HTML ingestion, JSON import ingestion paths) those live in §11 and were not implemented in Sprint 6 — only PDF ingestion is wired end-to-end.
+If deferring HTML/JSON and moving to Sprint 8 (Frontend):
+- Sprint 7 Search and Embeddings was completed at `dc5e3a4`.
+- Read §23 (Frontend screens) before starting.
 
 ### Watch out for
 
