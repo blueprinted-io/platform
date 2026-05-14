@@ -8,6 +8,66 @@ When starting a new session, paste the most recent entry as context.
 
 <!-- Sessions are added below in reverse chronological order (newest first) -->
 
+## Session Close-Out — 2026-05-14 (Sprint 6 — Ingestion Pipeline, full sprint)
+
+### Completed
+
+- **Spec updated to v4.3** — `docs/requirements.md` bumped to v4.3; v4.2 changelog prepended; §11.16 Prompt Contracts subsection added; §11.4 note added clarifying candidate JSON vs. import payload format; prompt loading row added to §4.1 architecture table. `docs/requirements_v4_3.md` written as a named copy.
+- **Prompt files created** — `prompts/ingestion/triage.md`, `prompts/ingestion/extract_task.md`, `prompts/ingestion/extract_principle.md` — full v1 prompts with system prompt, user message template, and field-by-field guidance. Five v1.1+ stub files in `prompts/v1.1/` (generate_principle_level, changelog_software_extract, changelog_triage, changelog_screen, changelog_propose) each marked "not wired up in v1".
+- **Operational documentation** — `docs/operational_documentation/json_import_schema_spec.md` (single source of truth for JSON import payload schema); `prompts/external/manual_json_authoring.md` (operator-facing authoring guide).
+- **`api/prompts.py`** — Prompt loader; parses `## System Prompt` and `## User Message Template` sections from markdown files; `Prompt.render(**kwargs)` returns `(system, user)` tuple; all three v1 stages loaded at import time and cached; `load(stage)` raises `KeyError` for unknown stages.
+- **`api/config.py` updated** — `resolved_triage_api_key()` and `resolved_extraction_api_key()` methods added, falling back to shared `llm_api_key`.
+- **Ingestion model and migration** — `api/models/ingestion.py` with `Ingestion`, `IngestionChunk`, `IngestionCandidate`, `IngestionNavPage` ORM classes. Migrations for the ingestion schema. Worker startup hook fills in the chunk reset logic (resets `processing` → `queued` on restart).
+- **`workers/main.py` — `process_chunks` job** — Full implementation: loads prompts, fetches `queued` chunks, calls LLM for triage then extraction, validates candidate JSON, creates `IngestionCandidate` rows, updates chunk status to `done`/`error`. Includes `_call_llm`, `_validate_task`, `_validate_principle`, `_process_single_chunk`.
+- **`raw_facts` / `raw_concepts` columns on tasks** — Nullable `TEXT[]` columns added to the `tasks` table. Migration `c3d4e5f6a7b8` (`down_revision = "b2c3d4e5f6a7"`). `api/models/task.py` and `api/schemas/task.py` updated (`TaskResponse` exposes both fields). Facts and concepts from extraction are stored as string arrays directly on the committed task — they are not converted to governed Fact/Concept records at commit time.
+- **Ingestion routes — Sessions 1 and 2 endpoints** (`api/routes/ingestions.py`):
+  - `POST /api/v1/ingestions` — PDF upload with SHA-256 dedup, storage, `chunk_pdf` ARQ job
+  - `GET /api/v1/ingestions` — list ingestions (caller's own, newest first, paginated)
+  - `GET /api/v1/ingestions/{id}/status` — full chunk list
+  - `POST /api/v1/ingestions/{id}/select` — queue pending chunks, enqueue `process_chunks`
+- **Ingestion routes — Session 3 endpoints** (candidate review and commit, §11.8):
+  - `GET /api/v1/ingestions/{id}/candidates` — list all candidates (owner-gated, `_Writer`)
+  - `PATCH /api/v1/ingestions/{id}/candidates/{candidate_id}` — accept (`"accepted"`) or accept-with-edit (`"edited"`) or discard; sets `reviewed_by`/`reviewed_at`
+  - `POST /api/v1/ingestions/{id}/candidates/{candidate_id}/commit` — creates governed `Task` (with `TaskStep` + `TaskStepAction`) or `Principle` at `draft` or `submitted`; domain existence and contributor domain assignment enforced; `committed_record_id` set on candidate
+- **`api/schemas/ingestion.py`** — All schemas: `IngestionChunkResponse`, `IngestionResponse`, `IngestionStatusResponse`, `SelectChunksRequest`, `SelectChunksResponse`, `IngestionCandidateResponse` (includes `reviewed_by`, `reviewed_at`), `CandidateReviewRequest`, `CandidateCommitRequest`, `CandidateCommitResponse`.
+- **Tests** — `tests/test_process_chunks.py` (20 tests; uses `respx==0.22.0` for httpx mocking); `tests/test_ingestions.py` extended with 16 new candidate review/commit tests (37 ingestion tests total). **219 tests passing**, ruff clean, mypy clean.
+- **Committed** at `78f6a44`.
+
+### Incomplete or broken
+
+Nothing incomplete or broken. All 219 tests pass, mypy clean, ruff clean.
+
+### Decisions made
+
+- **`raw_facts`/`raw_concepts` as `TEXT[]` on tasks** — Extraction produces string arrays for facts and concepts. The task data model uses `task_fact_refs`/`task_concept_refs` pointing to confirmed record UUIDs, which are incompatible at commit time. Decision: store extraction content directly on the committed task as `raw_facts TEXT[]` and `raw_concepts TEXT[]`. Operators link to governed records manually after commit. Spec should be updated to document this field and the rationale.
+- **`irreversible` is per-step, not per-task** — The extraction prompt had `irreversible` at the task level (spec mistake). The correct location is at the step level in the DB. At commit, `step.get("irreversible", False)` is read per-step from extraction JSON. Spec should be corrected to remove the task-level `irreversible` field.
+- **Domain required at commit, not at extraction** — The `domain` field is always required in the `CandidateCommitRequest` body (never stored on the candidate). This accommodates cases where domain is absent from extracted JSON. Consistent with the spec intent; no spec update needed.
+- **`extract_principle` known-good example is a placeholder** — The v1 prompt for `extract_principle.md` has an explicit placeholder rather than an invented example. User direction: "inventing a principle example for a domain I don't have ground truth in is the exact failure mode this kind of prompt is meant to prevent."
+- **v1.1+ prompt stubs** — Five prompt files in `prompts/v1.1/` contain placeholder content pointing to MVP source functions. They are not wired up in v1 and are present only for reference. No spec deviation.
+
+### TEST_REVISED commits
+
+No existing test files were modified. `tests/test_process_chunks.py` was created new. `tests/test_ingestions.py` was extended with new tests appended after the existing tests — no existing test bodies were changed.
+
+### Next session should start from
+
+**Sprint 8** — the next unimplemented sprint (Sprint 6 ingestion pipeline is complete; Sprint 7 Search and Embeddings was completed in a prior session at `dc5e3a4`).
+
+Before starting Sprint 8, read `SESSIONS.md` for the Sprint 7 close-out to confirm what was delivered, then read the relevant spec sections for Sprint 8.
+
+Alternatively, if there is unfinished ingestion work (HTML ingestion, JSON import ingestion paths) those live in §11 and were not implemented in Sprint 6 — only PDF ingestion is wired end-to-end.
+
+### Watch out for
+
+- **HTML and JSON ingestion not implemented** — `POST /api/v1/ingestions` currently only accepts `application/pdf`. The spec describes HTML site-nav crawling and JSON payload ingestion as separate source types. These were out of scope for Sprint 6 but the `Ingestion.source_type` and `IngestionNavPage` model are in place.
+- **`process_chunks` job is resumable by design** — The job fetches only `queued` chunks on each invocation. This is intentional (CLAUDE.md). Do not "simplify" it to process all non-done chunks.
+- **Worker startup hook is load-bearing** — `startup()` in `workers/main.py` resets `processing` → `queued` for chunks left in-flight when the worker died. Do not remove or disable it.
+- **`respx==0.22.0` is a test dependency** — Used in `tests/test_process_chunks.py` for mocking httpx LLM calls. Must stay pinned.
+- **`raw_facts`/`raw_concepts` are nullable** — Tasks not created via ingestion will have `NULL` in both columns. This is correct and expected; do not treat it as a data error.
+- **`reviewed_by`/`reviewed_at` on `IngestionCandidateResponse`** — These were added during Session 3 when the test revealed they were missing from the schema. They are now present on both the ORM model and the Pydantic response schema.
+
+---
+
 ## Session Close-Out — 2026-05-14
 
 ### Completed
