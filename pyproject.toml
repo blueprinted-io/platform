@@ -31,6 +31,9 @@ dependencies = [
     "httpx==0.28.1",
     # Vector storage and semantic search
     "pgvector==0.4.2",
+    # PDF extraction (§11.9, §4.1) — AGPL3, see operator deployment notes
+    "pymupdf==1.25.5",
+    "python-multipart==0.0.20",
 ]
 
 [project.scripts]
@@ -101,7 +104,7 @@ warn_unused_configs = true
 exclude = ["migrations/"]
 
 [[tool.mypy.overrides]]
-module = ["arq.*", "slowapi.*", "secure.*", "pgvector.*"]
+module = ["arq.*", "slowapi.*", "secure.*", "pgvector.*", "fitz.*"]
 ignore_missing_imports = true
 
 # ---------------------------------------------------------------------------

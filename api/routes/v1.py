@@ -2,7 +2,17 @@
 
 from fastapi import APIRouter
 
-from api.routes import concepts, facts, principles, review, search, tasks, users, workflows
+from api.routes import (
+    concepts,
+    facts,
+    ingestions,
+    principles,
+    review,
+    search,
+    tasks,
+    users,
+    workflows,
+)
 
 router = APIRouter(prefix="/api/v1")
 router.include_router(users.router)
@@ -13,3 +23,4 @@ router.include_router(tasks.router)
 router.include_router(workflows.router)
 router.include_router(review.router)
 router.include_router(search.router)
+router.include_router(ingestions.router)

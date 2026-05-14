@@ -135,6 +135,8 @@ _CONTRIBUTOR_SUBS: list[str] = [
     # Sprint 7 — search tests
     "author-srch-001",
     "reviewer-srch-001",
+    # Sprint 6 — ingestion pipeline tests
+    "author-ing-001",
 ]
 
 
