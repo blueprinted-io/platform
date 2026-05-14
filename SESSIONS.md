@@ -8,6 +8,54 @@ When starting a new session, paste the most recent entry as context.
 
 <!-- Sessions are added below in reverse chronological order (newest first) -->
 
+## Session Close-Out — 2026-05-14
+
+### Completed
+
+- **ARQ pool wiring** — `create_pool` called in FastAPI lifespan (`api/main.py`); stored at `app.state.arq_pool`. `conn_retries=0` prevents startup blocking when Redis is unavailable. Pool disposed cleanly in shutdown.
+- **New dependencies** — `AppSettings` and `ArqPool` added to `api/dependencies.py`, reading from `app.state` rather than `get_settings()` directly. Required because `get_settings()` reads `.env` which contains Docker Compose keys that fail Settings validation under `extra="forbid"`.
+- **Embedding generation worker job** — `generate_embedding` fully implemented in `workers/main.py`. Fetches record text per type (fact, concept, principle, task with steps, workflow), calls OpenAI-compatible embedding API via httpx, writes result via raw SQL (`UPDATE ... SET embedding = :embedding::vector`). Raises on failure so ARQ retries.
+- **Embedding trigger on confirm** — All five record-type confirm endpoints (`facts`, `concepts`, `principles`, `tasks`, `workflows`) and the review queue confirm path (`api/routes/review.py`) enqueue `generate_embedding` after commit.
+- **Four new embedding config fields** in `api/config.py`: `llm_embedding_base_url`, `llm_embedding_model`, `llm_embedding_api_key`, `llm_embedding_timeout_seconds`.
+- **GIN indexes migration** — `migrations/versions/20260514_a1b2c3d4e5f6_search_indexes.py`; tsvector indexes on all five tables. `down_revision = "d6e7f8a9b0c1"` (Sprint 5 review claims migration).
+- **Search service** — `api/services/search.py`; UNION ALL full-text search across all five types, optional semantic reranking (60% semantic / 40% FTS), hybrid score, domain filter (excludes domain-less types fact/concept when `?domain=X`), stable pagination (`ORDER BY fts_score DESC, id`), `semantic_available` flag.
+- **Search schemas** — `api/schemas/search.py`; `SearchResult` and `SearchResponse`.
+- **Search route** — `GET /api/v1/search` in `api/routes/search.py`; registered on `api/routes/v1.py`. Parameters: `q` (required, min_length=1), `type`, `domain`, `status` (default `confirmed`), `semantic` (default `false`), `limit` (max 100), `offset`.
+- **Test stub** — `StubArqPool` added to `tests/conftest.py`; replaces real ARQ pool after lifespan so no Redis required in tests.
+- **Search tests** — `tests/test_search.py`; 17 tests covering auth, shape, FTS, type filter, domain filter, semantic flag (no-op without config), pagination. All 162 tests passing.
+- **Committed** at `dc5e3a4`.
+
+### Incomplete or broken
+
+Nothing incomplete or broken. All 162 tests pass, mypy clean, ruff clean.
+
+### Decisions made
+
+- **Domain filter excludes facts and concepts entirely** — When `?domain=X` is specified, facts and concepts are dropped from the result set because they have no domain column. They surface implicitly through tasks. This was explicitly confirmed by the user: "any domain search which turns up tasks by extension includes the associated facts and concepts." Not a spec deviation — the spec is silent on this; the decision should be added to §12.
+- **`per-file-ignores` S608 for `api/services/search.py`** — SQL strings in the search service are built from hardcoded `_TypeConfig` dataclass fields, never from user input. Ruff S608 (SQL injection) is a false positive for these. Added `"api/services/search.py" = ["S608"]` to `pyproject.toml` rather than scattering `# noqa` comments that don't work inside triple-quoted f-strings.
+- **Test records created inline, not via pytest fixtures** — async pytest fixtures for confirmed records caused event-loop scope mismatches (`asyncio_default_fixture_loop_scope = "session"` means fixtures run in the session loop; test bodies run in function-scoped loops; DB connections can't cross loops). Solution: plain `async def _make_confirmed_fact()` and `_make_confirmed_task()` helpers called directly inside each test body. This is the correct pattern for this test suite going forward.
+
+### TEST_REVISED commits
+
+No test files were modified. `tests/conftest.py` was extended (added `StubArqPool` class and pool replacement logic in the `client` fixture) and `tests/test_search.py` was created — but no existing tests were changed.
+
+### Next session should start from
+
+**Sprint 6 — Ingestion Pipeline** (§13, §14 ingestion sections).
+
+Sprint 6 is the document ingestion pipeline: chunking, candidate extraction, ingestion job lifecycle (`pending` → `processing` → `done`/`failed`), and the `ingestion_chunks` table. The ARQ worker startup hook in `workers/main.py` already has a placeholder for the chunk reset logic (search for `# Sprint 6`).
+
+Read §13 (Ingestion) and §14 (Worker) of `docs/requirements.md` before starting.
+
+### Watch out for
+
+- **`workers/main.py` startup hook placeholder** — There is a `# Sprint 6: reset ingestion_chunks` comment in `startup()`. Sprint 6 should fill this in once the `ingestion_chunks` table exists. Do not remove the placeholder or the hook — it is load-bearing per §14.
+- **Embedding column dimension is fixed** — If the embedding model is ever changed to one with a different vector dimension, it requires a breaking migration (drop and recreate the `embedding` column on all five tables, re-embed everything). Do not treat `llm_embedding_model` as a routine config change.
+- **`AppSettings` vs `get_settings()`** — Routes must use `AppSettings` (reads from `app.state.settings`), not `get_settings()` directly. `get_settings()` reads `.env` and fails in tests due to `extra="forbid"`. This is a convention to maintain going forward.
+- **Test helper pattern** — For any future test file that needs confirmed records, use inline `async def _make_confirmed_X()` helper functions called within each test body. Do not use `scope="module"` or `scope="session"` async fixtures that open DB connections — they will fail with event loop scope errors.
+
+---
+
 ## Session Close-Out — 2026-05-13
 
 ### Completed
