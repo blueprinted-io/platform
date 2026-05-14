@@ -35,6 +35,8 @@ class Task(LifecycleMixin, Base):
     tags: Mapped[list[str]] = mapped_column(
         ARRAY(String), nullable=False, default=list, server_default="{}"
     )
+    raw_facts: Mapped[list[str] | None] = mapped_column(ARRAY(Text), nullable=True)
+    raw_concepts: Mapped[list[str] | None] = mapped_column(ARRAY(Text), nullable=True)
     embedding: Mapped[Vector | None] = mapped_column(Vector(1536), nullable=True)
 
     steps: Mapped[list["TaskStep"]] = relationship(

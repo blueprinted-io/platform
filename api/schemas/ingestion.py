@@ -2,7 +2,7 @@
 
 import uuid
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel
 
@@ -74,3 +74,29 @@ class IngestionCandidateResponse(BaseModel):
     candidate_status: str
     review_note: str | None
     committed_record_id: uuid.UUID | None
+    reviewed_by: uuid.UUID | None
+    reviewed_at: datetime | None
+
+
+class CandidateReviewRequest(BaseModel):
+    """Body for PATCH /ingestions/{id}/candidates/{candidate_id}."""
+
+    action: Literal["accept", "discard"]
+    proposed_json: dict[str, Any] | None = None
+    review_note: str | None = None
+
+
+class CandidateCommitRequest(BaseModel):
+    """Body for POST /ingestions/{id}/candidates/{candidate_id}/commit."""
+
+    domain: str
+    target_status: Literal["draft", "submitted"] = "draft"
+
+
+class CandidateCommitResponse(BaseModel):
+    """Response from the commit endpoint."""
+
+    candidate_id: uuid.UUID
+    committed_record_id: uuid.UUID
+    record_type: str
+    target_status: str

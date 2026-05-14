@@ -103,6 +103,8 @@ class TaskResponse(LifecycleResponse):
     software_version: str | None
     media_url: str | None
     tags: list[str]
+    raw_facts: list[str] | None
+    raw_concepts: list[str] | None
     has_deprecated_fact_ref: bool
     has_deprecated_concept_ref: bool
     steps: list[TaskStepResponse]
