@@ -2,13 +2,11 @@
 
 ## Platform Rebuild — Requirements Specification
 
-**Version 4.2 · May 2026**
+**Version 4.1 · May 2026**
 
 *Confidential. Internal Use Only*
 
 github.com/blueprinted-io/platform
-
-v4.2 changes from v4.1: Ingestion pipeline source types fully specified (§11). PDF ingestion subsection added covering library choice (PyMuPDF), hybrid outline-and-heading chunking strategy, scanned-PDF heuristic, and failure modes (§11.9). HTML ingestion subsection added covering single-page and site-nav crawl modes, Playwright rendering, content extraction, and auth-walled content deferral to v1.1 (§11.10). Nav discovery and selection flow added (§11.11). JSON ingestion subsection added clarifying that JSON bypasses chunking and section selection (§11.12). ingestions, ingestion_chunks, and ingestion_nav_pages table schemas added — all three previously listed in §9.7 without definitions (§11.13, §11.14, §11.15). §11.5 generalised to acknowledge HTML and JSON sources. §4.1 backend stack extended with PyMuPDF and Playwright dependencies and AGPL3 obligation note. §4.4 storage table generalised for non-file ingestion sources. §23.8 API endpoints extended for HTML upload and nav selection. New system_settings: ingestion_pdf_chunk_size_chars, ingestion_html_respect_robots_txt.
 
 v4.1 changes from v4.0: Relationship kinds deferred to v1.1 (§9.4). Tests-immutable rule clarified with TEST_REVISED process (§10.4). Authentik scoped to human auth only in Sprint 2; machine auth moved to Sprint 10 (§5, §5.3, §26). Sprint plan reframed with effort hours and confidence ratings (§26). Iterative ingestion established as primary model (§11, §11.5, §11.7). Embedding dimension behaviour clarified (§12). ARQ resumability corrected — application code responsibility, not framework (§14). Agent role relationship_suggester moved to v1.1 (§5.2). Relationship screen write UI deferred to v1.1 (§23.9). Key decisions log updated throughout (§25).
 
@@ -84,12 +82,8 @@ Fresh clone to running instance target: under ten minutes including Authentik in
 | Background jobs | ARQ + Redis, durable, resumable via application-layer checkpointing |
 | Rate limiting | slowapi + Redis backend |
 | Security headers | secure.py middleware |
-| PDF extraction | PyMuPDF (fitz), AGPL3, bundles native MuPDF binary, best-in-class extraction quality |
-| HTML rendering | Playwright with Chromium, headless rendering of static and JS-rendered pages |
 
 *Note: Python was chosen over Go despite Go's single-binary deployment advantage. Go remains a named future option; the architecture does not preclude it.*
-
-*Note: PyMuPDF and Playwright both add native dependencies to the worker container. PyMuPDF ships as wheels for all major platforms including Linux ARM64. Playwright requires `playwright install --with-deps chromium` during image build, adding ~300MB. Both are AGPL3-compatible (PyMuPDF is AGPL3, Playwright is Apache 2.0). The AGPL3 obligations of PyMuPDF and MuPDF apply to downstream redistributors — documented in operator deployment notes.*
 
 ## 4.2 Frontend
 
@@ -131,7 +125,7 @@ MinIO is included as an optional service in Docker Compose for operators who wan
 
 | Storage location | Path pattern |
 | --- | --- |
-| Ingestion source files | uploads/ingestions/{ingestion_id}/{filename} — PDF uploads only. HTML and JSON ingestions have no source file storage. |
+| PDF uploads | uploads/ingestions/{ingestion_id}/{filename} |
 | Step screenshots | uploads/screenshots/{task_record_id}/{step_id}/{filename} |
 | Export artifacts | exports/{export_id}/{filename} |
 | Operator logos | logos/{tenant_slug}/{filename} |
@@ -617,8 +611,6 @@ Confirmed records have reviewed_at and reviewed_by. The staleness threshold is c
 
 The ingestion pipeline is a hard-separated first-party API consumer living in the backend monorepo. It communicates with core exclusively via the versioned API. No shared internal models, no direct database access.
 
-v1 supports three ingestion sources: PDF upload, HTML (single page or site-nav crawl), and JSON import. All three converge on the same ingestion_chunks representation after their source-specific decomposition stage, and share stages 2–6 of the pipeline. Source-specific behaviour is documented in §11.9 (PDF), §11.10 (HTML), and §11.12 (JSON).
-
 **Iterative processing is the primary model.** Single-pass processing of an entire document is not a goal and not optimised for — it is simply iterative processing with one large batch, and for any document of meaningful size it will produce an unmanageable candidate review queue.
 
 The intended operator workflow is:
@@ -666,7 +658,7 @@ API keys are stored encrypted in system_settings. Never logged. Never returned v
 
 | Stage | Description |
 | --- | --- |
-| 1. Structural decomposition | Source-specific. PDF: outline-and-heading hybrid chunking (§11.9). HTML: heading-based chunking, single page or site-nav crawl (§11.10, §11.11). JSON: schema validation, direct conversion to candidates without chunking (§11.12). |
+| 1. Structural decomposition | PDF chunked by document structure — bookmarks, headings, section breaks. Falls back to character-count chunking if no structure detected. Scanned PDFs detected and rejected with explicit error. |
 | 2. Section selection | Operator reviews chunk list and selects a batch of sections to process (typically 2-5). Primary navigation surface — returned to repeatedly. See §11.5. |
 | 3. Triage / classification | Each selected chunk classified: task_candidate, principle_candidate, reference_material, or skip. Confidence score and reason captured per chunk. |
 | 4. Extraction | Classified chunks processed by extraction LLM. Produces structured typed candidates written to ingestion_candidates. |
@@ -716,9 +708,7 @@ API keys are stored encrypted in system_settings. Never logged. Never returned v
 
 The section selection screen is the **primary navigation surface for ingestion**. It is not a one-time setup step — the operator returns to it repeatedly throughout the processing of a document.
 
-Applies to PDF and HTML ingestions only. JSON ingestions bypass this stage — see §11.12.
-
-After structural decomposition completes (PDF chunking, or HTML rendering and chunking, or HTML nav-crawl), the operator is presented with the section selection screen. This screen persists for the lifetime of the ingestion job and can be returned to at any point.
+After PDF chunking completes, the operator is presented with the section selection screen. This screen persists for the lifetime of the ingestion job and can be returned to at any point.
 
 **Screen shows per chunk:**
 - Section title
@@ -779,233 +769,6 @@ ingestion_candidates
   committed_record_id   UUID         -- set on accept, points to created record
   reviewed_by           UUID FK → users.id
   reviewed_at           TIMESTAMPTZ
-```
-
-## 11.9 PDF Ingestion
-
-PDF ingestion uses PyMuPDF (fitz) for text extraction, outline parsing, and structural inspection. The library is AGPL3-licensed, consistent with Blueprinted's licence.
-
-### Source acceptance
-
-| Check | Action on failure |
-| --- | --- |
-| File MIME type is application/pdf | Reject upload at API |
-| File size under configured maximum | Reject upload at API |
-| File not duplicate of existing ingestion (SHA-256 match) | Redirect to existing ingestion |
-| Document yields any extractable text at all | Mark ingestion failed, message: "Scanned or image-only PDF — please supply a text-based PDF or copy content into a manual import." |
-
-Scanned-PDF heuristic: if text extraction across the whole document returns empty content, the document is treated as scanned and rejected. OCR is not in scope for v1. Documents with mixed scanned and text pages will pass the heuristic but produce sparse chunks on the scanned pages — operators see this in the chunk word count and can deselect those sections.
-
-### Chunking strategy
-
-The chunking algorithm uses a hybrid of outline (bookmarks) and heading detection:
-
-1. **Outline pass:** PyMuPDF extracts the PDF's outline (bookmarks). If present, top-level outline entries define top-level section boundaries. Each top-level outline entry becomes a parent chunk boundary.
-2. **Heading pass within sections:** within each top-level section, PyMuPDF inspects text rendering (font size, weight, position) to detect headings. Detected headings define subsection boundaries inside the parent.
-3. **Outline absent:** if the document has no outline at all, the entire document is treated as one section and heading detection alone defines chunk boundaries.
-4. **Headings absent:** if neither outline nor headings are detected, fall back to character-count chunking with a configurable chunk size (default 4000 characters, configurable via `ingestion_pdf_chunk_size_chars` in system_settings).
-
-The hybrid approach handles three real-world failure modes: documents with good outlines but no heading detection (rare, but happens with scanned-to-PDF workflows that preserve bookmarks); documents with no outline but well-marked headings (common in technical documentation exported from web formats); and documents that have neither (typically scanned receipts, but occasionally legitimate technical PDFs).
-
-### Chunk metadata
-
-Each PDF chunk records:
-
-- `section_title` — from outline entry or detected heading; NULL only if fallback character-count chunking was used
-- `section_level` — heading depth (1 = top-level, 2 = subsection, etc.); 0 if unknown
-- `pages_json` — array of page numbers spanned by the chunk; pages are inclusive of any page on which any chunk content appears
-- `text` — extracted plain text, with PyMuPDF's reading-order heuristic applied
-
-### Duplicate detection
-
-SHA-256 hash of the uploaded PDF bytes is computed and stored on `ingestions.source_sha256`. A subsequent upload with the same hash redirects to the existing ingestion record rather than creating a new one. This is reliable for PDF because the file is the source of truth — the content does not change between uploads. HTML duplicate detection is weaker (§11.10).
-
-### Failure modes
-
-| Failure | Detection | Handling |
-| --- | --- | --- |
-| Scanned / no extractable text | Empty text extraction across document | Ingestion marked failed, explicit operator message |
-| PyMuPDF parse error (corrupt PDF) | Exception during open | Ingestion marked failed, message captures parse error |
-| File over size limit | Pre-upload check | Rejected at API layer, not stored |
-| Duplicate upload | SHA-256 match | Redirect to existing ingestion record |
-
-## 11.10 HTML Ingestion
-
-HTML ingestion uses Playwright with Chromium for headless rendering. This handles both static HTML and JavaScript-rendered pages that require a browser to produce their final content.
-
-### Source modes
-
-**Single page:** A single URL is submitted. Playwright renders the page, content is extracted, and heading-based chunking is applied to produce ingestion_chunks. This is the default and simplest mode.
-
-**Site-nav crawl:** A root URL is submitted. Blueprinted discovers navigable pages via the page's navigation structure (§11.11). The operator reviews the discovered pages and selects which to include. Each selected page is rendered and chunked individually, producing one or more ingestion_chunks per page.
-
-### Source acceptance
-
-| Check | Action on failure |
-| --- | --- |
-| URL scheme is http:// or https:// | Reject at API |
-| URL is reachable (HTTP 200 or redirect chain resolves) | Mark ingestion failed with error |
-| Page yields any extractable text content | Mark ingestion failed, message: "No extractable content — page may require authentication or render client-only content" |
-| Robots.txt compliance (configurable via `ingestion_html_respect_robots_txt`) | If true, reject pages disallowed by robots.txt with a warning; honour Crawl-delay |
-
-**Auth-walled content:** Pages requiring login are not supported in v1. Playwright does not hold authenticated sessions. If a page returns a login redirect or renders only an auth wall, the ingestion fails with an explicit error. Authenticated HTML ingestion is deferred to v1.1.
-
-### Content extraction and chunking
-
-After Playwright renders the page:
-
-1. Playwright returns the DOM's innerText (rendered text, not raw HTML). Hidden elements excluded. Navigation chrome (top nav, sidebar, footer) is heuristically stripped — content within `<main>`, `<article>`, or the largest text-bearing block element is preferred.
-2. Heading-based chunking is applied: H1–H6 tags define section boundaries. Each heading and its following content until the next same-or-higher heading forms a chunk.
-3. If no headings are detected, the entire page is treated as a single chunk.
-4. Scanned-content heuristic: not applicable to HTML. HTML that renders as text is always extractable.
-
-### Chunk metadata
-
-HTML chunks record the same fields as PDF chunks (§11.14) with these differences:
-
-- `pages_json` is NULL for HTML chunks — pages are a PDF concept
-- `section_title` is derived from the heading tag content, or the page `<title>` if no headings exist
-- `source_url` records which page URL the chunk came from, relevant for site-nav crawls spanning multiple pages
-
-### Duplicate detection
-
-SHA-256 of the source URL (lowercased, query-string normalised) is stored on `ingestions.source_sha256`. A subsequent ingestion of the same URL redirects to the existing ingestion. Content changes under a stable URL are not automatically detected in v1 — re-ingestion after content change requires the existing ingestion to be abandoned or a new ingestion created with `?force=true`. The `?force=true` flag bypasses the SHA-256 redirect and creates a new ingestion record.
-
-### Failure modes
-
-| Failure | Detection | Handling |
-| --- | --- | --- |
-| URL unreachable | HTTP error or timeout | Ingestion marked failed, error captured |
-| Auth-walled page | No text content extracted | Ingestion marked failed, explicit operator message |
-| Robots.txt disallowed | robots.txt check | Ingestion rejected at API (configurable) |
-| Playwright timeout | Browser timeout | Ingestion marked failed, timeout duration logged |
-| No extractable content | Empty text after extraction | Ingestion marked failed, explicit operator message |
-
-## 11.11 Nav Discovery and Selection
-
-Nav discovery is the process by which Blueprinted discovers pages available for ingestion from an HTML source URL. It is used only for site-nav crawl mode (§11.10).
-
-### Discovery
-
-Playwright renders the root URL. Blueprinted inspects the rendered DOM for navigable links:
-
-1. Links within `<nav>`, `<aside>`, or elements with `role="navigation"` are treated as nav links
-2. Links are followed one level deep from the root by default
-3. Each discovered link is stored as an `ingestion_nav_pages` row with its URL, title (from link text or target page `<title>`), and position in the nav hierarchy
-4. Duplicate URLs (same URL discovered via multiple nav links) are deduplicated
-
-### Selection
-
-After nav discovery completes, the operator is presented with the discovered page list. This is the nav-mode equivalent of the section selection screen (§11.5).
-
-The operator:
-- Sees all discovered pages with their titles and nav depth
-- Selects pages to include in the ingestion
-- Submits the selection — selected pages are queued for rendering and chunking
-
-```
-POST /api/v1/ingestions/{id}/nav-select
-Body:     { "nav_page_ids": ["uuid1", "uuid2", ...] }
-Response: { "queued_count": N, "ingestion_id": "uuid" }
-```
-
-Selected nav pages are rendered individually. Each rendered page's content is chunked and appended to the ingestion's `ingestion_chunks`. After rendering, the ingestion proceeds to section selection (§11.5) to allow the operator to choose which chunks to process.
-
-### Nav page statuses
-
-| Status | Meaning |
-| --- | --- |
-| pending | Discovered, not yet selected or skipped by operator |
-| selected | Operator selected; rendering queued |
-| rendered | Page rendered and chunked successfully |
-| failed | Rendering failed — error captured |
-| skipped | Operator explicitly skipped |
-
-## 11.12 JSON Ingestion
-
-JSON ingestion accepts a pre-structured payload conforming to the import schema defined in `docs/operational_documentation/json_import_schema_spec.md`. Unlike PDF and HTML, JSON ingestion does not go through chunking or LLM extraction — the payload is already structured, and the LLM stages would discard information rather than add it.
-
-### Flow
-
-1. Operator submits JSON via `POST /api/v1/ingestions/json`
-2. Payload validated against schema; any validation failure rejects the entire payload with descriptive error (no partial imports — see schema spec §Validation Rules)
-3. Valid payload converted directly to `ingestion_candidates` rows (`record_type = 'task'` or `'principle'`, `candidate_status = 'pending'`)
-4. No chunks are created; `ingestion_chunks` is empty for JSON ingestions
-5. Operator proceeds directly to candidate review (§11.5 is skipped; the review screen surfaces candidates immediately)
-
-### Source storage
-
-JSON payloads are not stored as files. The validated payload structure is recorded in the resulting `ingestion_candidates` rows. The original payload is not retained — re-importing requires resubmission.
-
-### Duplicate detection
-
-SHA-256 of the canonical-JSON-encoded payload (sorted keys, no whitespace) is computed and stored on `ingestions.source_sha256`. A resubmission with the same hash redirects to the existing ingestion.
-
-### Schema authority
-
-The JSON import schema is versioned independently and lives in `docs/operational_documentation/json_import_schema_spec.md`. Changes to the schema are made there. This specification references it but does not redefine it.
-
-## 11.13 ingestions Table
-
-```
-ingestions
-  id                    UUID PRIMARY KEY
-  source_type           TEXT NOT NULL        -- 'pdf' | 'html' | 'json'
-  status                TEXT NOT NULL        -- pending | chunking | ready | failed
-  created_by            UUID FK → users.id
-  created_at            TIMESTAMPTZ NOT NULL
-  updated_at            TIMESTAMPTZ NOT NULL
-  original_filename     TEXT                 -- PDF only; NULL for html and json
-  storage_path          TEXT                 -- PDF only; path via storage abstraction
-  source_url            TEXT                 -- HTML only; NULL for pdf and json
-  source_sha256         TEXT                 -- dedup hash (PDF: file bytes SHA-256; HTML: normalised URL SHA-256; JSON: canonical payload SHA-256)
-  page_count            INT                  -- PDF only; populated after chunking
-  chunk_count           INT                  -- populated after chunking; 0 for JSON ingestions
-  error_detail          TEXT                 -- set when status = failed
-```
-
-Status lifecycle:
-
-- `pending` — ingestion record created, source not yet processed
-- `chunking` — structural decomposition in progress (PDF/HTML)
-- `ready` — chunks available for section selection (PDF/HTML) or candidates available for review (JSON)
-- `failed` — structural decomposition failed; see `error_detail`
-
-## 11.14 ingestion_chunks Table
-
-```
-ingestion_chunks
-  id                UUID PRIMARY KEY
-  ingestion_id      UUID FK → ingestions.id NOT NULL
-  chunk_index       INT NOT NULL              -- ordering within ingestion
-  section_title     TEXT                      -- from outline entry, heading, or nav page title; NULL only in character-count fallback
-  section_level     INT NOT NULL DEFAULT 0    -- heading depth (1 = top-level, 2 = subsection); 0 if unknown
-  pages_json        JSONB                     -- array of page numbers spanned; NULL for HTML chunks
-  source_url        TEXT                      -- HTML site-nav crawls: the page URL this chunk came from; NULL for PDF
-  text              TEXT NOT NULL             -- full extracted text for LLM processing
-  text_preview      TEXT NOT NULL             -- first ~200 characters, for section selection UI
-  word_count        INT NOT NULL
-  chunk_status      TEXT NOT NULL DEFAULT 'pending'   -- pending | queued | processing | done | error | skipped
-  is_scanned        BOOL NOT NULL DEFAULT FALSE        -- PDF: true if chunk is from a scanned page; always false for HTML
-  error_detail      TEXT                      -- set when chunk_status = error
-  candidate_count   INT NOT NULL DEFAULT 0    -- updated when candidates are written for this chunk
-```
-
-## 11.15 ingestion_nav_pages Table
-
-Stores pages discovered during HTML site-nav crawl (§11.11). Only populated for HTML ingestions in site-nav crawl mode. Always empty for PDF and JSON ingestions.
-
-```
-ingestion_nav_pages
-  id                UUID PRIMARY KEY
-  ingestion_id      UUID FK → ingestions.id NOT NULL
-  url               TEXT NOT NULL
-  title             TEXT                      -- from link text or page <title>
-  nav_level         INT NOT NULL DEFAULT 1    -- depth in nav hierarchy (1 = root-level, 2 = child, etc.)
-  parent_id         UUID FK → ingestion_nav_pages.id  -- NULL for root-level pages
-  nav_status        TEXT NOT NULL DEFAULT 'pending'    -- pending | selected | rendered | failed | skipped
-  error_detail      TEXT                      -- set when nav_status = failed
-  chunk_count       INT NOT NULL DEFAULT 0    -- number of chunks produced from this page after rendering
 ```
 
 ---
@@ -1147,11 +910,9 @@ This is implemented as follows:
 
 **The startup hook is not optional.** Without it, chunks left in `processing` state after a worker crash are silently skipped on resume, producing an ingestion job that appears complete but is missing candidates. This is a data loss scenario. Mark the startup hook clearly in code — it is load-bearing and must not be removed during refactoring.
 
-New system_settings keys introduced by §11: `ingestion_pdf_chunk_size_chars` (default 4000, fallback chunk size when no PDF structure detected), `ingestion_html_respect_robots_txt` (default true, controls whether HTML ingestion observes robots.txt).
-
 | Job | Trigger |
 | --- | --- |
-| PDF chunking / HTML rendering / JSON validation | Ingestion job submitted |
+| PDF chunking | Ingestion job submitted |
 | LLM triage | Chunks queued after section selection |
 | LLM extraction | Chunks passing triage |
 | Embedding generation | Record confirmed (any version) |
@@ -1405,9 +1166,6 @@ A flat inventory of all views. Role column shows minimum role required. Primary 
 | --- | --- | --- |
 | Ingestion home / history | Contributor, Admin | GET /api/v1/ingestions |
 | PDF upload | Contributor, Admin | POST /api/v1/ingestions |
-| HTML upload (single page or site-nav crawl) | Contributor, Admin | POST /api/v1/ingestions/html |
-| Nav discovery results (site-nav crawl only) | Contributor, Admin | GET /api/v1/ingestions/{id}/nav-pages |
-| Nav page selection (site-nav crawl only) | Contributor, Admin | POST /api/v1/ingestions/{id}/nav-select |
 | Section selection (primary navigation surface, returned to repeatedly) | Contributor, Admin | POST /api/v1/ingestions/{id}/select |
 | Ingestion status / progress | Contributor, Admin | GET /api/v1/ingestions/{id}/status |
 | Candidate review | Contributor, Admin | GET /api/v1/ingestions/{id}/candidates |
@@ -1556,4 +1314,4 @@ The confidence column reflects how well-understood the scope is at planning time
 
 *blueprinted.io · github.com/blueprinted-io/platform · AGPL 3.0*
 
-*Requirements Specification v4.2 · May 2026*
+*Requirements Specification v4.1 · May 2026*
