@@ -14,6 +14,8 @@ When starting a new session, paste the most recent entry as context.
 
 This was a debugging session — no new code written beyond a one-line revert. Goal: get the end-to-end OIDC login flow working from `localhost:5173` through Authentik at `192.168.1.82:9000` and back to the dashboard. **That goal is complete.**
 
+This closeout note was written, committed (`77e519c`), and pushed to `blueprinted-io/platform` at the end of the session. The client secret was caught and redacted before commit — env file structure only is recorded here; actual values remain in gitignored `.env` files.
+
 **Problem 1: Client ID mismatch**
 `VITE_OIDC_CLIENT_ID` in `app/.env.local` and `OIDC_CLIENT_ID`/`OIDC_AUDIENCE` in `platform/.env` did not match the client ID registered in Authentik. Fix: updated all three values in both env files to match the Authentik admin UI. Correct client ID: `NXW6Cw9qiB6gMWWayzyvfMSHnUlBExtC5TH7WW4m`.
 
