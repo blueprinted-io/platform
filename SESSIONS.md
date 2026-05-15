@@ -8,6 +8,83 @@ When starting a new session, paste the most recent entry as context.
 
 <!-- Sessions are added below in reverse chronological order (newest first) -->
 
+## Session Close-Out — 2026-05-15 (Auth Flow Debugging)
+
+### Completed
+
+This was a debugging session — no new code written beyond a one-line revert. Goal: get the end-to-end OIDC login flow working from `localhost:5173` through Authentik at `192.168.1.82:9000` and back to the dashboard. **That goal is complete.**
+
+**Problem 1: Client ID mismatch**
+`VITE_OIDC_CLIENT_ID` in `app/.env.local` and `OIDC_CLIENT_ID`/`OIDC_AUDIENCE` in `platform/.env` did not match the client ID registered in Authentik. Fix: updated all three values in both env files to match the Authentik admin UI. Correct client ID: `NXW6Cw9qiB6gMWWayzyvfMSHnUlBExtC5TH7WW4m`.
+
+Values that must match across both files:
+- `app/.env.local` → `VITE_OIDC_CLIENT_ID`
+- `platform/.env` → `OIDC_CLIENT_ID`
+- `platform/.env` → `OIDC_AUDIENCE`
+
+**Problem 2: Confidential vs Public client type**
+After fixing the client ID, the token exchange failed: "Client authentication failed". Root cause: Authentik provider was set to `Client type: Confidential`, which requires a client secret. A browser SPA using PKCE must not send a client secret. Fix: changed the Authentik `blueprinted` OAuth2 provider to `Client type: Public` in the admin UI. No code changes required — `oidc-client-ts` handles PKCE automatically.
+
+**Problem 3: akadmin had no usable password**
+Fresh install — initial setup token was gone. Reset via Django shell:
+```
+docker compose -f platform/deploy/docker-compose.yml --env-file platform/.env exec -T auth python -m manage shell -c \
+  "from authentik.core.models import User; u = User.objects.get(username='akadmin'); u.set_password('BlueprintedDev1!'); u.save(); print('Password set OK')"
+```
+akadmin password is `BlueprintedDev1!` (dev-only credential).
+
+### Current state of the stack
+
+- Authentik running at `http://192.168.1.82:9000` via Docker Compose
+- Authentik admin UI: `/if/admin/` with `akadmin` / `BlueprintedDev1!`
+- OAuth2 provider `blueprinted` registered as **Public** client, client ID `NXW6Cw9qiB6gMWWayzyvfMSHnUlBExtC5TH7WW4m`
+- Redirect URI registered in Authentik: `http://localhost:5173/callback`
+- `app/.env.local` and `platform/.env` populated and working (gitignored — not committed)
+- Full login flow verified: `localhost:5173` → Authentik login → `/callback` → dashboard
+
+### Incomplete or broken
+
+Auth flow is working but the backend API (`localhost:8000`) has not been tested with an actual JWT. Next session should verify:
+1. FastAPI backend accepts the JWT issued by Authentik
+2. `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_JWKS_URI` in `platform/.env` are correctly wired into the API's OIDC validation middleware
+3. An authenticated request from the frontend (`Authorization: Bearer <token>`) reaches a protected route and returns a valid response rather than 401
+
+Check `platform/api/` for the OIDC middleware/dependency to confirm it references the same env vars now correctly set.
+
+### Decisions made
+
+None — infrastructure debugging only. No spec sections affected.
+
+### Env file reference (structure only — actual values in gitignored env files)
+
+`app/.env.local`:
+```
+VITE_OIDC_AUTHORITY=http://192.168.1.82:9000/application/o/blueprinted/
+VITE_OIDC_CLIENT_ID=<see Authentik admin UI>
+VITE_API_BASE_URL=http://localhost:8000
+```
+
+`platform/.env` (auth-relevant fields):
+```
+OIDC_ISSUER=http://192.168.1.82:9000/application/o/blueprinted/
+OIDC_CLIENT_ID=<see Authentik admin UI>
+OIDC_CLIENT_SECRET=<see Authentik admin UI — not required for Public client but kept for reference>
+OIDC_JWKS_URI=http://192.168.1.82:9000/application/o/blueprinted/jwks/
+OIDC_AUDIENCE=<same as OIDC_CLIENT_ID>
+```
+
+### Next session should start from
+
+**Sprint 8 continuation** — verify backend JWT validation is working, then implement the Task list screen (§23.3). See previous session close-out for full Task list implementation notes.
+
+### Watch out for
+
+- `public/silent-renew.html` still missing in the app repo — logs a console error on token expiry but doesn't break the session
+- shadcn/ui components not installed yet — add on demand: `npx shadcn@latest add <component>`
+- Backend API (`localhost:8000`) not yet confirmed to accept Authentik JWTs — this is the first thing to verify next session before writing any new screens
+
+---
+
 ## Session Close-Out — 2026-05-15 (housekeeping — setup docs and machine move prep)
 
 ### Completed
