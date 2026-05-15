@@ -8,6 +8,44 @@ When starting a new session, paste the most recent entry as context.
 
 <!-- Sessions are added below in reverse chronological order (newest first) -->
 
+## Session Close-Out — 2026-05-15 (task_order spec gap fix)
+
+### Completed
+
+- **`id` field added to `JsonTaskItem`** — optional `id: str | None = None` on `api/schemas/ingestion.py`. Import-time label only (e.g. `"T001"`), never written to the database. The committed Task record always receives its own `uuid4()` primary key.
+- **`task_order` cross-reference validation** — `model_validator` on `JsonIngestionRequest` collects all task `id` values first (enabling forward references), then rejects: (1) duplicate `id` values within the payload, (2) any `task_order` entry that does not match a task `id` present in the payload. Tasks with no `id` field must have an empty `task_order` array.
+- **`json_import_schema_spec.md` updated** — `id` added to the task object JSON example and field table with notes on optionality and non-persistence; validation rules section tightened to document cross-reference behaviour, forward-reference allowance, uniqueness constraint, and the rule that id-less tasks cannot be referenced.
+- **4 new tests** added to `tests/test_ingestions.py`: valid forward reference accepted (201), dangling reference rejected (422, error text includes the bad ref), duplicate id rejected (422, error text includes the id), task with no `id` and empty `task_order` accepted (201). 250 tests total, all passing.
+- **Committed** at `7421317`.
+
+### Incomplete or broken
+
+Nothing incomplete or broken. 250 tests pass, ruff clean, mypy clean.
+
+### Decisions made
+
+- **`id` is optional, not required** — tasks without an `id` are valid as long as their `task_order` is empty. This avoids a breaking change to existing payloads and is consistent with the schema spec's intent (ordering is only needed when dependencies exist). No further spec update needed.
+- **No change to `proposed_json` storage** — the `id` field on `JsonTaskItem` is used only for cross-reference validation at ingest time. It is not carried through into `ingestion_candidates.proposed_json` (the candidate JSON is built from the governed fields only). This was not explicitly specified but is consistent with the spec's statement that import IDs are not persisted.
+
+### TEST_REVISED commits
+
+`tests/test_ingestions.py` was extended with 4 new tests appended after the existing tests. No existing test bodies were modified.
+
+### Next session should start from
+
+**Sprint 8 — Frontend** (§23). All Sprint 6 work and the `task_order` spec gap are fully resolved.
+
+Before starting Sprint 8:
+- Read §23 (Frontend screens) in full before writing any code.
+- Sprint 7 (Search and Embeddings) completed at `dc5e3a4`; Sprint 6 (full ingestion pipeline) completed at `d4fc03d`; `task_order` fix at `7421317`.
+- The frontend will need to consume all ingestion endpoints: PDF (`POST /ingestions`), HTML (`POST /ingestions/html`, `GET /nav-pages`, `POST /nav-select`), JSON (`POST /ingestions/json`), and the candidate review/commit flow.
+
+### Watch out for
+
+- **`api.services.settings` does not exist** — `crawl_html` in `workers/main.py` attempts to import this module to look up `ingestion_html_respect_robots_txt`. The import always fails silently and defaults to `True` (respect robots.txt). The setting is not actually configurable until a system_settings service layer is built. This is a known loose end, not a blocker for Sprint 8.
+- **`playwright install chromium` required at deploy time** — `playwright==1.48.0` is a production dependency but the Chromium binary must be installed separately. Must be in the deployment runbook before HTML ingestion can be used in production.
+- **`IngestionNavPage.parent_id` always NULL** — multi-level nav hierarchy is modelled in the schema but not populated by `crawl_html` (which only discovers one level of nav links). Not a bug — v1 only promises one level.
+
 ## Session Close-Out — 2026-05-14 (Sprint 6 — HTML and JSON ingestion)
 
 ### Completed
