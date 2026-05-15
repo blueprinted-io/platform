@@ -8,6 +8,46 @@ When starting a new session, paste the most recent entry as context.
 
 <!-- Sessions are added below in reverse chronological order (newest first) -->
 
+## Session Close-Out — 2026-05-15 (housekeeping — setup docs and machine move prep)
+
+### Completed
+
+- **`docs/setup/local_dev_setup.md`** — new file in `blueprinted-io/platform`. Documents all manual setup steps required to run the full stack locally: backend `docker compose up`, frontend `.env.local` configuration, Authentik redirect URI registration, Authentik `blueprinted_roles` Property Mapping (with Python expression), Playwright Chromium install for the ARQ worker, and the two-terminal startup sequence. Committed at `1dc3523` and pushed.
+
+### Incomplete or broken
+
+Nothing incomplete or broken.
+
+### Decisions made
+
+No decisions that deviate from the spec. The setup doc records existing decisions (sessionStorage for tokens, Vite proxy for CORS, `blueprinted_roles` claim name) rather than making new ones.
+
+### TEST_REVISED commits
+
+No test files modified.
+
+### Next session should start from
+
+**Sprint 8 continuation — Core read screens** in `blueprinted-io/app` (on the new machine).
+
+Setup sequence on the new machine before starting:
+1. Clone both repos: `blueprinted-io/platform` and `blueprinted-io/app`
+2. Follow `docs/setup/local_dev_setup.md` to configure `.env.local` and Authentik
+3. `cd platform && docker compose up` to start the backend
+4. `cd app && npm install && npm run dev` to start the frontend
+5. Verify login works before writing any new screens
+
+First task once the stack is confirmed working: implement the **Task list screen** (§23.3, `GET /api/v1/tasks`) — add shadcn/ui Table and Badge components, wire up TanStack Query, display task title, domain, status, and updated_at.
+
+Read §23.3 before starting. Also check the actual shape of `GET /api/v1/tasks` response against `MeResponse` in `ProfilePage.tsx` to confirm field name conventions before building the Task types.
+
+### Watch out for
+
+- **New machine — clone both repos.** `blueprinted-io/platform` (backend, Python) and `blueprinted-io/app` (frontend, React) are separate repos. The close-out notes in `platform/SESSIONS.md` cover both.
+- **`public/silent-renew.html` still missing** from the app repo. Silent renew will log a console error when the token approaches expiry but won't break the session. Add a minimal iframe-compatible HTML file before the first demo to silence it.
+- **No CORS on the backend.** The Vite proxy handles it in dev. Before any production deployment, `CORSMiddleware` must be added to `api/main.py` in the platform repo.
+- **shadcn/ui components not yet installed.** The Tailwind config and CSS variables are wired, but no component files exist yet. Add them on demand: `npx shadcn@latest add button card table badge` etc. as each screen needs them.
+
 ## Session Close-Out — 2026-05-15 (Sprint 8 — Frontend scaffold and PKCE auth)
 
 ### Completed
