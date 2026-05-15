@@ -8,6 +8,84 @@ When starting a new session, paste the most recent entry as context.
 
 <!-- Sessions are added below in reverse chronological order (newest first) -->
 
+## Session Close-Out — 2026-05-15 (Sprint 8 — Frontend scaffold and PKCE auth)
+
+### Completed
+
+This session's work is entirely in the new **`blueprinted-io/app`** repository at `/home/ewan/projects/blueprinted/app` (pushed to `github.com/blueprinted-io/app`). The platform repo (`blueprinted-io/platform`) was not modified. Commits in the app repo:
+- `5f21188` — initial scaffold and PKCE auth
+- `77677a4` — ignore tsbuildinfo artefact
+
+**Vite + React + TypeScript scaffold:**
+- `package.json` — React 18, TypeScript 5.7, Vite 6, Tailwind 3, TanStack Query 5, oidc-client-ts 3, react-router-dom 6, lucide-react, clsx, tailwind-merge
+- `tsconfig.app.json` — strict TypeScript, `@/*` path alias to `src/`
+- `vite.config.ts` — `@/` alias, dev proxy for `/api/*` → backend (avoids CORS in dev)
+- `tailwind.config.ts` — design tokens from §4.2: #111827 near-black, #f59e0b amber, #ffffff white, Inter typeface; shadcn/ui CSS variable slots
+- `src/styles/globals.css` — Tailwind directives + CSS variable definitions for shadcn/ui tokens
+- `src/vite-env.d.ts` — Vite client types (`import.meta.env`) + CSS module declaration
+
+**Auth layer (PKCE, §5, §23.1):**
+- `src/lib/auth.ts` — `oidc-client-ts` `UserManager` config: `response_type=code` (PKCE automatic), `scope=openid profile email`, `sessionStorage` token store, silent renew enabled. `signIn()`, `signOut()`, `handleCallback()`, `getAccessToken()` helpers
+- `src/context/AuthContext.tsx` — `AuthState` type (`user`, `isLoading`, `isAuthenticated`), `useAuth()` hook
+- `src/components/AuthProvider.tsx` — loads user from sessionStorage on mount; subscribes to `userLoaded`/`userUnloaded` events for silent renew and cross-tab sync
+- `src/components/ProtectedRoute.tsx` — amber spinner while loading; redirects to `/login` if unauthenticated
+- `src/pages/LoginPage.tsx` — "Sign in with Authentik" button → `signinRedirect()`; auto-redirects to `/` if already authenticated
+- `src/pages/CallbackPage.tsx` — exchanges OIDC code for tokens via `signinRedirectCallback()`; `useRef` guard prevents double-invocation in StrictMode; navigates to `/` on success, `/login` on error
+
+**API client:**
+- `src/lib/api.ts` — typed fetch wrapper; injects `Authorization: Bearer <token>`; throws `ApiError(status, detail)` on non-2xx; handles 204 No Content; `api.get/post/patch/delete` methods
+
+**Shell and pages:**
+- `src/components/Layout.tsx` — fixed sidebar: logo, role-aware nav (admin items hidden for non-admins), user display name, sign-out button; `<Outlet />` for main content
+- `src/pages/DashboardPage.tsx` — role-aware stub (§23.2); placeholder panel
+- `src/pages/ProfilePage.tsx` — calls `GET /api/v1/users/me` via TanStack Query; displays OIDC identity (name, email) and platform account fields (display_name, roles, created_at)
+- `src/pages/NotFoundPage.tsx` — 404 with link back to dashboard
+- `src/App.tsx` — `QueryClientProvider` + `BrowserRouter` + `AuthProvider`; public routes (`/login`, `/callback`); protected routes inside `Layout` via `ProtectedRoute`; all §23 screens stubbed as `<ComingSoon />` ready for next session
+
+**CI:**
+- `.github/workflows/ci.yml` — TypeScript check + Vite build on every push/PR; placeholder env vars allow build without real Authentik config
+
+**`npm run build` passes with zero TypeScript errors.** Build output: 306KB JS (93KB gzip), 10.9KB CSS.
+
+### Incomplete or broken
+
+Nothing incomplete or broken. Build is clean. No backend changes were made.
+
+The following are deliberately deferred stubs (not broken — content intentionally absent):
+- All §23 screens beyond auth and profile: Tasks, Workflows, Principles, Facts/Concepts, Review Queue, Ingestion, Search, Admin — all render `<ComingSoon />`.
+
+### Decisions made
+
+- **`sessionStorage` for token storage** — oidc-client-ts default. Tokens are cleared when the tab closes, which is appropriate for a self-hosted internal tool. `localStorage` would persist across tabs and restarts but increases XSS exposure window. No spec guidance on this; `sessionStorage` is the conservative choice. No spec update needed — this is implementation detail.
+- **No shadcn/ui component CLI run this session** — shadcn/ui is configured via `components.json` and CSS variables are wired, but no individual component files (`Button`, `Card`, etc.) have been copied in yet. They'll be added on demand in the next session as screens are built. This avoids dead code in the initial commit.
+- **Vite dev proxy instead of backend CORS** — backend has no `CORSMiddleware`. In dev, the Vite proxy at `/api/*` means the browser never sees a cross-origin request. In production, frontend and backend must either share an origin or CORS must be added to `api/main.py`. Documented in `README.md`; backend change deferred until deployment topology is decided.
+- **`blueprinted_roles` claim assumed in OIDC profile** — `Layout.tsx` reads `user.profile["blueprinted_roles"]` to determine if the user is admin. This assumes Authentik is configured to include a `blueprinted_roles` claim in the ID token. If the claim is absent, the user is treated as non-admin (safe default). The Authentik property mapping that produces this claim is part of the Sprint 2 Authentik configuration — no new work needed, but the claim name must match. No spec update needed.
+
+### TEST_REVISED commits
+
+No test files modified. This session created a new repository with no test suite yet (frontend testing is not in Sprint 8 scope per §20.2 — CI is TypeScript check + build only).
+
+### Next session should start from
+
+**Sprint 8 continuation — Core read screens** in `blueprinted-io/app`.
+
+First task: implement the Task list and Task detail screens (§23.3). Then Workflows (§23.4), Principles (§23.6), Search (§23.10) — all read-only views first before tackling create/revise forms.
+
+Context needed:
+- Work is in `/home/ewan/projects/blueprinted/app` (separate repo from platform)
+- Backend API is at `http://localhost:8000` — run `docker compose up` from `platform/` before starting dev
+- Copy `.env.example` → `.env.local` and fill in Authentik credentials before `npm run dev`
+- Read §23.3 (Tasks), §23.4 (Workflows), §23.6 (Principles), §23.10 (Search) before writing any screens
+- shadcn/ui components (Button, Card, Table, Badge, etc.) should be added via `npx shadcn@latest add <component>` as each screen needs them — they're not installed yet
+
+### Watch out for
+
+- **`blueprinted_roles` claim must match Authentik config** — if Authentik isn't sending this claim in the ID token, the admin nav item will be hidden for everyone. Check the Authentik property mapping if the admin link doesn't appear for admin users.
+- **Silent renew needs `/silent-renew` route** — `lib/auth.ts` configures `silent_redirect_uri: ${origin}/silent-renew` but no such route or HTML page exists yet. Silent renew will log an error when it fires but won't break the session (it just won't renew silently). Add a minimal `public/silent-renew.html` in the next session to complete the silent renew flow.
+- **No CORS on the backend** — the Vite proxy handles this in dev, but if anyone tries to call the backend directly from the browser (e.g. during debugging), it will fail. `CORSMiddleware` needs to be added to `api/main.py` before production deployment.
+- **TanStack Query cache** — `staleTime` is 30s globally. Some screens (review queue, ingestion status) need shorter stale times — override per-query as those screens are built.
+- **`GET /api/v1/users/me` endpoint** — `ProfilePage` calls this. Verify it exists and returns the expected shape (`id`, `sub`, `email`, `display_name`, `roles`, `created_at`) before testing the profile screen. The field names in `MeResponse` in `ProfilePage.tsx` must match the actual API response.
+
 ## Session Close-Out — 2026-05-15 (task_order spec gap fix)
 
 ### Completed
