@@ -8,6 +8,66 @@ When starting a new session, paste the most recent entry as context.
 
 <!-- Sessions are added below in reverse chronological order (newest first) -->
 
+## Session Close-Out — 2026-05-15 (Infrastructure debugging — DB recovery, auth roles)
+
+### Completed
+
+- **Docker Compose DB password recovery** — both Postgres instances (`deploy-db-1` and `deploy-auth-db-1`) had volumes initialised with credentials that no longer matched `.env`. Recovered without wiping volumes by temporarily prepending `local all all trust` to `pg_hba.conf` inside each container, resetting the passwords via `ALTER USER`, and restoring the original `pg_hba.conf`. Authentik config preserved intact.
+
+- **`OIDC_ROLES_CLAIM` typo fixed** — `platform/.env` had `blueprintes_roles` (missing `d`). Corrected to `blueprinted_roles`, then subsequently corrected again to `groups` (see below). Not committed — gitignored.
+
+- **Roles claim name corrected** — Authentik's property mapping sends group memberships under the JWT claim key `groups`, not `blueprinted_roles` (the scope name and the claim name are independent in Authentik). Fixed in three places:
+  - `app/src/pages/DashboardPage.tsx` — `profile["blueprinted_roles"]` → `profile["groups"]`
+  - `app/src/components/Layout.tsx` — same
+  - `platform/.env` — `OIDC_ROLES_CLAIM=groups` (gitignored, local only)
+  - Committed to `blueprinted-io/app` at `3326d9c`.
+
+- **`blueprinted_roles` scope added to auth request** — `app/src/lib/auth.ts` scope was `"openid profile email"`; updated to include `"blueprinted_roles"` so Authentik includes the groups claim. Part of `3326d9c`.
+
+- **Full login flow verified with correct role detection** — `mathesonewan` (admin group in Authentik) now sees "Admin dashboard" and the Admin nav item. Role-aware UI is working end-to-end.
+
+- **Closeout command updated** — added push step and secret-redaction check to `.claude/commands/closeout.md`. Committed to `blueprinted-io/platform` at `382fb83`.
+
+- **`.claude` directory copied to repo root** — commands (`/closeout`, `/plan`, `/speccheck`), skills, and `settings.json` copied from `platform/.claude` to `~/projects/blueprinted/.claude` so they are available when running Claude Code from the new root working directory.
+
+### Incomplete or broken
+
+- **Backend JWT validation not verified** — the FastAPI API is running and healthy, but no authenticated request from the frontend has been tested against a protected route. `GET /api/v1/users/me` with a real Authentik JWT has not been confirmed to return 200. This is the first thing to verify next session before building any screens.
+
+### Decisions made
+
+- **Roles claim key is `groups`, not `blueprinted_roles`** — Authentik's built-in groups property mapping uses `groups` as the JWT claim key regardless of the scope name. The frontend and backend config now both read from `groups`. The spec references `blueprinted_roles` as the claim name in earlier session notes — this is a naming discrepancy but no spec update is required since the claim name is an infrastructure detail.
+
+### TEST_REVISED commits
+
+No test files modified this session.
+
+### Next session should start from
+
+**Verify backend JWT validation**, then **implement the Task list screen (§23.3)**.
+
+Step 1 — JWT verification (do this first, before any screen work):
+- Ensure `docker compose` is running (`platform/deploy/docker-compose.yml`)
+- Ensure `npm run dev` is running in `app/`
+- Log in as `mathesonewan`, open DevTools Network tab, observe the request to `GET /api/v1/users/me` from `ProfilePage.tsx` — confirm it returns 200 with valid user data, not 401
+- If 401: check `platform/api/auth.py` — the `TokenVerifier` uses `OIDC_ISSUER`, `OIDC_JWKS_URI`, `OIDC_AUDIENCE`, `OIDC_ROLES_CLAIM` from `platform/.env`. All four must be correct. `OIDC_ROLES_CLAIM` should now be `groups`.
+
+Step 2 — Task list screen (§23.3):
+- Read §23.3 before starting
+- Add shadcn/ui components: `npx shadcn@latest add table badge` from the `app/` directory
+- Wire `GET /api/v1/tasks` via TanStack Query
+- Check actual API response shape against the task schema in `platform/api/schemas/task.py` before defining TypeScript types
+- Display: task title, domain, status (as Badge), updated_at
+
+### Watch out for
+
+- **`OIDC_ROLES_CLAIM=groups` is set locally in `platform/.env`** — gitignored, so any new machine clone will need this set manually. `docs/setup/local_dev_setup.md` should be updated to document this value (may still reference `blueprinted_roles`).
+- **`public/silent-renew.html` still missing** in the app repo — logs a console error when the token approaches expiry but does not break the session. Add before any demo.
+- **DB password recovery procedure** — if volumes ever get out of sync with `.env` again, the pg_hba.conf trust trick works: prepend `local all all trust`, `SELECT pg_reload_conf()`, `ALTER USER ... WITH PASSWORD`, restore backup, reload again. No need to wipe volumes.
+- **shadcn/ui not installed** — no component files exist in `app/src/components/ui/` yet. Add on demand with `npx shadcn@latest add <component>`.
+
+---
+
 ## Session Close-Out — 2026-05-15 (Auth Flow Debugging)
 
 ### Completed
