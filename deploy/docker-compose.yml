@@ -11,7 +11,7 @@
 #
 # Quick start:
 #   cp deploy/.env.example .env
-#   docker compose -f deploy/docker-compose.yml up
+#   docker compose -f deploy/docker-compose.yml --env-file .env up
 
 services:
   db:
@@ -61,6 +61,9 @@ services:
       OIDC_ISSUER: ${OIDC_ISSUER:-}
       OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
       OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
+      OIDC_JWKS_URI: ${OIDC_JWKS_URI:-}
+      OIDC_AUDIENCE: ${OIDC_AUDIENCE:-}
+      OIDC_ROLES_CLAIM: ${OIDC_ROLES_CLAIM:-groups}
       STORAGE_BACKEND: ${STORAGE_BACKEND:-local}
       STORAGE_LOCAL_ROOT: /app/uploads
     volumes:
