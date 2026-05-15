@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, model_validator
 
 
 class IngestionChunkResponse(BaseModel):
@@ -170,6 +170,7 @@ class JsonTaskItem(BaseModel):
     """Task object in the JSON import payload (§11.12, json_import_schema_spec.md)."""
 
     type: Literal["task"]
+    id: str | None = None  # import-time label only — not persisted; used for task_order refs
     title: str
     outcome: str
     software_name: str | None
@@ -227,7 +228,24 @@ class JsonIngestionRequest(BaseModel):
             raise ValueError("items must contain at least one object")
         return v
 
-    # Note: the spec requires task_order cross-references to resolve within the payload,
-    # but the JSON import schema defines no top-level id field on task items. Cross-payload
-    # reference validation is therefore not implementable in v1; task_order is accepted as
-    # an opaque string array and not persisted.
+    @model_validator(mode="after")
+    def validate_task_order_refs(self) -> "JsonIngestionRequest":
+        """Reject duplicate import IDs and dangling task_order references (§11.12)."""
+        task_ids: set[str] = set()
+        seen: set[str] = set()
+        for item in self.items:
+            if isinstance(item, JsonTaskItem) and item.id is not None:
+                if item.id in seen:
+                    raise ValueError(f"Duplicate import id '{item.id}' in payload.")
+                seen.add(item.id)
+                task_ids.add(item.id)
+
+        for item in self.items:
+            if isinstance(item, JsonTaskItem):
+                for ref in item.task_order:
+                    if ref not in task_ids:
+                        raise ValueError(
+                            f"task_order reference '{ref}' does not match any task id "
+                            f"in the payload."
+                        )
+        return self

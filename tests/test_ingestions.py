@@ -1491,3 +1491,72 @@ async def test_json_ingestion_no_arq_job_enqueued(
     # No job should be enqueued — JSON ingestion is fully synchronous.
     json_jobs = [j for j in StubArqPool.enqueued if j[0] in ("chunk_pdf", "crawl_html")]
     assert not json_jobs
+
+
+# ---------------------------------------------------------------------------
+# JSON ingestion — task_order cross-reference validation (§11.12)
+# ---------------------------------------------------------------------------
+
+
+async def test_json_task_order_valid_forward_ref_accepted(
+    client: AsyncClient, make_token: Callable[..., str]
+) -> None:
+    """task_order forward reference (id appears later in items) is accepted."""
+    task_a = {**_VALID_JSON_TASK, "title": "Task A order unique F", "id": "T001",
+              "task_order": ["T002"]}
+    task_b = {**_VALID_JSON_TASK, "title": "Task B order unique F", "id": "T002",
+              "task_order": []}
+    token = make_token(sub="author-ing-001", roles=["contributor"])
+    response = await client.post(
+        "/api/v1/ingestions/json",
+        json={"schema_version": "1.0", "items": [task_a, task_b]},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 201
+
+
+async def test_json_task_order_dangling_ref_returns_422(
+    client: AsyncClient, make_token: Callable[..., str]
+) -> None:
+    """task_order referencing an id not in the payload is rejected."""
+    task = {**_VALID_JSON_TASK, "title": "Task dangling ref G", "id": "T001",
+            "task_order": ["T999"]}
+    token = make_token(sub="author-ing-001", roles=["contributor"])
+    response = await client.post(
+        "/api/v1/ingestions/json",
+        json={"schema_version": "1.0", "items": [task]},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 422
+    assert "T999" in response.text
+
+
+async def test_json_task_order_duplicate_id_returns_422(
+    client: AsyncClient, make_token: Callable[..., str]
+) -> None:
+    """Duplicate import IDs within a payload are rejected."""
+    task_a = {**_VALID_JSON_TASK, "title": "Task dup A unique H", "id": "T001", "task_order": []}
+    task_b = {**_VALID_JSON_TASK, "title": "Task dup B unique H", "id": "T001", "task_order": []}
+    token = make_token(sub="author-ing-001", roles=["contributor"])
+    response = await client.post(
+        "/api/v1/ingestions/json",
+        json={"schema_version": "1.0", "items": [task_a, task_b]},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 422
+    assert "T001" in response.text
+
+
+async def test_json_task_order_no_id_field_with_empty_task_order_accepted(
+    client: AsyncClient, make_token: Callable[..., str]
+) -> None:
+    """Task with no id field and empty task_order is valid (id is optional)."""
+    task = {**_VALID_JSON_TASK, "title": "Task no id unique I", "task_order": []}
+    # _VALID_JSON_TASK has no id field, so this confirms the existing fixture still works.
+    token = make_token(sub="author-ing-001", roles=["contributor"])
+    response = await client.post(
+        "/api/v1/ingestions/json",
+        json={"schema_version": "1.0", "items": [task]},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 201

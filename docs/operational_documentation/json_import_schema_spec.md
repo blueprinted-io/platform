@@ -38,6 +38,7 @@ payload format.
 ```json
 {
   "type": "task",
+  "id": "T001",
   "title": "string",
   "outcome": "string",
   "software_name": "string | null",
@@ -64,6 +65,7 @@ payload format.
 | Field | Type | Required | Notes |
 | --- | --- | --- | --- |
 | `type` | string | Yes | Must be `"task"` |
+| `id` | string | No | Import-time label for this task (e.g. `"T001"`). Used as the target of `task_order` references within the same payload. Not persisted — the committed Task record receives its own UUID. Must be unique within the payload if present. |
 | `title` | string | Yes | Concise noun phrase, 5-10 words, operator perspective |
 | `outcome` | string | Yes | One sentence, passive voice, observable end state |
 | `software_name` | string or null | Yes | Product name as it appears in the source; null if unknown |
@@ -74,7 +76,7 @@ payload format.
 | `concepts` | string array | Yes | Task-specific reasons this task must be performed; empty array if none |
 | `dependencies` | string array | Yes | Preconditions as full sentences; empty array if none |
 | `irreversible` | boolean | Yes | true only if the task cannot be undone without significant effort |
-| `task_order` | string array | Yes | Import IDs of tasks this task depends on (e.g. `["T001"]`); empty array if none. Import IDs match the `id` field in the LLM extraction output and are used only to express ordering within a single import payload — they are not persisted. |
+| `task_order` | string array | Yes | Import IDs of tasks this task depends on (e.g. `["T001"]`); empty array if none. Each entry must match an `id` present on another task in the same payload. Forward references are allowed. Not persisted. |
 | `steps` | array | Yes | Ordered step objects; must not be empty |
 
 ### Step Object
@@ -123,8 +125,12 @@ payload format.
 - `items` must contain at least one object.
 - Every required field must be present. Missing fields are rejected with a
   field-level error identifying the offending item and field.
-- `task_order` references must resolve within the same payload. Forward
-  references are allowed (items may reference IDs that appear later in the
-  array), but dangling references (IDs not present in the payload) are rejected.
+- `task_order` references must resolve within the same payload. Each entry must
+  match the `id` field of another task item in the same payload. Forward
+  references are allowed (an item may reference an `id` that appears later in
+  `items`). Dangling references (IDs not present in the payload) are rejected.
+  Task items without an `id` field cannot be referenced in `task_order` and
+  must have an empty `task_order` array.
+- Task `id` values must be unique within the payload. Duplicate IDs are rejected.
 - Ingestion creates records in `draft` status. No `confirmed` records can be
   created via import.
