@@ -57,6 +57,24 @@ async def _get_task(session: AsyncSession, task_id: uuid.UUID) -> Task:
     return task
 
 
+async def _get_task_by_record_version(
+    session: AsyncSession, record_id: uuid.UUID, version: int
+) -> Task:
+    """Fetch a specific version of a Task by its stable record_id and version number."""
+    result = await session.execute(
+        select(Task)
+        .where(Task.record_id == record_id, Task.version == version)
+        .options(
+            selectinload(Task.steps).selectinload(TaskStep.actions),
+            selectinload(Task.steps).selectinload(TaskStep.images),
+        )
+    )
+    task = result.scalar_one_or_none()
+    if task is None:
+        raise HTTPException(status_code=404, detail="Task not found.")
+    return task
+
+
 @router.post("", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
 async def create_task(body: TaskCreate, session: DBSession, user: _Writer) -> TaskResponse:
     await lifecycle.assert_domain_active(body.domain, session)
@@ -95,6 +113,15 @@ async def list_tasks(session: DBSession, user: CurrentUser) -> list[TaskResponse
 @router.get("/{task_id}", response_model=TaskResponse)
 async def get_task(task_id: uuid.UUID, session: DBSession, user: CurrentUser) -> TaskResponse:
     return TaskResponse.model_validate(await _get_task(session, task_id))
+
+
+@router.get("/{record_id}/{version}", response_model=TaskResponse)
+async def get_task_version(
+    record_id: uuid.UUID, version: int, session: DBSession, user: CurrentUser
+) -> TaskResponse:
+    return TaskResponse.model_validate(
+        await _get_task_by_record_version(session, record_id, version)
+    )
 
 
 @router.patch("/{task_id}", response_model=TaskResponse)
