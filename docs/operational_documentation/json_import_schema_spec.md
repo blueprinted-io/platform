@@ -43,7 +43,6 @@ payload format.
   "outcome": "string",
   "software_name": "string | null",
   "software_version": "string | null",
-  "procedure_name": "string",
   "domain": "string",
   "facts": ["string"],
   "concepts": ["string"],
@@ -70,7 +69,6 @@ payload format.
 | `outcome` | string | Yes | One sentence, passive voice, observable end state |
 | `software_name` | string or null | Yes | Product name as it appears in the source; null if unknown |
 | `software_version` | string or null | Yes | Version string from the source; null if not stated |
-| `procedure_name` | string | Yes | Short imperative phrase naming the method used |
 | `domain` | string | Yes | Domain name this task belongs to |
 | `facts` | string array | Yes | Background knowledge items; empty array if none |
 | `concepts` | string array | Yes | Task-specific reasons this task must be performed; empty array if none |
@@ -87,7 +85,7 @@ payload format.
 | `text` | string | Yes | The instruction itself. Start with a concrete verb. |
 | `completion` | string | Yes | Observable confirmation the step is done. Specific, not "Done." |
 | `actions` | string array | Yes | Concrete substeps: CLI commands, menu paths, keyboard shortcuts. Empty array if step text is self-explanatory. |
-| `notes` | string or null | Yes | Edge-case or conditional information from the source. null if none. |
+| `notes` | string or null | Yes | Alternatives, caveats, and tool-choice guidance that contextualise the actions without being actions themselves (e.g. "vim or any other editor may be substituted"). null if none. |
 
 ---
 

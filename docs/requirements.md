@@ -2,11 +2,13 @@
 
 ## Platform Rebuild — Requirements Specification
 
-**Version 4.4 · May 2026**
+**Version 4.5 · May 2026**
 
 *Confidential. Internal Use Only*
 
 github.com/blueprinted-io/platform
+
+v4.5 changes from v4.4: Three procedure-level corrections following review of the original MVP design document. (1) `procedure_name` removed from the Task schema — it duplicated the task `title` with no distinct meaning; a task's title is the name of its procedure. Removed from `tasks` table, ingestion candidate schema, and JSON import schema. (2) `notes` on `task_steps` formally described: it holds alternatives, caveats, and tool-choice guidance that contextualises a step's actions without being an action itself (e.g. step: "Open /etc/fstab in a text editor"; action: "sudo nano /etc/fstab"; note: "vim or any other editor may be substituted for nano"). This field existed in the schema; it now has authoritative prose. (3) `task_step_screenshots` renamed to `task_step_images` — "image" is the correct generalisation for non-software contexts where a screenshot is not the right word. `caption TEXT` field added to support alt text and display labels. Step image storage path updated in §4.4. LLM-assisted image-to-step association during ingestion deferred to v1.1 (§24); in v1 images are attached to steps manually post-ingestion.
 
 v4.4 changes from v4.3: Facts and Concepts dissolved as independently governed record types (§9.5). The task was always the atomic unit of knowledge in Blueprinted — Facts and Concepts were originally specced with their own governance lifecycle (draft → submitted → confirmed) on the assumption they would be reusable across tasks, but this introduced maintenance overhead grossly disproportionate to the value: every atomic string required its own review cycle. In practice, a fact that is wrong within a task means the task needs revision, not an independent fact record. Facts and Concepts are now `TEXT[]` arrays on the `tasks` table — authored and revised as part of the task, not as standalone governed records. Impact: `facts` and `concepts` tables dropped; `task_fact_refs` and `task_concept_refs` junction tables dropped; `has_deprecated_fact_ref` and `has_deprecated_concept_ref` flags removed from tasks; `raw_facts`/`raw_concepts` columns (added Sprint 7 for ingestion output) renamed to `facts`/`concepts` and promoted to the primary representation; `/api/v1/facts/*` and `/api/v1/concepts/*` API endpoints removed; §23.5 Facts and Concepts screens removed; `fact_deprecated` and `concept_deprecated` notification kinds removed; search endpoint no longer indexes fact/concept records; domain enforcement table simplified (Facts and Concepts no longer exist as domain-agnostic entities). §10.1 (Facts and Concepts immutability design principle) removed. Key decisions log updated. The `raw_facts`/`raw_concepts` naming in the previously committed ingestion migration is an acknowledged artefact — the rename is handled in the v4.4 migration.
 
@@ -137,7 +139,7 @@ MinIO is included as an optional service in Docker Compose for operators who wan
 | Storage location | Path pattern |
 | --- | --- |
 | Ingestion source files | uploads/ingestions/{ingestion_id}/{filename} — PDF uploads only. HTML and JSON ingestions have no source file storage. |
-| Step screenshots | uploads/screenshots/{task_record_id}/{step_id}/{filename} |
+| Step images | uploads/images/{task_record_id}/{step_id}/{filename} |
 | Export artifacts | exports/{export_id}/{filename} |
 | Operator logos | logos/{tenant_slug}/{filename} |
 
@@ -409,12 +411,13 @@ principles
 
 The governed procedure unit and the atomic unit of knowledge in Blueprinted. Owns its facts and concepts directly as string arrays — these are not references to independent records. Steps are owned by the Task. Task-level irreversibility is derived — a Task is irreversible if any Step has irreversible = TRUE.
 
+Each step is composed of four elements: the step text (the intent — what is being done), an ordered list of actions (the concrete how — specific commands, menu paths, or tool interactions), notes (alternatives, caveats, and tool-choice guidance that contextualise the actions without being actions themselves), and a completion criterion (the observable proof that the step is done). Images may be attached to a step when the text alone cannot be made unambiguous.
+
 ```
 tasks
   + shared identity and lifecycle fields
   title                       TEXT NOT NULL
   outcome                     TEXT NOT NULL
-  procedure_name              TEXT NOT NULL
   domain                      TEXT
   software_name               TEXT
   software_version            TEXT
@@ -429,22 +432,23 @@ task_steps
   id               UUID PRIMARY KEY
   task_id          UUID FK → tasks.id
   order_index      INT NOT NULL
-  step             TEXT NOT NULL   -- step label/title
-  notes            TEXT            -- alternatives, caveats, references
-  completion       TEXT NOT NULL   -- 'you know this step is done when...'
+  step             TEXT NOT NULL        -- the intent: what is being done
+  notes            TEXT                 -- alternatives, caveats, tool-choice guidance
+  completion       TEXT NOT NULL        -- observable proof the step is done
   irreversible     BOOL NOT NULL DEFAULT FALSE
 
 task_step_actions
   id           UUID PRIMARY KEY
   step_id      UUID FK → task_steps.id
   order_index  INT NOT NULL
-  instruction  TEXT NOT NULL
+  instruction  TEXT NOT NULL            -- concrete command, menu path, or interaction
 
-task_step_screenshots
+task_step_images
   id           UUID PRIMARY KEY
   step_id      UUID FK → task_steps.id
   order_index  INT NOT NULL
-  storage_path TEXT NOT NULL  -- resolved via storage backend abstraction
+  storage_path TEXT NOT NULL            -- resolved via storage backend abstraction
+  caption      TEXT                     -- alt text or display label
 ```
 
 ### Workflows
@@ -643,7 +647,6 @@ API keys are stored encrypted in system_settings. Never logged. Never returned v
   "type": "task",
   "title": "string, required",
   "outcome": "string, required",
-  "procedure_name": "string, required",
   "domain": "string, optional",
   "software_name": "string, optional",
   "software_version": "string, optional",
@@ -1496,6 +1499,7 @@ Facts and Concepts no longer exist as independently governed records. They are a
 - *Full relationship graph visualisation — v2. v1 is a read-only list view.*
 - *Relationship kind specification — v1.1 workstream informed by real usage patterns*
 - *High-volume ingestion patterns — v1.1. v1 is optimised for quality over throughput.*
+- *LLM-assisted image-to-step association during ingestion — v1.1. In v1, images are attached to steps manually post-ingestion. The MVP demonstrated this is reliably achievable via LLM; complexity deferred until core ingestion is stable.*
 - *Seeded documentation tenant — post-v1 demonstration project. v1 ships with markdown docs.*
 - *agent:relationship_suggester role — v1.1, alongside first relationship kind definition*
 
