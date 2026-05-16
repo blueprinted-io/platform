@@ -8,6 +8,67 @@ When starting a new session, paste the most recent entry as context.
 
 <!-- Sessions are added below in reverse chronological order (newest first) -->
 
+## Session Close-Out — 2026-05-16 (Task detail screen + dev seed script)
+
+### Completed
+
+- **`GET /api/v1/tasks/{record_id}/{version}` backend route** — spec-compliant task detail endpoint added to `platform/api/routes/tasks.py`. New `_get_task_by_record_version` helper queries by stable `record_id` + `version` integer. Committed as `cdb1276` on `blueprinted-io/platform`.
+
+- **Task detail screen (`TaskDetailPage.tsx`)** — full read-only detail view at `/tasks/:recordId/:version`. Shows: status badge, version, irreversible warning, title, domain/software/date, Outcome, Facts, Concepts, Procedure (steps with actions, notes, completion criteria, irreversible flags), Tags, metadata panel. Sections ordered: Outcome → Facts → Concepts → Procedure → Tags → Details. Committed as `8611a09` + `4018632` on `blueprinted-io/app`.
+
+- **Task list links updated** — `TasksPage.tsx` links now use `record_id/version` (spec-compliant) instead of `record_id` alone. Route in `App.tsx` updated from `tasks/:recordId` to `tasks/:recordId/:version`.
+
+- **Dev seed script** (`platform/seed/dev_seed.py`) — creates 3 sample tasks via the API using a browser JWT. Creates `linux-sysadmin` domain via `docker exec psql` (no domain API yet). Tasks created: "Configure SSH key authentication" (submitted, 4 steps, full facts/concepts), "Set up automatic security updates" (draft), "Configure UFW firewall" (submitted, 1 step). Committed as `e717e4c` on `blueprinted-io/platform`.
+
+- **v4.4/v4.5 migration applied to dev database** — ran migration SQL manually via `docker exec deploy-db-1 psql` (Unix socket trust auth). Migration `d4e5f6a7b8c9` now current on dev DB.
+
+- **DB password fixed** — `blueprinted` Postgres user password reset to match `.env` (`<see .env file>`) via `ALTER USER`. API container rebuilt and restarted cleanly.
+
+### Incomplete or broken
+
+- **Seeded tasks are `submitted`, not `confirmed`** — self-review is blocked by spec (§5.1). To get a confirmed task in dev, a second Authentik user must confirm via the API. The SSH key auth task is the best candidate.
+
+- **`alembic upgrade head` cannot be run from host or API container** — psycopg2 fails scram-sha-256 auth against the Docker network IP. Workaround: apply migrations manually via `docker exec deploy-db-1 psql` (Unix socket uses trust). This is a known infrastructure gap; should be addressed by adding `md5` or `trust` for the Docker bridge network in `pg_hba.conf`, or switching the alembic env to asyncpg.
+
+- **`test_process_chunks.py`** — pre-existing collection failure, unrelated to this session.
+
+### Decisions made
+
+- **Option C chosen for task detail URL** — `GET /api/v1/tasks/{record_id}/{version}` (spec-compliant), not internal UUID or `by-record` redirect. Discussed pros/cons of three options; C chosen because the diff view (§23.3) assumes the same URL structure, avoiding future retrofit. No spec update needed — this matches the spec exactly.
+
+- **"Steps" renamed to "Procedure" in the UI** — matches the product mental model discussed in v4.5 session. Not a spec change, UI label only.
+
+- **Section order: Outcome → Facts → Concepts → Procedure** — user-specified canonical order for the task detail view.
+
+### TEST_REVISED commits
+
+No test files modified this session.
+
+### Next session should start from
+
+**Remaining §23.3 screens or moving to §23.4 Workflows / §23.6 Principles detail screens.**
+
+Suggested next: **Task create screen (§23.3)** — `POST /api/v1/tasks`. This would allow creating tasks from the UI rather than via the seed script, and is needed before the review queue screens make sense. Alternatively, confirm a seeded task to get a confirmed state visible in the UI, then move to other list/detail screens.
+
+To confirm the SSH auth task for dev testing:
+- Create a second Authentik user (in Authentik admin UI at `http://192.168.1.82:9000/if/admin/`)
+- Log in as that user, get their JWT via browser console
+- `curl -X POST http://localhost:8000/api/v1/tasks/7c1508b9-9a28-4174-b9dc-8a5e2993f4f9/confirm -H "Authorization: Bearer <token>"`
+
+### Watch out for
+
+- **API Docker image must be rebuilt after backend code changes** — `docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.override.yml --env-file .env build api && docker compose ... up -d api`. The running container does not hot-reload from the host filesystem (unlike the override's `--reload` flag which watches inside the container).
+
+- **Migration process for dev DB** — alembic CLI cannot connect from host or API container due to scram-sha-256. Use: `docker exec deploy-db-1 psql -U blueprinted -d blueprinted -c "<SQL>"` and manually update `alembic_version`. Keep the migration SQL in the Alembic file as the source of truth.
+
+- **Seed script token expiry** — Authentik JWTs expire after 5 minutes. Run the seed script promptly after copying the token. Re-authenticate and copy a new token if it expires.
+
+- **DB password** — after any Postgres container restart, if asyncpg auth fails, run: `docker exec deploy-db-1 psql -U blueprinted -d blueprinted -c "ALTER USER blueprinted WITH PASSWORD '<see .env file>';"` then restart the API container.
+
+- **`test_process_chunks.py`** — still broken at collection, pre-existing.
+
+---
+
 ## Session Close-Out — 2026-05-16 (Task list screen + search.py final fix)
 
 ### Completed
