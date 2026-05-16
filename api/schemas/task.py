@@ -2,7 +2,7 @@
 
 import uuid
 
-from pydantic import BaseModel, ConfigDict, computed_field
+from pydantic import BaseModel, ConfigDict, computed_field, field_validator
 
 from api.schemas.base import LifecycleResponse
 
@@ -34,6 +34,15 @@ class TaskStepUpdate(BaseModel):
     irreversible: bool | None = None
 
 
+class TaskStepImageResponse(BaseModel):
+    id: uuid.UUID
+    order_index: int
+    storage_path: str
+    caption: str | None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class TaskStepResponse(BaseModel):
     id: uuid.UUID
     order_index: int
@@ -42,28 +51,7 @@ class TaskStepResponse(BaseModel):
     notes: str | None
     irreversible: bool
     actions: list[TaskStepActionResponse]
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-class TaskFactRefCreate(BaseModel):
-    fact_record_id: uuid.UUID
-
-
-class TaskFactRefResponse(BaseModel):
-    fact_record_id: uuid.UUID
-    order_index: int
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-class TaskConceptRefCreate(BaseModel):
-    concept_record_id: uuid.UUID
-
-
-class TaskConceptRefResponse(BaseModel):
-    concept_record_id: uuid.UUID
-    order_index: int
+    images: list[TaskStepImageResponse]
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -71,22 +59,24 @@ class TaskConceptRefResponse(BaseModel):
 class TaskCreate(BaseModel):
     title: str
     outcome: str
-    procedure_name: str
     domain: str
     software_name: str | None = None
     software_version: str | None = None
     media_url: str | None = None
+    facts: list[str] = []
+    concepts: list[str] = []
     tags: list[str] = []
 
 
 class TaskUpdate(BaseModel):
     title: str | None = None
     outcome: str | None = None
-    procedure_name: str | None = None
     domain: str | None = None
     software_name: str | None = None
     software_version: str | None = None
     media_url: str | None = None
+    facts: list[str] | None = None
+    concepts: list[str] | None = None
     tags: list[str] | None = None
 
 
@@ -97,19 +87,19 @@ class ReturnRequest(BaseModel):
 class TaskResponse(LifecycleResponse):
     title: str
     outcome: str
-    procedure_name: str
     domain: str
     software_name: str | None
     software_version: str | None
     media_url: str | None
+    facts: list[str]
+    concepts: list[str]
     tags: list[str]
-    raw_facts: list[str] | None
-    raw_concepts: list[str] | None
-    has_deprecated_fact_ref: bool
-    has_deprecated_concept_ref: bool
     steps: list[TaskStepResponse]
-    fact_refs: list[TaskFactRefResponse]
-    concept_refs: list[TaskConceptRefResponse]
+
+    @field_validator("facts", "concepts", mode="before")
+    @classmethod
+    def _coerce_none_to_empty(cls, v: list[str] | None) -> list[str]:
+        return v if v is not None else []
 
     @computed_field  # type: ignore[prop-decorator]
     @property

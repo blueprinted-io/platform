@@ -7,33 +7,6 @@ a given record type. Pass keyword overrides to vary individual fields.
 from typing import Any
 
 
-def fact_payload(**overrides: Any) -> dict[str, Any]:
-    base: dict[str, Any] = {
-        "title": "A machine is not a person",
-        "body": (
-            "Automated systems operate deterministically on defined inputs; "
-            "they do not possess the contextual judgement that human confirmation requires."
-        ),
-    }
-    base.update(overrides)
-    return base
-
-
-def concept_payload(**overrides: Any) -> dict[str, Any]:
-    base: dict[str, Any] = {
-        "title": "Idempotency",
-        "summary": (
-            "An operation that produces the same result regardless of how many times it is applied."
-        ),
-        "explanation": (
-            "An idempotent operation is safe to retry. Applying it again after it has "
-            "already succeeded leaves the system in the same state as after the first application."
-        ),
-    }
-    base.update(overrides)
-    return base
-
-
 def principle_payload(**overrides: Any) -> dict[str, Any]:
     base: dict[str, Any] = {
         "title": "Signal-to-noise in documentation",
@@ -55,7 +28,6 @@ def task_payload(**overrides: Any) -> dict[str, Any]:
         "outcome": (
             "The superuser password has been changed and all dependent service credentials updated."
         ),
-        "procedure_name": "postgres-superuser-rotation",
         "domain": "test-domain",
     }
     base.update(overrides)

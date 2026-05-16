@@ -29,7 +29,7 @@ async def search_records(
     settings: AppSettings,
     type: Annotated[
         str | None,
-        Query(description="Comma-separated record types: task,workflow,fact,concept,principle"),
+        Query(description="Comma-separated record types: task,workflow,principle"),
     ] = None,
     domain: Annotated[str | None, Query(description="Filter by domain")] = None,
     status: Annotated[str, Query(description="Record status to search")] = "confirmed",

@@ -175,7 +175,6 @@ class JsonTaskItem(BaseModel):
     outcome: str
     software_name: str | None
     software_version: str | None
-    procedure_name: str
     domain: str
     facts: list[str]
     concepts: list[str]

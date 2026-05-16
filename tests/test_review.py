@@ -1,5 +1,13 @@
 """Tests for the Review Queue and Claiming API.
 
+TEST_REVISED (v4.4 — dissolve Facts/Concepts):
+  - Removed _create_and_submit_fact helper: /api/v1/facts no longer exists.
+  - Removed test_queue_shows_submitted_fact_regardless_of_domain: facts are gone;
+    all review types are now domain-scoped. A user with no domain sees nothing.
+  - Removed test_claim_fact_returns_422: facts no longer exist as review entities.
+    Unknown entity type behaviour is covered by test_claim_invalid_entity_type_returns_422.
+  - Removed fact_payload import from factories.
+
 Spec refs:
   §8.1  Global Review Queue — filtered view of submitted records in reviewer's domains
   §8.2  Claiming Model — claim, release, expiry
@@ -7,10 +15,10 @@ Spec refs:
 
 Behaviour covered:
   - Queue shows submitted records in reviewer's entitled domains, excluding own submissions
-  - Facts and Concepts appear regardless of domain; Tasks/Workflows/Principles are domain-filtered
+  - All record types (task, workflow, principle) are domain-scoped
   - Viewer role cannot access the review queue (Contributor and Admin only)
   - Claiming is optional; claims are advisory
-  - entity_type must be one of: tasks, workflows, principles (facts/concepts → 422)
+  - entity_type must be one of: tasks, workflows, principles (anything else → 422)
   - Re-claiming an item you already hold refreshes the expiry (200, not 409)
   - Claiming when another user holds an active claim returns 409
   - Review confirm/return auto-release any active claim held by the acting user
@@ -35,7 +43,7 @@ from httpx import AsyncClient
 
 from api.config import Settings
 from api.database import create_engine
-from tests.factories import fact_payload, task_payload
+from tests.factories import task_payload
 
 pytestmark = pytest.mark.asyncio
 
@@ -66,28 +74,6 @@ async def _create_and_submit_task(
     )
     assert r.status_code == 200, r.text
     return task_id
-
-
-async def _create_and_submit_fact(
-    client: AsyncClient,
-    make_token: Callable[..., str],
-    sub: str = "author-rv-001",
-) -> str:
-    """Create a draft fact and submit it. Returns the fact UUID string."""
-    token = make_token(sub=sub, roles=["contributor"])
-    r = await client.post(
-        "/api/v1/facts",
-        json=fact_payload(),
-        headers={"Authorization": f"Bearer {token}"},
-    )
-    assert r.status_code == 201, r.text
-    fact_id: str = r.json()["id"]
-    r = await client.post(
-        f"/api/v1/facts/{fact_id}/submit",
-        headers={"Authorization": f"Bearer {token}"},
-    )
-    assert r.status_code == 200, r.text
-    return fact_id
 
 
 # ---------------------------------------------------------------------------
@@ -159,20 +145,19 @@ async def test_queue_excludes_task_from_unassigned_domain(
     assert task_id not in ids
 
 
-async def test_queue_shows_submitted_fact_regardless_of_domain(
+async def test_queue_empty_for_contributor_with_no_domain(
     client: AsyncClient, make_token: Callable[..., str]
 ) -> None:
-    fact_id = await _create_and_submit_fact(client, make_token, sub="author-rv-001")
+    """All record types are domain-scoped; no-domain contributor sees nothing."""
+    await _create_and_submit_task(client, make_token, sub="author-rv-001")
 
-    # A contributor with NO domain assignments can still see submitted facts
     token = make_token(sub="reviewer-rv-nodomain", roles=["contributor"])
     response = await client.get(
         "/api/v1/review/queue",
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 200
-    ids = [item["id"] for item in response.json()["items"]]
-    assert fact_id in ids
+    assert response.json()["items"] == []
 
 
 async def test_queue_item_shows_claim_info_when_claimed(
@@ -322,19 +307,6 @@ async def test_reclaim_own_active_claim_returns_200(
     assert response.status_code == 200
     # Expiry should be refreshed (same or later)
     assert response.json()["expires_at"] >= first_expiry
-
-
-async def test_claim_fact_returns_422(
-    client: AsyncClient, make_token: Callable[..., str]
-) -> None:
-    fact_id = await _create_and_submit_fact(client, make_token, sub="author-rv-001")
-
-    token = make_token(sub="reviewer-rv-001", roles=["contributor"])
-    response = await client.post(
-        f"/api/v1/review/facts/{fact_id}/claim",
-        headers={"Authorization": f"Bearer {token}"},
-    )
-    assert response.status_code == 422
 
 
 async def test_claim_invalid_entity_type_returns_422(

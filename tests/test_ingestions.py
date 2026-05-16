@@ -469,7 +469,6 @@ _TEST_DOMAIN = "test-domain"
 _TASK_PROPOSED: dict[str, object] = {
     "title": "Configure iSCSI target",
     "outcome": "iSCSI target is configured and accessible.",
-    "procedure_name": "iscsi-target-setup",
     "steps": [
         {
             "text": "Install the targetcli package",
@@ -1254,7 +1253,6 @@ _VALID_JSON_TASK = {
     "outcome": "SSH key authentication is configured and active.",
     "software_name": "OpenSSH",
     "software_version": "8.9",
-    "procedure_name": "ssh-key-auth-setup",
     "domain": "test-domain",
     "facts": ["SSH uses port 22 by default"],
     "concepts": ["Public key cryptography"],

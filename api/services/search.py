@@ -6,8 +6,6 @@ Semantic: pgvector cosine similarity — only when llm_embedding_base_url is set
 Hybrid ranking: semantic 60%, fulltext 40% when both available.
 
 Domain filter logic:
-  - Facts and concepts have no domain field; they are excluded entirely when
-    ?domain=X is specified. They surface through their associated tasks.
   - Tasks, workflows, and principles are filtered by domain when specified.
 """
 
@@ -24,7 +22,7 @@ from api.schemas.search import SearchResponse, SearchResult
 
 log = structlog.get_logger(__name__)
 
-_VALID_TYPES = {"fact", "concept", "principle", "task", "workflow"}
+_VALID_TYPES = {"principle", "task", "workflow"}
 
 _DEFAULT_TYPES = list(_VALID_TYPES)
 
@@ -45,23 +43,13 @@ class _TypeConfig:
 # fts_expr values must exactly match the GIN index expressions in the migration.
 _TYPE_CONFIGS: list[_TypeConfig] = [
     _TypeConfig(
-        "fact", "facts",
-        "to_tsvector('english', title || ' ' || body)",
-        "body", False,
-    ),
-    _TypeConfig(
-        "concept", "concepts",
-        "to_tsvector('english', title || ' ' || summary || ' ' || explanation || ' ' || COALESCE(analogies, ''))",  # noqa: E501
-        "summary", False,
-    ),
-    _TypeConfig(
         "principle", "principles",
         "to_tsvector('english', title || ' ' || summary || ' ' || explanation || ' ' || COALESCE(analogies, ''))",  # noqa: E501
         "summary", True,
     ),
     _TypeConfig(
         "task", "tasks",
-        "to_tsvector('english', title || ' ' || outcome || ' ' || procedure_name || ' ' || COALESCE(software_name, '') || ' ' || COALESCE(software_version, ''))",  # noqa: E501
+        "to_tsvector('english', title || ' ' || outcome || ' ' || COALESCE(software_name, '') || ' ' || COALESCE(software_version, ''))",  # noqa: E501
         "outcome", True,
     ),
     _TypeConfig(
@@ -174,9 +162,7 @@ async def _semantic_available(session: AsyncSession) -> bool:
     sql = """
         SELECT EXISTS (
             SELECT 1 FROM (
-                SELECT embedding FROM facts WHERE status = 'confirmed'
-                UNION ALL SELECT embedding FROM concepts WHERE status = 'confirmed'
-                UNION ALL SELECT embedding FROM principles WHERE status = 'confirmed'
+                SELECT embedding FROM principles WHERE status = 'confirmed'
                 UNION ALL SELECT embedding FROM tasks WHERE status = 'confirmed'
                 UNION ALL SELECT embedding FROM workflows WHERE status = 'confirmed'
             ) AS e

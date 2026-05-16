@@ -4,8 +4,7 @@
 §8.2  Claiming Model — claim, release, expiry
 §14   Review claim expiry (ARQ cron job, every 15 minutes)
 
-Claimable entity types: tasks, workflows, principles
-Queue-visible but not claimable: facts, concepts
+Claimable and queue-visible entity types: tasks, workflows, principles
 """
 
 import dataclasses
@@ -20,8 +19,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.auth import Role
 from api.dependencies import ArqPool, DBSession, require_role
-from api.models.concept import Concept
-from api.models.fact import Fact
 from api.models.principle import Principle
 from api.models.review_claim import ReviewClaim
 from api.models.task import Task
@@ -48,23 +45,20 @@ _Reviewer = Annotated[User, require_role(Role.CONTRIBUTOR, Role.ADMIN)]
 REVIEW_CLAIM_EXPIRY_HOURS_DEFAULT: int = 48
 
 _CLAIMABLE_TYPES = {"tasks", "workflows", "principles"}
-_ALL_REVIEW_TYPES = {"tasks", "workflows", "principles", "facts", "concepts"}
+_ALL_REVIEW_TYPES = {"tasks", "workflows", "principles"}
 
 # Mapping from URL path segment to the singular entity_type stored in review_claims
 _TYPE_TO_SINGULAR: dict[str, str] = {
     "tasks": "task",
     "workflows": "workflow",
     "principles": "principle",
-    "facts": "fact",
-    "concepts": "concept",
 }
 
 # Domain-scoped types: domain access must be checked on these
 _DOMAIN_SCOPED_TYPES = {"tasks", "workflows", "principles"}
 
 # Union of all governed record types; all share LifecycleMixin fields plus title
-_AnyRecord = Task | Workflow | Principle | Fact | Concept
-# Subset that carries a domain field
+_AnyRecord = Task | Workflow | Principle
 _DomainRecord = Task | Workflow | Principle
 
 
@@ -110,10 +104,6 @@ async def _get_record(
         record = await session.get(Workflow, entity_id)
     elif entity_type == "principles":
         record = await session.get(Principle, entity_id)
-    elif entity_type == "facts":
-        record = await session.get(Fact, entity_id)
-    elif entity_type == "concepts":
-        record = await session.get(Concept, entity_id)
     else:
         raise HTTPException(
             status_code=422,
@@ -144,8 +134,7 @@ async def _collect_queue_items(
 ) -> list[_RawQueueItem]:
     """Query all submitted records eligible for the user to review.
 
-    Domain-agnostic types (fact, concept): shown to all reviewers.
-    Domain-scoped types (task, workflow, principle): filtered to user's assigned domains.
+    All governed record types (task, workflow, principle) are domain-scoped.
     Own submissions are excluded for all users including admin.
     """
     user_domains = await _get_user_domains(session, user)
@@ -153,44 +142,7 @@ async def _collect_queue_items(
 
     items: list[_RawQueueItem] = []
 
-    # --- Domain-agnostic: Facts ---
-    fact_result = await session.execute(
-        sa.select(Fact).where(Fact.status == "submitted", Fact.created_by != user.id)
-    )
-    for fact in fact_result.scalars():
-        items.append(
-            _RawQueueItem(
-                id=fact.id,
-                record_type="fact",
-                title=fact.title,
-                domain=None,
-                status=fact.status,
-                updated_at=fact.updated_at,
-                created_by=fact.created_by,
-            )
-        )
-
-    # --- Domain-agnostic: Concepts ---
-    concept_result = await session.execute(
-        sa.select(Concept).where(
-            Concept.status == "submitted", Concept.created_by != user.id
-        )
-    )
-    for concept in concept_result.scalars():
-        items.append(
-            _RawQueueItem(
-                id=concept.id,
-                record_type="concept",
-                title=concept.title,
-                domain=None,
-                status=concept.status,
-                updated_at=concept.updated_at,
-                created_by=concept.created_by,
-            )
-        )
-
-    # --- Domain-scoped types ---
-    # Contributor with no domain assignments sees nothing in this section.
+    # Contributor with no domain assignments sees nothing.
     if is_admin or user_domains:
 
         # Tasks

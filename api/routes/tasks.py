@@ -1,8 +1,8 @@
-"""Tasks API endpoints, including steps and fact/concept refs.
+"""Tasks API endpoints, including steps.
 
-§9.5  — Tasks schema: steps, fact-refs, concept-refs
+§9.5  — Tasks schema: steps with actions, notes, images
 §9.3  — Lifecycle state machine
-§10.1 — Immutability: confirmed tasks cannot have steps/refs added
+§10.1 — No machine can confirm
 §5.1  — Self-review prohibition
 """
 
@@ -17,18 +17,12 @@ from sqlalchemy.orm import selectinload
 
 from api.auth import Role
 from api.dependencies import ArqPool, CurrentUser, DBSession, require_role
-from api.models.concept import Concept
-from api.models.fact import Fact
-from api.models.task import Task, TaskConceptRef, TaskFactRef, TaskStep, TaskStepAction
+from api.models.task import Task, TaskStep, TaskStepAction
 from api.models.user import User
 from api.schemas.base import ConfirmRequest
 from api.schemas.task import (
     ReturnRequest,
-    TaskConceptRefCreate,
-    TaskConceptRefResponse,
     TaskCreate,
-    TaskFactRefCreate,
-    TaskFactRefResponse,
     TaskResponse,
     TaskStepCreate,
     TaskStepResponse,
@@ -45,15 +39,16 @@ _Writer = Annotated[User, require_role(Role.CONTRIBUTOR, Role.ADMIN)]
 _Admin = Annotated[User, require_role(Role.ADMIN)]
 
 
-async def _get_task_with_refs(session: AsyncSession, task_id: uuid.UUID) -> Task:
+async def _get_task(session: AsyncSession, task_id: uuid.UUID) -> Task:
     """Fetch a Task with all sub-resources loaded."""
     result = await session.execute(
         select(Task)
         .where(Task.id == task_id)
         .options(
-            selectinload(Task.steps).selectinload(TaskStep.actions),
-            selectinload(Task.fact_refs),
-            selectinload(Task.concept_refs),
+            selectinload(Task.steps)
+            .selectinload(TaskStep.actions),
+            selectinload(Task.steps)
+            .selectinload(TaskStep.images),
         )
     )
     task = result.scalar_one_or_none()
@@ -69,18 +64,19 @@ async def create_task(body: TaskCreate, session: DBSession, user: _Writer) -> Ta
     task = Task(
         title=body.title,
         outcome=body.outcome,
-        procedure_name=body.procedure_name,
         domain=body.domain,
         software_name=body.software_name,
         software_version=body.software_version,
         media_url=body.media_url,
+        facts=body.facts or None,
+        concepts=body.concepts or None,
         tags=body.tags,
         created_by=user.id,
         updated_by=user.id,
     )
     session.add(task)
     await session.commit()
-    return TaskResponse.model_validate(await _get_task_with_refs(session, task.id))
+    return TaskResponse.model_validate(await _get_task(session, task.id))
 
 
 @router.get("", response_model=list[TaskResponse])
@@ -89,8 +85,7 @@ async def list_tasks(session: DBSession, user: CurrentUser) -> list[TaskResponse
         select(Task)
         .options(
             selectinload(Task.steps).selectinload(TaskStep.actions),
-            selectinload(Task.fact_refs),
-            selectinload(Task.concept_refs),
+            selectinload(Task.steps).selectinload(TaskStep.images),
         )
         .order_by(Task.created_at.desc())
     )
@@ -99,21 +94,19 @@ async def list_tasks(session: DBSession, user: CurrentUser) -> list[TaskResponse
 
 @router.get("/{task_id}", response_model=TaskResponse)
 async def get_task(task_id: uuid.UUID, session: DBSession, user: CurrentUser) -> TaskResponse:
-    return TaskResponse.model_validate(await _get_task_with_refs(session, task_id))
+    return TaskResponse.model_validate(await _get_task(session, task_id))
 
 
 @router.patch("/{task_id}", response_model=TaskResponse)
 async def update_task(
     task_id: uuid.UUID, body: TaskUpdate, session: DBSession, user: _Writer
 ) -> TaskResponse:
-    task = await _get_task_with_refs(session, task_id)
+    task = await _get_task(session, task_id)
     lifecycle.assert_can_edit(task.status)
     if body.title is not None:
         task.title = body.title
     if body.outcome is not None:
         task.outcome = body.outcome
-    if body.procedure_name is not None:
-        task.procedure_name = body.procedure_name
     if body.domain is not None:
         await lifecycle.assert_domain_active(body.domain, session)
         await lifecycle.assert_domain_access(body.domain, user, session)
@@ -124,22 +117,26 @@ async def update_task(
         task.software_version = body.software_version
     if body.media_url is not None:
         task.media_url = body.media_url
+    if body.facts is not None:
+        task.facts = body.facts or None
+    if body.concepts is not None:
+        task.concepts = body.concepts or None
     if body.tags is not None:
         task.tags = body.tags
     task.updated_by = user.id
     await session.commit()
-    return TaskResponse.model_validate(await _get_task_with_refs(session, task.id))
+    return TaskResponse.model_validate(await _get_task(session, task.id))
 
 
 @router.post("/{task_id}/submit", response_model=TaskResponse)
 async def submit_task(task_id: uuid.UUID, session: DBSession, user: _Writer) -> TaskResponse:
-    task = await _get_task_with_refs(session, task_id)
+    task = await _get_task(session, task_id)
     lifecycle.assert_can_submit(task.status, user)
     await lifecycle.assert_domain_access(task.domain, user, session)
     task.status = "submitted"
     task.updated_by = user.id
     await session.commit()
-    return TaskResponse.model_validate(await _get_task_with_refs(session, task.id))
+    return TaskResponse.model_validate(await _get_task(session, task.id))
 
 
 @router.post("/{task_id}/confirm", response_model=TaskResponse)
@@ -150,7 +147,7 @@ async def confirm_task(
     arq_pool: ArqPool,
     body: ConfirmRequest | None = None,
 ) -> TaskResponse:
-    task = await _get_task_with_refs(session, task_id)
+    task = await _get_task(session, task_id)
     await lifecycle.assert_domain_access(task.domain, user, session)
     is_break_glass = lifecycle.assert_can_confirm(
         task.status, task.created_by, user, body.justification if body else None
@@ -163,14 +160,14 @@ async def confirm_task(
     log.info("task_confirmed", task_id=str(task.id), user_id=str(user.id))
     if arq_pool is not None:
         await arq_pool.enqueue_job("generate_embedding", record_type="task", record_id=str(task.id))
-    return TaskResponse.model_validate(await _get_task_with_refs(session, task.id))
+    return TaskResponse.model_validate(await _get_task(session, task.id))
 
 
 @router.post("/{task_id}/return", response_model=TaskResponse)
 async def return_task(
     task_id: uuid.UUID, body: ReturnRequest, session: DBSession, user: _Writer
 ) -> TaskResponse:
-    task = await _get_task_with_refs(session, task_id)
+    task = await _get_task(session, task_id)
     lifecycle.assert_can_return(task.status, user)
     await lifecycle.assert_domain_access(task.domain, user, session)
     task.status = "returned"
@@ -179,27 +176,27 @@ async def return_task(
     task.reviewed_by = user.id
     task.updated_by = user.id
     await session.commit()
-    return TaskResponse.model_validate(await _get_task_with_refs(session, task.id))
+    return TaskResponse.model_validate(await _get_task(session, task.id))
 
 
 @router.post("/{task_id}/deprecate", response_model=TaskResponse)
 async def deprecate_task(task_id: uuid.UUID, session: DBSession, user: _Admin) -> TaskResponse:
-    task = await _get_task_with_refs(session, task_id)
+    task = await _get_task(session, task_id)
     lifecycle.assert_can_deprecate(task.status, user)
     task.status = "deprecated"
     task.updated_by = user.id
     await session.commit()
-    return TaskResponse.model_validate(await _get_task_with_refs(session, task.id))
+    return TaskResponse.model_validate(await _get_task(session, task.id))
 
 
 @router.post("/{task_id}/retire", response_model=TaskResponse)
 async def retire_task(task_id: uuid.UUID, session: DBSession, user: _Admin) -> TaskResponse:
-    task = await _get_task_with_refs(session, task_id)
+    task = await _get_task(session, task_id)
     lifecycle.assert_can_retire(task.status, user)
     task.status = "retired"
     task.updated_by = user.id
     await session.commit()
-    return TaskResponse.model_validate(await _get_task_with_refs(session, task.id))
+    return TaskResponse.model_validate(await _get_task(session, task.id))
 
 
 # ---------------------------------------------------------------------------
@@ -212,7 +209,7 @@ async def retire_task(task_id: uuid.UUID, session: DBSession, user: _Admin) -> T
 async def add_step(
     task_id: uuid.UUID, body: TaskStepCreate, session: DBSession, user: _Writer
 ) -> TaskStepResponse:
-    task = await _get_task_with_refs(session, task_id)
+    task = await _get_task(session, task_id)
     lifecycle.assert_can_mutate_refs(task.status)
 
     next_index = len(task.steps)
@@ -225,7 +222,7 @@ async def add_step(
         irreversible=body.irreversible,
     )
     session.add(step)
-    await session.flush()  # get step.id before creating actions
+    await session.flush()
 
     for i, action_body in enumerate(body.actions):
         session.add(TaskStepAction(
@@ -239,10 +236,9 @@ async def add_step(
     result = await session.execute(
         select(TaskStep)
         .where(TaskStep.id == step.id)
-        .options(selectinload(TaskStep.actions))
+        .options(selectinload(TaskStep.actions), selectinload(TaskStep.images))
     )
-    loaded_step = result.scalar_one()
-    return TaskStepResponse.model_validate(loaded_step)
+    return TaskStepResponse.model_validate(result.scalar_one())
 
 
 @router.patch("/{task_id}/steps/{step_id}", response_model=TaskStepResponse)
@@ -262,7 +258,7 @@ async def update_step(
     result = await session.execute(
         select(TaskStep)
         .where(TaskStep.id == step_id, TaskStep.task_id == task_id)
-        .options(selectinload(TaskStep.actions))
+        .options(selectinload(TaskStep.actions), selectinload(TaskStep.images))
     )
     step = result.scalar_one_or_none()
     if step is None:
@@ -278,13 +274,13 @@ async def update_step(
         step.irreversible = body.irreversible
 
     await session.commit()
-    await session.refresh(step)
 
     result2 = await session.execute(
-        select(TaskStep).where(TaskStep.id == step_id).options(selectinload(TaskStep.actions))
+        select(TaskStep)
+        .where(TaskStep.id == step_id)
+        .options(selectinload(TaskStep.actions), selectinload(TaskStep.images))
     )
-    loaded_step = result2.scalar_one()
-    return TaskStepResponse.model_validate(loaded_step)
+    return TaskStepResponse.model_validate(result2.scalar_one())
 
 
 @router.delete("/{task_id}/steps/{step_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -305,119 +301,4 @@ async def delete_step(
         raise HTTPException(status_code=404, detail="Step not found.")
 
     await session.delete(step)
-    await session.commit()
-
-
-# ---------------------------------------------------------------------------
-# Fact refs
-# ---------------------------------------------------------------------------
-
-@router.post(
-    "/{task_id}/fact-refs",
-    response_model=TaskFactRefResponse,
-    status_code=status.HTTP_201_CREATED,
-)
-async def add_fact_ref(
-    task_id: uuid.UUID, body: TaskFactRefCreate, session: DBSession, user: _Writer
-) -> TaskFactRefResponse:
-    task = await _get_task_with_refs(session, task_id)
-    lifecycle.assert_can_mutate_refs(task.status)
-
-    # Only confirmed Facts may be referenced (§9.5)
-    fact_result = await session.execute(
-        select(Fact).where(Fact.record_id == body.fact_record_id, Fact.status == "confirmed")
-    )
-    if fact_result.scalar_one_or_none() is None:
-        raise HTTPException(status_code=422, detail="No confirmed Fact found with that record_id.")
-
-    next_index = len(task.fact_refs)
-    ref = TaskFactRef(task_id=task.id, fact_record_id=body.fact_record_id, order_index=next_index)
-    session.add(ref)
-    await session.commit()
-    await session.refresh(ref)
-    return TaskFactRefResponse.model_validate(ref)
-
-
-@router.delete("/{task_id}/fact-refs/{fact_record_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def remove_fact_ref(
-    task_id: uuid.UUID, fact_record_id: uuid.UUID, session: DBSession, user: _Writer
-) -> None:
-    task_result = await session.execute(select(Task).where(Task.id == task_id))
-    task = task_result.scalar_one_or_none()
-    if task is None:
-        raise HTTPException(status_code=404, detail="Task not found.")
-    lifecycle.assert_can_mutate_refs(task.status)
-
-    ref_result = await session.execute(
-        select(TaskFactRef).where(
-            TaskFactRef.task_id == task_id,
-            TaskFactRef.fact_record_id == fact_record_id,
-        )
-    )
-    ref = ref_result.scalar_one_or_none()
-    if ref is None:
-        raise HTTPException(status_code=404, detail="Fact ref not found.")
-    await session.delete(ref)
-    await session.commit()
-
-
-# ---------------------------------------------------------------------------
-# Concept refs
-# ---------------------------------------------------------------------------
-
-@router.post(
-    "/{task_id}/concept-refs",
-    response_model=TaskConceptRefResponse,
-    status_code=status.HTTP_201_CREATED,
-)
-async def add_concept_ref(
-    task_id: uuid.UUID, body: TaskConceptRefCreate, session: DBSession, user: _Writer
-) -> TaskConceptRefResponse:
-    task = await _get_task_with_refs(session, task_id)
-    lifecycle.assert_can_mutate_refs(task.status)
-
-    concept_result = await session.execute(
-        select(Concept).where(
-            Concept.record_id == body.concept_record_id, Concept.status == "confirmed"
-        )
-    )
-    if concept_result.scalar_one_or_none() is None:
-        raise HTTPException(
-            status_code=422, detail="No confirmed Concept found with that record_id."
-        )
-
-    next_index = len(task.concept_refs)
-    ref = TaskConceptRef(
-        task_id=task.id,
-        concept_record_id=body.concept_record_id,
-        order_index=next_index,
-    )
-    session.add(ref)
-    await session.commit()
-    await session.refresh(ref)
-    return TaskConceptRefResponse.model_validate(ref)
-
-
-@router.delete(
-    "/{task_id}/concept-refs/{concept_record_id}", status_code=status.HTTP_204_NO_CONTENT
-)
-async def remove_concept_ref(
-    task_id: uuid.UUID, concept_record_id: uuid.UUID, session: DBSession, user: _Writer
-) -> None:
-    task_result = await session.execute(select(Task).where(Task.id == task_id))
-    task = task_result.scalar_one_or_none()
-    if task is None:
-        raise HTTPException(status_code=404, detail="Task not found.")
-    lifecycle.assert_can_mutate_refs(task.status)
-
-    ref_result = await session.execute(
-        select(TaskConceptRef).where(
-            TaskConceptRef.task_id == task_id,
-            TaskConceptRef.concept_record_id == concept_record_id,
-        )
-    )
-    ref = ref_result.scalar_one_or_none()
-    if ref is None:
-        raise HTTPException(status_code=404, detail="Concept ref not found.")
-    await session.delete(ref)
     await session.commit()

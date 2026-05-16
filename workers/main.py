@@ -32,8 +32,6 @@ from api import prompts as prompt_store
 from api.config import Settings, get_settings
 from api.database import create_engine
 from api.logging import configure_logging
-from api.models.concept import Concept
-from api.models.fact import Fact
 from api.models.ingestion import Ingestion, IngestionCandidate, IngestionChunk, IngestionNavPage
 from api.models.principle import Principle
 from api.models.task import Task
@@ -44,8 +42,6 @@ from api.services.storage import read_ingestion_file
 log = structlog.get_logger(__name__)
 
 _TABLE_FOR_TYPE: dict[str, str] = {
-    "fact": "facts",
-    "concept": "concepts",
     "principle": "principles",
     "task": "tasks",
     "workflow": "workflows",
@@ -57,16 +53,6 @@ async def _fetch_record_text(
 ) -> str | None:
     """Return the text to embed for the given record, or None if not found."""
     rid = uuid.UUID(record_id)
-
-    if record_type == "fact":
-        fact = (await session.execute(select(Fact).where(Fact.id == rid))).scalar_one_or_none()
-        return f"{fact.title}. {fact.body}" if fact else None
-
-    if record_type == "concept":
-        concept = (
-            await session.execute(select(Concept).where(Concept.id == rid))
-        ).scalar_one_or_none()
-        return f"{concept.title}. {concept.summary}. {concept.explanation}" if concept else None
 
     if record_type == "principle":
         principle = (
@@ -391,7 +377,7 @@ async def _call_llm(
 
 def _validate_task(candidate: dict[str, Any]) -> str | None:
     """Return an error string if the task candidate is missing required fields."""
-    required = {"title", "outcome", "procedure_name", "steps"}
+    required = {"title", "outcome", "steps"}
     missing = required - candidate.keys()
     if missing:
         return f"Missing required fields: {sorted(missing)}"
@@ -1073,7 +1059,6 @@ class WorkerSettings:
     on_startup = startup
     on_shutdown = shutdown
 
-    @property
-    def redis_settings(self) -> RedisSettings:
-        settings = get_settings()
-        return RedisSettings.from_dsn(settings.redis_url)
+    redis_settings: ClassVar[RedisSettings] = RedisSettings.from_dsn(
+        get_settings().redis_url
+    )

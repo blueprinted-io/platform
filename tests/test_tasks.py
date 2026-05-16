@@ -1,32 +1,29 @@
 """Tests for the Tasks lifecycle API.
 
+TEST_REVISED (v4.4/v4.5 — dissolve Facts/Concepts, drop procedure_name):
+  - Removed fact-ref and concept-ref tests: /fact-refs and /concept-refs endpoints
+    no longer exist. Facts and concepts are string arrays on the Task record.
+  - Removed test_create_task_missing_procedure_name_returns_422: procedure_name
+    is no longer a field on Task.
+  - Updated test_create_task_response_has_required_fields: removed procedure_name,
+    has_deprecated_fact_ref, has_deprecated_concept_ref, fact_refs, concept_refs;
+    added facts, concepts.
+  - Updated test_create_task_missing_outcome_returns_422: removed procedure_name
+    from the invalid payload (no longer a field).
+  - Imports: removed concept_payload and fact_payload (factories deleted).
+
 Spec refs:
   §9.3  Lifecycle state machine
-  §9.5  Tasks schema (title, outcome, procedure_name, domain, steps, fact-refs, concept-refs)
-  §10.1 Immutability once confirmed — applies to Task and all its steps
+  §9.5  Tasks schema (title, outcome, domain, facts, concepts, steps)
+  §10.1 No machine can confirm
   §7    Domain scoping (Tasks are domain-scoped)
   §5.1  Human roles and self-review prohibition
 
-Task-specific behaviour beyond the shared lifecycle:
+Task-specific behaviour:
   - Steps (task_steps + task_step_actions) are owned by the Task
-  - Fact and Concept references (task_fact_refs, task_concept_refs) are by record_id,
-    resolving to the latest confirmed version at read time
   - task.irreversible is derived: True if any step has irreversible=True
-  - has_deprecated_fact_ref and has_deprecated_concept_ref are server-managed flags;
-    they cannot be set directly and are not accepted in request bodies
-  - Steps and refs cannot be added to or removed from a confirmed Task
-
-Assumptions (flag as TEST_REVISED if Sprint 4 diverges):
-  - Steps endpoint: POST /api/v1/tasks/{id}/steps
-  - Step update: PATCH /api/v1/tasks/{task_id}/steps/{step_id}
-  - Step delete: DELETE /api/v1/tasks/{task_id}/steps/{step_id}
-  - Fact ref add: POST /api/v1/tasks/{id}/fact-refs
-  - Fact ref remove: DELETE /api/v1/tasks/{task_id}/fact-refs/{fact_record_id}
-  - Concept ref add: POST /api/v1/tasks/{id}/concept-refs
-  - Concept ref remove: DELETE /api/v1/tasks/{task_id}/concept-refs/{concept_record_id}
-  - Only confirmed Facts/Concepts may be referenced
-
-All tests are skipped pending Sprint 4 implementation.
+  - Steps cannot be added to or removed from a confirmed Task
+  - facts and concepts are string arrays, authored as part of the task
 """
 
 from collections.abc import Callable
@@ -35,8 +32,6 @@ import pytest
 from httpx import AsyncClient
 
 from tests.factories import (
-    concept_payload,
-    fact_payload,
     task_payload,
     task_step_action_payload,
     task_step_payload,
@@ -93,20 +88,7 @@ async def test_create_task_missing_outcome_returns_422(
     token = make_token(roles=["contributor"])
     response = await client.post(
         "/api/v1/tasks",
-        json={"title": "A task", "procedure_name": "a-task"},
-        headers={"Authorization": f"Bearer {token}"},
-    )
-    assert response.status_code == 422
-
-
-@pytest.mark.asyncio
-async def test_create_task_missing_procedure_name_returns_422(
-    client: AsyncClient, make_token: Callable[..., str]
-) -> None:
-    token = make_token(roles=["contributor"])
-    response = await client.post(
-        "/api/v1/tasks",
-        json={"title": "A task", "outcome": "Something is done."},
+        json={"title": "A task"},
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 422
@@ -125,9 +107,9 @@ async def test_create_task_response_has_required_fields(
     body = response.json()
     required = (
         "id", "record_id", "version", "status",
-        "title", "outcome", "procedure_name", "domain",
-        "irreversible", "has_deprecated_fact_ref", "has_deprecated_concept_ref",
-        "steps", "fact_refs", "concept_refs",
+        "title", "outcome", "domain",
+        "facts", "concepts",
+        "irreversible", "steps",
         "created_at", "updated_at", "created_by",
     )
     for field in required:
@@ -145,6 +127,25 @@ async def test_create_task_irreversible_is_false_with_no_steps(
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.json()["irreversible"] is False
+
+
+@pytest.mark.asyncio
+async def test_create_task_with_facts_and_concepts(
+    client: AsyncClient, make_token: Callable[..., str]
+) -> None:
+    token = make_token(roles=["contributor"])
+    response = await client.post(
+        "/api/v1/tasks",
+        json=task_payload(
+            facts=["PostgreSQL superuser has full database access"],
+            concepts=["Password rotation limits blast radius of credential compromise"],
+        ),
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 201
+    body = response.json()
+    assert body["facts"] == ["PostgreSQL superuser has full database access"]
+    assert body["concepts"] == ["Password rotation limits blast radius of credential compromise"]
 
 
 # ---------------------------------------------------------------------------
@@ -316,165 +317,6 @@ async def test_delete_step_from_draft_task(
 
 
 # ---------------------------------------------------------------------------
-# Fact and Concept references
-# ---------------------------------------------------------------------------
-
-@pytest.mark.asyncio
-async def test_add_confirmed_fact_ref_to_task(
-    client: AsyncClient, make_token: Callable[..., str]
-) -> None:
-    author_token = make_token(sub="author-ref-001", roles=["contributor"])
-    reviewer_token = make_token(sub="reviewer-ref-001", roles=["contributor"])
-
-    # Create and confirm a fact
-    fact_resp = await client.post(
-        "/api/v1/facts",
-        json=fact_payload(title="Fact for task reference"),
-        headers={"Authorization": f"Bearer {author_token}"},
-    )
-    fact_id = fact_resp.json()["id"]
-    fact_record_id = fact_resp.json()["record_id"]
-    await client.post(
-        f"/api/v1/facts/{fact_id}/submit",
-        headers={"Authorization": f"Bearer {author_token}"},
-    )
-    await client.post(
-        f"/api/v1/facts/{fact_id}/confirm",
-        headers={"Authorization": f"Bearer {reviewer_token}"},
-    )
-
-    # Create a task and add the fact ref
-    task_resp = await client.post(
-        "/api/v1/tasks",
-        json=task_payload(),
-        headers={"Authorization": f"Bearer {author_token}"},
-    )
-    task_id = task_resp.json()["id"]
-
-    ref_resp = await client.post(
-        f"/api/v1/tasks/{task_id}/fact-refs",
-        json={"fact_record_id": fact_record_id},
-        headers={"Authorization": f"Bearer {author_token}"},
-    )
-    assert ref_resp.status_code == 201
-
-
-@pytest.mark.asyncio
-async def test_add_draft_fact_ref_returns_422(
-    client: AsyncClient, make_token: Callable[..., str]
-) -> None:
-    """Only confirmed Facts may be referenced by a Task."""
-    token = make_token(roles=["contributor"])
-
-    fact_resp = await client.post(
-        "/api/v1/facts",
-        json=fact_payload(),
-        headers={"Authorization": f"Bearer {token}"},
-    )
-    fact_record_id = fact_resp.json()["record_id"]
-
-    task_resp = await client.post(
-        "/api/v1/tasks",
-        json=task_payload(),
-        headers={"Authorization": f"Bearer {token}"},
-    )
-    task_id = task_resp.json()["id"]
-
-    ref_resp = await client.post(
-        f"/api/v1/tasks/{task_id}/fact-refs",
-        json={"fact_record_id": fact_record_id},
-        headers={"Authorization": f"Bearer {token}"},
-    )
-    assert ref_resp.status_code == 422
-
-
-@pytest.mark.asyncio
-async def test_add_fact_ref_to_confirmed_task_returns_422(
-    client: AsyncClient, make_token: Callable[..., str]
-) -> None:
-    author_token = make_token(sub="author-ref-002", roles=["contributor"])
-    reviewer_token = make_token(sub="reviewer-ref-002", roles=["contributor"])
-
-    # Create and confirm a fact
-    fact_resp = await client.post(
-        "/api/v1/facts",
-        json=fact_payload(),
-        headers={"Authorization": f"Bearer {author_token}"},
-    )
-    fact_id = fact_resp.json()["id"]
-    fact_record_id = fact_resp.json()["record_id"]
-    await client.post(
-        f"/api/v1/facts/{fact_id}/submit",
-        headers={"Authorization": f"Bearer {author_token}"},
-    )
-    await client.post(
-        f"/api/v1/facts/{fact_id}/confirm",
-        headers={"Authorization": f"Bearer {reviewer_token}"},
-    )
-
-    # Create and confirm a task
-    task_resp = await client.post(
-        "/api/v1/tasks",
-        json=task_payload(),
-        headers={"Authorization": f"Bearer {author_token}"},
-    )
-    task_id = task_resp.json()["id"]
-    await client.post(
-        f"/api/v1/tasks/{task_id}/submit",
-        headers={"Authorization": f"Bearer {author_token}"},
-    )
-    await client.post(
-        f"/api/v1/tasks/{task_id}/confirm",
-        headers={"Authorization": f"Bearer {reviewer_token}"},
-    )
-
-    ref_resp = await client.post(
-        f"/api/v1/tasks/{task_id}/fact-refs",
-        json={"fact_record_id": fact_record_id},
-        headers={"Authorization": f"Bearer {author_token}"},
-    )
-    assert ref_resp.status_code == 422
-
-
-@pytest.mark.asyncio
-async def test_add_confirmed_concept_ref_to_task(
-    client: AsyncClient, make_token: Callable[..., str]
-) -> None:
-    author_token = make_token(sub="author-cref-001", roles=["contributor"])
-    reviewer_token = make_token(sub="reviewer-cref-001", roles=["contributor"])
-
-    concept_resp = await client.post(
-        "/api/v1/concepts",
-        json=concept_payload(),
-        headers={"Authorization": f"Bearer {author_token}"},
-    )
-    concept_id = concept_resp.json()["id"]
-    concept_record_id = concept_resp.json()["record_id"]
-    await client.post(
-        f"/api/v1/concepts/{concept_id}/submit",
-        headers={"Authorization": f"Bearer {author_token}"},
-    )
-    await client.post(
-        f"/api/v1/concepts/{concept_id}/confirm",
-        headers={"Authorization": f"Bearer {reviewer_token}"},
-    )
-
-    task_resp = await client.post(
-        "/api/v1/tasks",
-        json=task_payload(),
-        headers={"Authorization": f"Bearer {author_token}"},
-    )
-    task_id = task_resp.json()["id"]
-
-    ref_resp = await client.post(
-        f"/api/v1/tasks/{task_id}/concept-refs",
-        json={"concept_record_id": concept_record_id},
-        headers={"Authorization": f"Bearer {author_token}"},
-    )
-    assert ref_resp.status_code == 201
-
-
-# ---------------------------------------------------------------------------
 # Full lifecycle (happy path)
 # ---------------------------------------------------------------------------
 
@@ -493,7 +335,6 @@ async def test_task_full_lifecycle_draft_to_confirmed(
     assert create_resp.status_code == 201
     task_id = create_resp.json()["id"]
 
-    # Add a step
     await client.post(
         f"/api/v1/tasks/{task_id}/steps",
         json=task_step_payload(),
@@ -616,7 +457,7 @@ async def test_deprecate_task_admin_only(
         f"/api/v1/tasks/{task_id}/submit",
         headers={"Authorization": f"Bearer {admin_token}"},
     )
-    # TEST_REVISED: admin self-confirm now requires non-empty justification (§5.1 break-glass)
+    # TEST_REVISED: admin self-confirm requires non-empty justification (§5.1 break-glass)
     await client.post(
         f"/api/v1/tasks/{task_id}/confirm",
         json={"justification": "Admin break-glass confirm for test."},
