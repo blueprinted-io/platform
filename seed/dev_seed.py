@@ -29,7 +29,6 @@ import sys
 import urllib.error
 import urllib.request
 
-
 API_BASE = "http://localhost:8000/api/v1"
 DOMAIN = "linux-sysadmin"
 
@@ -197,10 +196,10 @@ def main() -> None:
     print(f"  Status: submitted — Task ID: {t3_id}")
 
     print("\nSeed complete.")
-    print(f"  Open http://localhost:5173/tasks to see your data.")
-    print(f"\n  Note: tasks 1 and 3 are 'submitted' — confirm them via a second user account")
-    print(f"  (self-review is not permitted). To quickly confirm for dev, use the API")
-    print(f"  with a token from a different Authentik user.")
+    print("  Open http://localhost:5173/tasks to see your data.")
+    print("\n  Note: tasks 1 and 3 are 'submitted' — confirm them via a second user account")
+    print("  (self-review is not permitted). To quickly confirm for dev, use the API")
+    print("  with a token from a different Authentik user.")
 
 
 if __name__ == "__main__":

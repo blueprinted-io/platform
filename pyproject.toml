@@ -95,6 +95,8 @@ ignore = [
 "migrations/**/*.py" = ["ANN", "E501"]
 # SQL strings built from hardcoded _TypeConfig fields — not user input.
 "api/services/search.py" = ["S608"]
+# Dev-only CLI tool: print output, subprocess/urllib to localhost, and inline SQL are all intentional.
+"seed/**/*.py" = ["T20", "S", "E501"]
 
 # ---------------------------------------------------------------------------
 # mypy
