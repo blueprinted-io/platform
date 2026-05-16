@@ -39,6 +39,8 @@ When starting a new session, paste the most recent entry as context.
 
 - **Fixed mypy failure from PyJWT 2.12 type change** (`604ab14`) — PyJWT 2.12 introduced `Options` as a TypedDict for `jwt.decode()`'s `options` parameter. Imported `Options` from `jwt.types` and changed the annotation from `dict[str, Any]` to `Options` in both decode paths in `api/auth.py`.
 
+- **Bumped CI actions to Node.js 24 compatible versions** (`30b512f`, `148821e`) — `actions/checkout` v4 → v6, `astral-sh/setup-uv` v5 → v8.1.0 (no floating `v8` tag exists). Deprecation warnings gone.
+
 - **CI is fully green** — All steps passing: tests, Ruff, mypy, pip-audit. First clean CI run since before Sprint 8.
 
 ### Incomplete or broken
@@ -69,8 +71,6 @@ Alternatively, confirm a seeded task to get a `confirmed` state visible in the U
 ### Watch out for
 
 - **Postgres password resets on container restart** — The `blueprinted` user password was reset to `blueprinted` (matching the conftest hardcoded value) via trust-auth Unix socket. If the DB container is recreated, the password will revert and local test runs will fail with `InvalidPasswordError`. Fix: run `docker exec deploy-db-1 psql -U blueprinted -c "ALTER USER blueprinted WITH PASSWORD 'blueprinted';"` again. The underlying infra gap (scram-sha-256 for Docker bridge connections) remains unresolved.
-
-- **CI Node.js 20 deprecation warning** — GitHub Actions is warning that `actions/checkout@v4` and `astral-sh/setup-uv@v5` run on Node.js 20, which will be removed September 2026. Not urgent but worth bumping the action versions before then.
 
 - **`test_process_chunks.py` asyncio mark warnings** — Several sync test functions in this file carry a global `pytestmark = pytest.mark.asyncio` from the module level. pytest-asyncio 1.3.0 warns about this. Not a failure, but worth cleaning up in a future session.
 
