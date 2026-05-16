@@ -8,6 +8,53 @@ When starting a new session, paste the most recent entry as context.
 
 <!-- Sessions are added below in reverse chronological order (newest first) -->
 
+## Session Close-Out — 2026-05-16 (Task list screen + search.py final fix)
+
+### Completed
+
+- **`api/services/search.py` final fix** — The v4.4/v4.5 backend refactor left three stale references to the dropped `facts`/`concepts` tables. Removed `"fact"` and `"concept"` from `_VALID_TYPES` and `_TYPE_CONFIGS`, and removed the `facts`/`concepts` legs from the semantic availability union query in `_semantic_available()`. All 168 tests now pass (11 search tests had been failing with `UndefinedTableError`). Committed as `eba8088` on `blueprinted-io/platform`.
+
+- **Task list screen enhanced (§23.3)** — The screen existed but was bare. Updated `src/pages/TasksPage.tsx` to:
+  - Add `software_name`/`software_version` as a subtitle under the task title when present
+  - Add a `Version` column displaying `v{n}`
+  - Make the title a clickable `<Link>` to `/tasks/:recordId`
+  - Add `hover:bg-gray-50` row hover state
+
+- **Task detail stub route added** — `App.tsx` now has `<Route path="tasks/:recordId" element={<ComingSoon label="Task detail" />} />` so link clicks don't 404.
+
+- **Pre-existing uncommitted changes swept up** — `src/lib/auth.ts` scope (`blueprinted_roles` added, from auth roles session) and `src/styles/globals.css` (shadcn oklch theme tokens) were uncommitted; included in the same commit.
+
+- Committed as `7d724e8` on `blueprinted-io/app`, pushed to origin.
+
+### Incomplete or broken
+
+Nothing broken. `tests/test_process_chunks.py` has a pre-existing collection error (pydantic Settings validation failure from extra env vars) — not related to this session's work and not regressions.
+
+### Decisions made
+
+No deviations from spec. The column additions (software context, version) and clickable links are natural detail for a list screen not explicitly specified in §23.3, which only names the screen and its primary API call.
+
+### TEST_REVISED commits
+
+No test files modified this session.
+
+### Next session should start from
+
+**Task detail screen (§23.3) — `GET /api/v1/tasks/{record_id}/{version}`**.
+
+- The route `tasks/:recordId` is already wired in `App.tsx` pointing at a `ComingSoon` stub. Replace that with a real `TaskDetailPage`.
+- The API uses `record_id` + `version` in the path. The list response includes both. Decide whether the detail URL is `/tasks/{record_id}` (latest version) or `/tasks/{record_id}/{version}` (specific). The spec shows both forms — the list currently links to `record_id` only, which would need to either redirect to latest or the backend would need to handle it. Check the backend route handler signature before building the page.
+- `TaskResponse` shape (from `platform/api/schemas/task.py`): `id`, `record_id`, `version`, `status`, `created_at`, `updated_at`, `created_by`, `self_confirmed_by_admin`, `title`, `outcome`, `domain`, `software_name`, `software_version`, `media_url`, `facts: string[]`, `concepts: string[]`, `tags: string[]`, `steps[]` (each with `actions[]` and `images[]`), `irreversible: bool`.
+- Steps are the most complex part of the detail view — `step` (intent), `actions[]` (concrete how), `notes` (alternatives/caveats), `completion` (observable proof), `images[]` (visual clarification with `caption`).
+
+### Watch out for
+
+- **Backend task route uses `{task_id}` not `{record_id}/{version}`** — check `platform/api/routes/tasks.py`. The `GET /api/v1/tasks/{task_id}` endpoint takes the internal `id` (UUID of the specific version row), not `record_id`. The list screen currently links to `record_id`. You may need a `GET /api/v1/tasks/by-record/{record_id}` endpoint to fetch the latest version, or change the link target to `id` instead. Resolve this before building the detail page.
+- **`test_process_chunks.py`** — still broken at collection. Pre-existing.
+- **Dev server** — `npm run dev` was running in `blueprinted-io/app` at the end of this session on port 5173. Backend Docker stack (`deploy-*`) was up.
+
+---
+
 ## Session Close-Out — 2026-05-16 (v4.4/v4.5 backend refactor — dissolve Facts/Concepts, procedure fields)
 
 ### Completed
