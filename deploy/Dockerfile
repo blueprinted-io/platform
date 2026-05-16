@@ -6,7 +6,7 @@ WORKDIR /app
 COPY --from=ghcr.io/astral-sh/uv:0.11.14 /uv /usr/local/bin/uv
 
 # Install dependencies first (layer caching)
-COPY pyproject.toml .python-version ./
+COPY pyproject.toml .python-version uv.lock ./
 RUN uv sync --no-dev --frozen
 
 # Copy application source
@@ -15,6 +15,7 @@ COPY cli/ ./cli/
 COPY workers/ ./workers/
 COPY ingestion/ ./ingestion/
 COPY migrations/ ./migrations/
+COPY prompts/ ./prompts/
 
 ENV PATH="/app/.venv/bin:$PATH"
 ENV PYTHONPATH="/app"

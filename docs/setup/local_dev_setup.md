@@ -16,12 +16,40 @@ Covers the manual steps that cannot be automated.
 
 ## 1. Backend
 
+From the `platform/` directory:
+
 ```bash
-cd platform
-docker compose up
+cp deploy/.env.example .env
 ```
 
+Open `.env` and fill in the four required values (any values are fine for local dev):
+
+```
+POSTGRES_PASSWORD=localdev
+APP_SECRET_KEY=<python -c "import secrets; print(secrets.token_hex(32))">
+AUTHENTIK_DB_PASSWORD=localdev
+AUTHENTIK_SECRET_KEY=<python -c "import secrets; print(secrets.token_hex(32))">
+```
+
+The `.env` file must live at the `platform/` root — Docker Compose loads it from the working directory, not from the `deploy/` subdirectory where the compose files live.
+
+Then bring the stack up:
+
+```bash
+docker compose -f deploy/docker-compose.yml --env-file .env up
+```
+
+The `--env-file .env` flag is required because Docker Compose v2 resolves `.env` relative to the compose file location (`deploy/`), not the working directory.
+
 Runs PostgreSQL, Redis, the FastAPI app, and the ARQ worker.
+
+Once the stack is up, run migrations in a separate terminal:
+
+```bash
+docker compose -f deploy/docker-compose.yml --env-file .env exec api alembic -c migrations/alembic.ini upgrade head
+```
+
+This is required on first run and after any new migration is added. The worker startup hook will fail with an `UndefinedTableError` until migrations have run.
 
 ---
 
@@ -106,11 +134,11 @@ RUN playwright install --with-deps chromium
 ## Running the stack
 
 ```bash
-# Terminal 1 — backend
-cd platform && docker compose up
+# Terminal 1 — backend (from platform/)
+docker compose -f deploy/docker-compose.yml --env-file .env up
 
-# Terminal 2 — frontend
-cd app && npm run dev
+# Terminal 2 — frontend (from app/)
+npm run dev
 ```
 
 Visit `http://localhost:5173` — the login page should appear and redirect to
