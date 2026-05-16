@@ -14,6 +14,7 @@ import jwt
 import structlog
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
 from jwt import PyJWKClient, PyJWKClientError
+from jwt.types import Options
 
 log = structlog.get_logger(__name__)
 
@@ -63,7 +64,7 @@ class TokenVerifier:
         except PyJWKClientError as exc:
             raise TokenVerificationError(f"JWKS lookup failed: {exc}") from exc
 
-        options: dict[str, Any] = {}
+        options: Options = {}
         if not self._issuer:
             options["verify_iss"] = False
         if not self._audience:
@@ -117,7 +118,7 @@ class StubTokenVerifier(TokenVerifier):
         self._roles_claim = roles_claim
 
     def decode(self, token: str) -> dict[str, Any]:
-        options: dict[str, Any] = {}
+        options: Options = {}
         if not self._issuer:
             options["verify_iss"] = False
         if not self._audience:
