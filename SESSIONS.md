@@ -8,6 +8,72 @@ When starting a new session, paste the most recent entry as context.
 
 <!-- Sessions are added below in reverse chronological order (newest first) -->
 
+## Session Close-Out — 2026-05-16 (CI recovery)
+
+### Completed
+
+- **Reverted incorrect `workers/main.py` change** — `procedure_name` had been added back to `_validate_task`'s required set as an uncommitted change from the prior session. Reverted by editing the file; no commit needed as it was never staged.
+
+- **TEST_REVISED: `tests/test_process_chunks.py`** — Updated `test_validate_task_valid`, `test_validate_task_missing_field`, and `test_validate_task_empty_steps` to remove `procedure_name` from all test inputs and assertions, per the authorisation in the previous session close-out. Committed as `82f32cc`.
+
+- **Fixed pydantic-settings `extra_forbidden` collection failure** — pydantic-settings 2.9.x changed the default `extra` behaviour to `"forbid"`, causing `Settings` to reject Docker Compose vars in `.env` (`postgres_user`, `db_port`, etc.) that have no corresponding field. This was causing a collection error before any test could run, and was the root cause of CI failures going back further than `eba8088`. Added `extra="ignore"` to `SettingsConfigDict` in `api/config.py`. Committed as `82f32cc`.
+
+- **Resolved Postgres password mismatch for local test runs** — The conftest hardcodes `password=blueprinted` but the user password was out of sync. Reset via `docker exec deploy-db-1 psql -U blueprinted -c "ALTER USER blueprinted WITH PASSWORD 'blueprinted';"` (trust auth via Unix socket). Tests now connect successfully from the host via TCP. This is infrastructure state, not committed.
+
+- **Committed pre-existing unstaged fixes** (`53b04b3`):
+  - `deploy/Dockerfile` — added `uv.lock` to the `COPY` before `uv sync --frozen` (was broken without it) and added `COPY prompts/ ./prompts/`
+  - `deploy/.env.example` — corrected `OIDC_ROLES_CLAIM` default from `roles` to `blueprinted_roles`
+  - `docs/setup/local_dev_setup.md` — expanded first-run instructions with `.env` setup, correct `docker compose` command, and migration step
+
+- **Identified real root cause of CI failures** — All CI runs were failing on `pip-audit`, not on the test suite. Tests, Ruff, and mypy were passing in CI throughout. pip-audit found 7 CVEs across 4 packages.
+
+- **Upgraded vulnerable dependencies** (`c2f04f9`):
+  - `PyJWT` 2.10.1 → 2.12.1 (GHSA-752w-5fwx-jx9f)
+  - `python-multipart` 0.0.20 → 0.0.28 (3 CVEs)
+  - `starlette` 0.46.2 → 0.52.1 (2 CVEs) — pinned directly in pyproject.toml as fastapi has no lower bound
+  - `fastapi` 0.115.12 → 0.136.1
+  - `pytest` 8.3.5 → 9.0.3 (GHSA-6w46-j5rx-g56g)
+  - `pytest-asyncio` 0.25.3 → 1.3.0
+
+- **Fixed ruff failures in `seed/dev_seed.py`** (`4d4a592`) — Added `"seed/**/*.py" = ["T20", "S", "E501"]` per-file-ignore; print, subprocess, urllib, and inline SQL are all intentional in a dev CLI tool. Applied `ruff --fix` for import sort and bare f-strings.
+
+- **Fixed mypy failure from PyJWT 2.12 type change** (`604ab14`) — PyJWT 2.12 introduced `Options` as a TypedDict for `jwt.decode()`'s `options` parameter. Imported `Options` from `jwt.types` and changed the annotation from `dict[str, Any]` to `Options` in both decode paths in `api/auth.py`.
+
+- **CI is fully green** — All steps passing: tests, Ruff, mypy, pip-audit. First clean CI run since before Sprint 8.
+
+### Incomplete or broken
+
+Nothing is incomplete or broken.
+
+### Decisions made
+
+- **`starlette` pinned as a direct dependency** — fastapi 0.136.1 has no lower bound on starlette, so uv preserved the vulnerable 0.46.2. Pinning it directly in pyproject.toml is the correct fix; this should remain until fastapi enforces a minimum starlette version that covers the CVEs. No spec impact.
+
+- **`seed/**/*.py` excluded from Ruff T20/S/E501** — The dev seed script is a CLI tool where print, subprocess, urllib, and inline SQL are intentional. Consistent with the existing exemptions for `tests/` and `migrations/`. No spec impact.
+
+### TEST_REVISED commits
+
+- `82f32cc` — `tests/test_process_chunks.py`: `test_validate_task_valid`, `test_validate_task_missing_field`, `test_validate_task_empty_steps` updated to remove `procedure_name`. Authorised by previous session close-out; `procedure_name` is no longer part of the LLM extraction schema (removed in `eba8088`).
+
+### Next session should start from
+
+**Sprint 8 feature work** — CI is clean, all debt from the prior sessions is resolved. Resume with the remaining §23.3 screens or move to §23.4 Workflows / §23.6 Principles detail screens.
+
+Suggested next: **Task create screen (§23.3)** — `POST /api/v1/tasks`. Allows creating tasks from the UI rather than via the seed script.
+
+Alternatively, confirm a seeded task to get a `confirmed` state visible in the UI:
+- Create a second Authentik user (Authentik admin UI at `http://192.168.1.82:9000/if/admin/`)
+- Log in as that user, get their JWT via browser console
+- `curl -X POST http://localhost:8000/api/v1/tasks/7c1508b9-9a28-4174-b9dc-8a5e2993f4f9/confirm -H "Authorization: Bearer <token>"`
+
+### Watch out for
+
+- **Postgres password resets on container restart** — The `blueprinted` user password was reset to `blueprinted` (matching the conftest hardcoded value) via trust-auth Unix socket. If the DB container is recreated, the password will revert and local test runs will fail with `InvalidPasswordError`. Fix: run `docker exec deploy-db-1 psql -U blueprinted -c "ALTER USER blueprinted WITH PASSWORD 'blueprinted';"` again. The underlying infra gap (scram-sha-256 for Docker bridge connections) remains unresolved.
+
+- **CI Node.js 20 deprecation warning** — GitHub Actions is warning that `actions/checkout@v4` and `astral-sh/setup-uv@v5` run on Node.js 20, which will be removed September 2026. Not urgent but worth bumping the action versions before then.
+
+- **`test_process_chunks.py` asyncio mark warnings** — Several sync test functions in this file carry a global `pytestmark = pytest.mark.asyncio` from the module level. pytest-asyncio 1.3.0 warns about this. Not a failure, but worth cleaning up in a future session.
+
 ## Session Close-Out — 2026-05-16 (CI failure investigation)
 
 ### Completed
