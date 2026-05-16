@@ -8,6 +8,64 @@ When starting a new session, paste the most recent entry as context.
 
 <!-- Sessions are added below in reverse chronological order (newest first) -->
 
+## Session Close-Out — 2026-05-16 (v4.4/v4.5 backend refactor — dissolve Facts/Concepts, procedure fields)
+
+### Completed
+
+- **v4.4 backend fully implemented** — Facts and Concepts dissolved as independently governed records. They are now `TEXT[]` arrays (`facts`, `concepts`) on the `tasks` table. All related models, schemas, routes, tests, and ingestion/search/worker code removed or updated.
+
+- **v4.5 backend fully implemented** — `procedure_name` removed from tasks (duplicates task title). `task_step_screenshots` renamed to `task_step_images` with an optional `caption TEXT` column. LLM image-to-step association formally deferred to v1.1.
+
+- **Migration written** — `migrations/versions/20260516_d4e5f6a7b8c9_v44_v45_dissolve_facts_concepts.py` handles: dropping `facts`, `concepts`, `task_fact_refs`, `task_concept_refs` tables; renaming `raw_facts`→`facts`, `raw_concepts`→`concepts`; dropping `procedure_name`; renaming `task_step_screenshots`→`task_step_images`; adding `caption TEXT`.
+
+- **Deleted files** — `api/models/fact.py`, `concept.py`, `api/routes/facts.py`, `concepts.py`, `api/schemas/fact.py`, `concept.py`, `tests/test_facts.py`, `tests/test_concepts.py`.
+
+- **`api/services/search.py`** — removed fact/concept from `_VALID_TYPES`, `_TYPE_CONFIGS`, and the semantic availability union query. This was the final fix needed to make the test suite green.
+
+- **Full test suite passing** — 168 tests pass. `test_process_chunks.py` has a pre-existing collection error (Settings validation failure) unrelated to this work.
+
+- **Committed and pushed** — `eba8088` on `blueprinted-io/platform` main.
+
+### Incomplete or broken
+
+Nothing broken. `test_process_chunks.py` collection failure is pre-existing and unrelated to this session's changes.
+
+### Decisions made
+
+- **Facts/Concepts as `TEXT[]` on tasks** — no migration path for existing fact/concept records (dev environment only; no production data). Clean drop.
+- **LLM image-to-step association deferred to v1.1** — image upload/linking is manual for now; the `caption` column is the only new image field added.
+- **`task_process_chunks.py` left broken** — pre-existing; flagged but out of scope.
+
+### TEST_REVISED commits
+
+All test revisions carry `TEST_REVISED` markers per §10.4. Changes were authorised as part of the spec amendments:
+- `tests/test_search.py` — removed fact-based helpers/assertions; replaced with task equivalents
+- `tests/test_review.py` — removed fact queue tests; replaced with domain-scoped contributor test
+- `tests/test_tasks.py` — removed fact/concept ref tests; added `test_create_task_with_facts_and_concepts`
+- `tests/test_ingestions.py` — removed `procedure_name` from fixture payloads
+
+### Next session should start from
+
+**Sprint 8 — Core read screens in `blueprinted-io/app`**. The backend is clean. Pick up the Task list screen (§23.3).
+
+Before building screens, run the JWT verification check from the previous close-out (2026-05-15) if it hasn't been confirmed yet:
+- Start Docker Compose (`platform/deploy/docker-compose.yml`) and `npm run dev` in `app/`
+- Log in, check `GET /api/v1/users/me` returns 200 with a real JWT
+
+Then Task list screen (§23.3):
+- Read §23.3 first
+- `npx shadcn@latest add table badge` from `app/`
+- Wire `GET /api/v1/tasks` via TanStack Query
+- Check `platform/api/schemas/task.py` `TaskResponse` shape before writing TS types — `facts`/`concepts` are now `list[str]`, `steps` has `images: list[TaskStepImageResponse]`
+
+### Watch out for
+
+- **`facts` and `concepts` are `list[str]` on `TaskResponse`** — any TS types written before this session are stale. Regenerate from current schema.
+- **No `/api/v1/facts` or `/api/v1/concepts` routes exist** — do not reference them anywhere in the frontend.
+- **`test_process_chunks.py`** — still broken at collection. Pre-existing Settings validation failure. Leave alone until someone picks it up deliberately.
+
+---
+
 ## Session Close-Out — 2026-05-15 (Infrastructure debugging — DB recovery, auth roles)
 
 ### Completed
