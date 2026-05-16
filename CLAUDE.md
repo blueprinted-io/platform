@@ -88,8 +88,8 @@ database exclusively via the versioned API (`/api/v1/`). Nothing gets direct dat
 access except the core FastAPI service. No exceptions.
 
 ### No machine can confirm
-The state transition from `submitted` to `confirmed` on any governed record (Fact,
-Concept, Task, Workflow, Principle) cannot be performed by any automated process, agent
+The state transition from `submitted` to `confirmed` on any governed record (Task,
+Workflow, Principle) cannot be performed by any automated process, agent
 credential, API key, or background job. Confirm endpoints reject all non-human credentials
 at the API layer regardless of scope.
 

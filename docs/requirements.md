@@ -2,11 +2,13 @@
 
 ## Platform Rebuild — Requirements Specification
 
-**Version 4.3 · May 2026**
+**Version 4.4 · May 2026**
 
 *Confidential. Internal Use Only*
 
 github.com/blueprinted-io/platform
+
+v4.4 changes from v4.3: Facts and Concepts dissolved as independently governed record types (§9.5). The task was always the atomic unit of knowledge in Blueprinted — Facts and Concepts were originally specced with their own governance lifecycle (draft → submitted → confirmed) on the assumption they would be reusable across tasks, but this introduced maintenance overhead grossly disproportionate to the value: every atomic string required its own review cycle. In practice, a fact that is wrong within a task means the task needs revision, not an independent fact record. Facts and Concepts are now `TEXT[]` arrays on the `tasks` table — authored and revised as part of the task, not as standalone governed records. Impact: `facts` and `concepts` tables dropped; `task_fact_refs` and `task_concept_refs` junction tables dropped; `has_deprecated_fact_ref` and `has_deprecated_concept_ref` flags removed from tasks; `raw_facts`/`raw_concepts` columns (added Sprint 7 for ingestion output) renamed to `facts`/`concepts` and promoted to the primary representation; `/api/v1/facts/*` and `/api/v1/concepts/*` API endpoints removed; §23.5 Facts and Concepts screens removed; `fact_deprecated` and `concept_deprecated` notification kinds removed; search endpoint no longer indexes fact/concept records; domain enforcement table simplified (Facts and Concepts no longer exist as domain-agnostic entities). §10.1 (Facts and Concepts immutability design principle) removed. Key decisions log updated. The `raw_facts`/`raw_concepts` naming in the previously committed ingestion migration is an acknowledged artefact — the rename is handled in the v4.4 migration.
 
 v4.3 changes from v4.2: Prompt contracts defined as a first-class spec concern (§11.16). LLM prompts for v1 ingestion stages (triage, task extraction, principle extraction) extracted from inline code strings into versioned prompts/ingestion/*.md files referenced by code. Operator-editable prompts deferred to v1.1 — v1 ships prompts as part of the platform release, change-on-release semantics. Primer→principle terminology corrected in all extracted prompts. Triage output values aligned to v4.1's four-category model (task_candidate | principle_candidate | reference_material | skip). JSON import schema drift between three existing documents resolved — docs/operational_documentation/json_import_schema_spec.md becomes the single source of truth; prompts/external/manual_json_authoring.md rewritten to match. v1.1+ prompts (changelog-impact pipeline, principle-level rewriting) extracted to prompts/v1.1/ but not specced; await their feature subsections. §4.1 backend stack extended with prompt-loading row. Note added in §11.4 distinguishing pipeline-internal candidate schemas from the JSON import payload format.
 
@@ -112,7 +114,7 @@ The frontend is a hard-separated API consumer. No direct database access. No sha
 | --- | --- |
 | Primary store | PostgreSQL 16 |
 | Tenancy model | Schema-per-tenant, hard isolation at database layer |
-| Vector search | pgvector extension, semantic search and fact deduplication |
+| Vector search | pgvector extension, semantic search across tasks, workflows, and principles |
 | Full text search | PostgreSQL tsvector, structured field filtering |
 | Migrations | Alembic, runs per-tenant schema on upgrade |
 | ORM | SQLAlchemy with shared lifecycle mixin |
@@ -175,7 +177,7 @@ Self-review prohibition: a Contributor cannot confirm or return content they cre
 
 The break-glass flow requires two concrete data changes:
 
-1. A `self_confirmed_by_admin BOOLEAN NOT NULL DEFAULT FALSE` field on all governed record tables (facts, concepts, tasks, workflows, principles). Set to TRUE when an admin confirms their own content.
+1. A `self_confirmed_by_admin BOOLEAN NOT NULL DEFAULT FALSE` field on all governed record tables (tasks, workflows, principles). Set to TRUE when an admin confirms their own content.
 
 2. The confirm endpoint must require a non-empty `justification` string in the request body when `self_confirmed_by_admin` would fire. Confirm requests from an admin on their own content that omit `justification` are rejected with HTTP 422.
 
@@ -228,7 +230,7 @@ Domains are admin-managed organisational subdivisions of knowledge within a tena
 - Contributors can only create, submit, and review content in their assigned domains
 - Admin is implicitly entitled to all domains
 - Viewer, Audit, and Content Publisher see all confirmed content across all domains without assignment
-- Facts and Concepts are domain-agnostic; domain scoping applies to Tasks, Workflows, and Principles only
+- Domain scoping applies to Tasks, Workflows, and Principles. Facts and Concepts no longer exist as independent records — they are string arrays on Tasks and inherit domain context from their parent task.
 
 ## 7.1 Domain Registry
 
@@ -276,13 +278,11 @@ Enforcement fires at the API layer on write operations. Read operations are not 
 | Review / Confirm | Reviewer must be assigned to the record's domain. HTTP 403. |
 | Create with no domain | HTTP 422. Domain required. |
 | Create with disabled domain | HTTP 422. Must be active. |
-| Create Fact / Concept | No domain field. Not enforced. |
-
 Admin bypasses all domain enforcement.
 
 ## 7.4 Domain on Records
 
-`domain` is a `TEXT NOT NULL` field on Tasks, Workflows, and Principles. It stores the domain name slug. It is **not** a database-level FK — referential integrity is application-enforced at write time. Facts and Concepts have no domain field and are domain-agnostic.
+`domain` is a `TEXT NOT NULL` field on Tasks, Workflows, and Principles. It stores the domain name slug. It is **not** a database-level FK — referential integrity is application-enforced at write time. Facts and concepts are string arrays on the Task record and inherit domain context from their parent task; they have no independent domain field.
 
 ## 7.5 Domain API Endpoints
 
@@ -381,40 +381,12 @@ The four candidate kinds considered and deferred:
 
 - `conflicts_with` — semantically ambiguous. "Cannot both be active" requires a definition of active (both confirmed? both in the same workflow?) and an enforcement point, neither of which is obvious.
 - `supersedes` — redundant with the `record_id`/`version` identity pattern. A new confirmed version of a record supersedes its predecessor by definition.
-- `references` — redundant with `task_fact_refs` and `task_concept_refs` for the primary use case.
+- `references` — redundant with inline facts/concepts on the task record for the primary use case.
 - `depends_on` — conflicts with the no-workflow-prerequisites rule and creates a third location for precondition logic alongside Task Dependencies and Workflow composition.
 
 Relationship kind specification is a v1.1 workstream, informed by real usage patterns from the authoring UI and ingestion pipeline.
 
 ## 9.5 Record Taxonomy
-
-### Facts
-
-Atomic, declarative, verifiable statements of truth. Domain-agnostic. Immutable once confirmed — changes require deprecation and replacement. Embedding populated asynchronously on confirmation.
-
-```
-facts
-  + shared identity and lifecycle fields
-  title            TEXT NOT NULL
-  body             TEXT NOT NULL
-  tags             TEXT[]
-  embedding        vector(1536)  -- dimension fixed at schema creation; see §12
-```
-
-### Concepts
-
-Explanatory, contextual knowledge — the why behind procedures. Domain-agnostic. Immutable once confirmed.
-
-```
-concepts
-  + shared identity and lifecycle fields
-  title            TEXT NOT NULL
-  summary          TEXT NOT NULL
-  explanation      TEXT NOT NULL
-  analogies        TEXT
-  tags             TEXT[]
-  embedding        vector(1536)
-```
 
 ### Principles
 
@@ -435,7 +407,7 @@ principles
 
 ### Tasks
 
-The governed procedure unit. References Facts and Concepts rather than owning them. Steps are owned by the Task. Task-level irreversibility is derived — a Task is irreversible if any Step has irreversible = TRUE.
+The governed procedure unit and the atomic unit of knowledge in Blueprinted. Owns its facts and concepts directly as string arrays — these are not references to independent records. Steps are owned by the Task. Task-level irreversibility is derived — a Task is irreversible if any Step has irreversible = TRUE.
 
 ```
 tasks
@@ -448,20 +420,10 @@ tasks
   software_version            TEXT
   media_url                   TEXT
   ingestion_id                UUID FK → ingestions.id
-  has_deprecated_fact_ref     BOOL NOT NULL DEFAULT FALSE
-  has_deprecated_concept_ref  BOOL NOT NULL DEFAULT FALSE
+  facts                       TEXT[]   -- atomic statements of truth for this task
+  concepts                    TEXT[]   -- contextual knowledge explaining why this task exists
   tags                        TEXT[]
   embedding                   vector(1536)
-
-task_fact_refs
-  task_id            UUID FK → tasks.id
-  fact_record_id     UUID  -- application-enforced: must reference a confirmed fact record_id
-  order_index        INT NOT NULL
-
-task_concept_refs
-  task_id            UUID FK → tasks.id
-  concept_record_id  UUID  -- application-enforced: must reference a confirmed concept record_id
-  order_index        INT NOT NULL
 
 task_steps
   id               UUID PRIMARY KEY
@@ -519,7 +481,7 @@ workflow_principle_refs
 relationships
   id              UUID PRIMARY KEY
   source_id       UUID NOT NULL
-  source_type     TEXT NOT NULL  -- 'fact'|'concept'|'task'|'workflow'|'principle'
+  source_type     TEXT NOT NULL  -- 'task'|'workflow'|'principle'
   target_id       UUID NOT NULL
   target_type     TEXT NOT NULL
   kind            TEXT NOT NULL  -- RelationshipKind enum (closed, no kinds in v1)
@@ -570,21 +532,17 @@ changelog_impacts      -- stub
 
 # 10. Key Design Principles
 
-## 10.1 Facts and Concepts are Immutable Once Confirmed
+## 10.1 No Machine Can Confirm
 
-A confirmed Fact or Concept cannot be edited. Deprecate and replace. Tasks referencing deprecated records are flagged automatically via has_deprecated_fact_ref and has_deprecated_concept_ref.
-
-## 10.2 No Machine Can Confirm
-
-"Confirm" means the state transition from `submitted` to `confirmed` on a governed record (Fact, Concept, Task, Workflow, Principle). No agent credential, API key, or automated process can call a confirm endpoint. Enforced at the API layer regardless of credential scopes.
+"Confirm" means the state transition from `submitted` to `confirmed` on a governed record (Task, Workflow, Principle). No agent credential, API key, or automated process can call a confirm endpoint. Enforced at the API layer regardless of credential scopes.
 
 Automated workers may write to confirmed records via background jobs (embedding generation, flag propagation) but cannot perform the state transition. This distinction is important: the ARQ embedding worker writes an embedding vector to a confirmed record — it does not confirm anything.
 
-## 10.3 Every First-Party Component is an API Consumer
+## 10.2 Every First-Party Component is an API Consumer
 
 UI, ingestion pipeline, CLI, future modules — all consume the versioned API. Nothing gets direct database access except the core service itself.
 
-## 10.4 Tests are Written Before Implementation
+## 10.3 Tests are Written Before Implementation
 
 Tests are written before implementation. A failing test is a blocker requiring human investigation before any code change is made. The default assumption is always that the implementation is wrong, not the test.
 
@@ -602,15 +560,15 @@ A `TEST_REVISED` commit is not a failure state. It is the correct process when a
 
 Sprint 3 test design precedes all feature implementation but cannot anticipate every edge case. `TEST_REVISED` commits are expected and normal. Their frequency is a signal worth tracking — a cluster of `TEST_REVISED` commits against a single sprint's tests indicates the spec for that area was underspecified and should be reviewed before implementation proceeds further.
 
-## 10.5 Everything Configurable is Configurable via UI
+## 10.4 Everything Configurable is Configurable via UI
 
 Runtime configuration lives in system_settings, managed via Admin UI and CLI. Bootstrap configuration lives in environment variables. Nothing is hardcoded.
 
-## 10.6 Imports Never Create Confirmed Records
+## 10.5 Imports Never Create Confirmed Records
 
 The ingestion pipeline can only create draft or submitted records. The confirmed state cannot be set by import. Enforced at the API layer.
 
-## 10.7 Staleness is Tracked Not Assumed
+## 10.6 Staleness is Tracked Not Assumed
 
 Confirmed records have reviewed_at and reviewed_by. The staleness threshold is configurable. Staleness surfaces in dashboards — it does not automatically deprecate or invalidate records.
 
@@ -1127,7 +1085,7 @@ Graceful degradation: records without embeddings are excluded from semantic sear
 ```
 GET /api/v1/search
   ?q=string           Search query (required)
-  ?type=string        Comma-separated record types: task,workflow,fact,concept,principle
+  ?type=string        Comma-separated record types: task,workflow,principle
   ?domain=string      Filter by domain
   ?status=string      Filter by status (default: confirmed)
   ?semantic=bool      Enable semantic search (default: false)
@@ -1208,8 +1166,6 @@ claim_made             -- a review item in user's domain has been claimed by som
 claim_expired          -- a review claim has expired and returned to the queue
 ingestion_complete     -- an ingestion job the user started has completed
 ingestion_failed       -- an ingestion job the user started has failed
-fact_deprecated        -- a fact referenced by user's tasks has been deprecated
-concept_deprecated     -- a concept referenced by user's tasks has been deprecated
 ```
 
 ---
@@ -1457,16 +1413,9 @@ A flat inventory of all views. Role column shows minimum role required. Primary 
 | Workflow create / edit | Contributor, Admin | POST /api/v1/workflows |
 | Workflow diff view | Contributor, Admin | GET /api/v1/workflows/{record_id}/{version}/diff |
 
-## 23.5 Facts and Concepts
+## 23.5 Facts and Concepts — Removed (v4.4)
 
-| Screen | Role | Primary API Calls |
-| --- | --- | --- |
-| Facts list | Contributor, Admin | GET /api/v1/facts |
-| Fact create | Contributor, Admin | POST /api/v1/facts |
-| Fact detail | All roles | GET /api/v1/facts/{record_id} |
-| Concepts list | Contributor, Admin | GET /api/v1/concepts |
-| Concept create | Contributor, Admin | POST /api/v1/concepts |
-| Concept detail | All roles | GET /api/v1/concepts/{record_id} |
+Facts and Concepts no longer exist as independently governed records. They are authored inline on the Task create/edit screen as string arrays. No standalone screens. See v4.4 changelog.
 
 ## 23.6 Principles
 
@@ -1537,7 +1486,6 @@ A flat inventory of all views. Role column shows minimum role required. Primary 
 - *Neo4j migration — triggered if graph traversal complexity exceeds PostgreSQL recursive CTE capability*
 - *Delivery product architecture and naming — AI-native learning experience layer, not an LMS*
 - *Performance-based assessment — future module, potentially separate product*
-- *Embedding-based semantic fact deduplication at scale — pgvector is the planned solution*
 - *Export and delivery layer — properly specced before v2 sprint planning*
 - *Assessment module — reintroduced after assessment theory review*
 - *Achievements specification — secondary to core functionality, reintroduced in future sprint*
@@ -1560,14 +1508,14 @@ A flat inventory of all views. Role column shows minimum role required. Primary 
 | Python over Go | Personal project timeline, strong AI assistance. Go remains future option. |
 | PostgreSQL over Neo4j | Operational simplicity for self-hosted. Graph semantics in data model from day one. |
 | Schema-per-tenant | Hard isolation at DB layer. Forward bet on SaaS optionality. Acknowledged complexity for single-tenant v1 installs. |
-| Facts and Concepts immutable | A fact is either correct or it isn't. Prior confirmed version was simply wrong. |
+| Facts and Concepts dissolved (v4.4) | Independent governance lifecycle created maintenance overhead disproportionate to value. Task is the atomic unit — facts and concepts are string arrays on the task, revised when the task is revised. |
 | No machine can confirm | Human confirmation of governed knowledge is non-negotiable. Enforced at confirm endpoints, not at credential layer. |
 | Claiming not assigning | Self-organising review queue. No bottlenecks, scales naturally. Admin break-glass for small teams. |
 | Principles not Primers | Principle implies foundational and enduring. Primer implies introductory and temporary. |
 | Dependencies dissolved | Most dependencies are facts or relationship edges. No separate table needed. |
 | Ingestion in backend monorepo | Ingestion is core to the platform. Hard-separated internally via API. |
 | ARQ over BackgroundTasks | BackgroundTasks loses jobs on restart. Large PDF ingestion cannot silently disappear. |
-| pgvector from day one | Justified by semantic search and fact deduplication. Single dependency, two use cases. |
+| pgvector from day one | Justified by semantic search across tasks, workflows, and principles. Single dependency. |
 | Role-aware dashboards | Primary user is non-technical. Clarity over configurability. |
 | Assessments removed from v1 | Needs assessment theory review. No half-built features behind flags. |
 | Export tables as stubs | Behaviour unspecified. Tables exist in schema, no endpoints or UI in v1. |
