@@ -41,6 +41,8 @@ When starting a new session, paste the most recent entry as context.
 
 - **Bumped CI actions to Node.js 24 compatible versions** (`30b512f`, `148821e`) — `actions/checkout` v4 → v6, `astral-sh/setup-uv` v5 → v8.1.0 (no floating `v8` tag exists). Deprecation warnings gone.
 
+- **Removed `.claude` from git history and added to `.gitignore`** — Used `git filter-repo --path .claude --invert-paths` to scrub the directory from all 53 commits, then force-pushed. `.claude/` added to `.gitignore` to prevent future tracking. Note: `filter-repo` discards the remote and resets the working tree, so the `.gitignore` edit had to be re-applied and committed after the rewrite.
+
 - **CI is fully green** — All steps passing: tests, Ruff, mypy, pip-audit. First clean CI run since before Sprint 8.
 
 ### Incomplete or broken
