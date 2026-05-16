@@ -8,6 +8,38 @@ When starting a new session, paste the most recent entry as context.
 
 <!-- Sessions are added below in reverse chronological order (newest first) -->
 
+## Session Close-Out — 2026-05-16 (CI failure investigation)
+
+### Completed
+
+- Identified the immediate CI failure: `test_validate_task_missing_field` in `tests/test_process_chunks.py` is failing because refactor commit `eba8088` removed `procedure_name` from `_validate_task`'s required set but did not update the test.
+- Established that the LLM is no longer expected to produce `procedure_name` — the test is stale, not the implementation.
+- Discovered that CI has been failing on **every single commit** (40+ failures). The `procedure_name` issue is recent, but prior failures with different root causes have not been investigated.
+
+### Incomplete or broken
+
+- **Incorrect fix applied to `workers/main.py`** — `procedure_name` was added back to `_validate_task`'s required set (line 380) during this session. **This must be reverted before anything else.**
+- **Correct fix not yet applied** — `test_validate_task_missing_field` and `test_validate_task_valid` in `tests/test_process_chunks.py` need updating with `TEST_REVISED` markers per §10.4, removing `procedure_name` from both.
+- **Root cause of earlier CI failures unknown** — the `procedure_name` breakage is recent; something else was failing before `eba8088`. Needs an earlier CI failure log to diagnose.
+- **Local vs CI environment gap unresolved** — sessions have been reporting tests as passing based on local runs while CI has always failed. The source of this divergence is unknown.
+
+### Decisions made
+
+- `procedure_name` is no longer part of the LLM extraction output and should not be a required field in `_validate_task`. The test needs updating, not the implementation (confirmed by user this session).
+
+### TEST_REVISED commits
+
+None this session — correct test revision is pending next session.
+
+### Next session should start from
+
+1. Revert the incorrect `workers/main.py` change from this session (remove `procedure_name` from `_validate_task` required set).
+2. Apply correct fix: revise `test_validate_task_missing_field` and `test_validate_task_valid` in `tests/test_process_chunks.py` with `TEST_REVISED` markers.
+3. Obtain an earlier CI failure log (pre-`eba8088`) to identify what was failing before the `procedure_name` issue.
+4. Audit the local vs CI environment gap — understand why local runs have been passing while CI has always failed.
+
+---
+
 ## Session Close-Out — 2026-05-16 (Task detail screen + dev seed script)
 
 ### Completed
