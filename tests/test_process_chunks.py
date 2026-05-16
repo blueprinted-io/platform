@@ -237,21 +237,23 @@ def test_prompt_render_substitutes_variables() -> None:
 # ---------------------------------------------------------------------------
 
 
+# TEST_REVISED: procedure_name removed from required fields (eba8088); tests updated to reflect
+# that the LLM output schema no longer includes procedure_name as a required field.
 def test_validate_task_valid() -> None:
     assert _validate_task({
-        "title": "T", "outcome": "O", "procedure_name": "P",
+        "title": "T", "outcome": "O",
         "steps": [{"text": "s", "completion": "c", "actions": [], "notes": None}],
     }) is None
 
 
 def test_validate_task_missing_field() -> None:
-    err = _validate_task({"title": "T", "outcome": "O", "steps": [{"text": "s"}]})
+    err = _validate_task({"title": "T", "steps": [{"text": "s"}]})
     assert err is not None
-    assert "procedure_name" in err
+    assert "outcome" in err
 
 
 def test_validate_task_empty_steps() -> None:
-    err = _validate_task({"title": "T", "outcome": "O", "procedure_name": "P", "steps": []})
+    err = _validate_task({"title": "T", "outcome": "O", "steps": []})
     assert err is not None
     assert "empty" in err
 
