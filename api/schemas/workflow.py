@@ -49,6 +49,18 @@ class ReturnRequest(BaseModel):
     note: str | None = None
 
 
+class ReviseRequest(BaseModel):
+    note: str | None = None
+
+
+class WorkflowVersionSummary(BaseModel):
+    id: uuid.UUID
+    version: int
+    status: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class WorkflowResponse(LifecycleResponse):
     title: str
     objective: str
