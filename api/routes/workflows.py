@@ -195,6 +195,56 @@ async def retire_workflow(
     return WorkflowResponse.model_validate(await _get_workflow_with_refs(session, workflow.id))
 
 
+@router.post("/{workflow_id}/revise", response_model=WorkflowResponse, status_code=status.HTTP_201_CREATED)
+async def revise_workflow(
+    workflow_id: uuid.UUID, session: DBSession, user: _Writer
+) -> WorkflowResponse:
+    """Create a new draft version of a returned workflow (§9.3).
+
+    Copies all fields, task refs, and principle refs from the returned version.
+    """
+    old = await _get_workflow_with_refs(session, workflow_id)
+    lifecycle.assert_can_revise(old.created_by, user)
+    await lifecycle.assert_domain_access(old.domain, user, session)
+
+    new_wf = Workflow(
+        record_id=old.record_id,
+        version=old.version + 1,
+        status="draft",
+        title=old.title,
+        objective=old.objective,
+        domain=old.domain,
+        tags=list(old.tags),
+        created_by=user.id,
+        updated_by=user.id,
+    )
+    session.add(new_wf)
+    await session.flush()
+
+    for ref in old.task_refs:
+        session.add(WorkflowTaskRef(
+            workflow_id=new_wf.id,
+            task_record_id=ref.task_record_id,
+            order_index=ref.order_index,
+        ))
+    for ref in old.principle_refs:
+        session.add(WorkflowPrincipleRef(
+            workflow_id=new_wf.id,
+            principle_record_id=ref.principle_record_id,
+            attached_at=datetime.now(tz=UTC),
+            attached_by=user.id,
+        ))
+
+    await session.commit()
+    log.info(
+        "workflow_revised",
+        old_workflow_id=str(workflow_id),
+        new_workflow_id=str(new_wf.id),
+        user_id=str(user.id),
+    )
+    return WorkflowResponse.model_validate(await _get_workflow_with_refs(session, new_wf.id))
+
+
 # ---------------------------------------------------------------------------
 # Task refs
 # ---------------------------------------------------------------------------

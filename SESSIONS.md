@@ -3,24 +3,25 @@ One entry only. On closeout: move this entry to the top of SESSIONS_ARCHIVE.md (
 Archive: SESSIONS_ARCHIVE.md (do not load unless explicitly asked).
 Format and rules: docs/session_protocol.md
 
----
-
-## Session — 2026-05-17 (search, review queue, claim enforcement)
+## Session — 2026-05-17 (task revise flow)
 
 ### Decisions
-- Review claims are enforced, not advisory — only the claim holder may confirm or return. The 48-hour timeout handles abandoned claims.
-- Confirm removed from the review queue row — reviewers must open the record to confirm, preventing rubber-stamp approvals.
-- Task links from the queue use a `/tasks/id/:uuid` redirect route; the queue payload carries entity UUID not `record_id/version`.
-- Return note required in the UI via modal dialog (`ReturnDialog`); API field is optional but UI enforces it.
+- Revise is allowed from any status, not just returned — the governance cycle handles it regardless of starting state.
+- Returned tasks inherit the return note as their revision note automatically; all other statuses require an explicit note.
+- `assert_can_revise` no longer checks status — only creator-or-admin ownership is enforced (§9.3).
+- `list_tasks` returns only the latest version per `record_id` (subquery with `func.max`); older versions accessible via version history strip on the detail page.
+- Duplicate draft prevention: revise endpoint returns 409 if `record_id/version+1` already exists.
 
 ### Done
-- Search screen: results link to detail pages; type filter chips (All / Tasks / Workflows / Principles).
-- Review queue screen (`/review`): Claim, Release, Return per row; titles linked for all record types; Confirm removed.
-- `TaskRedirectPage` — `/tasks/id/:taskId` fetches by UUID, redirects to `/tasks/{record_id}/{version}` with `replace: true`.
-- `ReturnDialog` — shared modal with required note; wired into all three detail pages and the queue.
-- Release claim button on detail pages when current user holds the claim.
-- `assert_no_foreign_claim` in `lifecycle.py`; enforced before every confirm and return across all record routes and review queue routes.
-- Third Authentik user created to verify claim enforcement — unclaimed confirms blocked at API (409).
+- `POST /{record_id}/{version}/revise` endpoint: copies task and all steps/actions into a new draft version.
+- `GET /{record_id}/versions` endpoint: returns `TaskVersionSummary` list for version history strip.
+- `list_tasks` deduped to latest version per record; version history strip on `TaskDetailPage` links to older versions.
+- `ReviseRequest` and `TaskVersionSummary` schemas added; `change_note` exposed on `LifecycleResponse`.
+- `ReturnDialog` made generic with optional label/copy props — reused for revision note collection.
+- Frontend revise flow: returned tasks fire immediately; all other statuses open the dialog for a note.
+- Revision/return note shown to all users on the detail page (label adapts: "Return note" vs "Revision note").
+- Disabled Authentik iframe silent renew (`automaticSilentRenew: false`) to eliminate `X-Frame-Options` console noise.
+- `TaskEditPage` save uses `task.id` (UUID) for PATCH, not route params.
 
 ### Next
-Revise flow (§23.3 "Task revise") — returned records currently sit in limbo. Backend revise endpoint does not yet exist; this is the natural next build spanning both repos.
+Apply the same revise flow to workflows and principles — the backend `assert_can_revise` signature change (removed `record_status`) is already committed, but the route handlers and frontend detail pages for both record types still need the revision note enforcement and dialog wired in.

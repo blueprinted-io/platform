@@ -84,6 +84,18 @@ class ReturnRequest(BaseModel):
     note: str | None = None
 
 
+class ReviseRequest(BaseModel):
+    note: str | None = None
+
+
+class TaskVersionSummary(BaseModel):
+    id: uuid.UUID
+    version: int
+    status: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class TaskResponse(LifecycleResponse):
     title: str
     outcome: str

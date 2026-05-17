@@ -174,3 +174,37 @@ async def retire_principle(
     await session.commit()
     await session.refresh(principle)
     return principle
+
+
+@router.post("/{principle_id}/revise", response_model=PrincipleResponse, status_code=status.HTTP_201_CREATED)
+async def revise_principle(
+    principle_id: uuid.UUID, session: DBSession, user: _Writer
+) -> Principle:
+    """Create a new draft version of a returned principle (§9.3)."""
+    old = await _get_or_404(session, principle_id)
+    lifecycle.assert_can_revise(old.created_by, user)
+    await lifecycle.assert_domain_access(old.domain, user, session)
+
+    new_principle = Principle(
+        record_id=old.record_id,
+        version=old.version + 1,
+        status="draft",
+        title=old.title,
+        summary=old.summary,
+        explanation=old.explanation,
+        analogies=old.analogies,
+        domain=old.domain,
+        tags=list(old.tags),
+        created_by=user.id,
+        updated_by=user.id,
+    )
+    session.add(new_principle)
+    await session.commit()
+    await session.refresh(new_principle)
+    log.info(
+        "principle_revised",
+        old_principle_id=str(principle_id),
+        new_principle_id=str(new_principle.id),
+        user_id=str(user.id),
+    )
+    return new_principle

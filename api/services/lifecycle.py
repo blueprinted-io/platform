@@ -116,6 +116,15 @@ def assert_can_confirm(
     return False
 
 
+def assert_can_revise(record_created_by: uuid.UUID, user: User) -> None:
+    """Any status → new draft version. Creator or admin only (§9.3)."""
+    if not _is_admin(user) and record_created_by != user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only the original author or an admin can revise a record.",
+        )
+
+
 def assert_can_return(record_status: str, user: User) -> None:
     """submitted → returned. Requires contributor or admin."""
     if record_status != "submitted":

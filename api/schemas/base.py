@@ -22,6 +22,7 @@ class LifecycleResponse(BaseModel):
     updated_at: datetime
     created_by: uuid.UUID
     self_confirmed_by_admin: bool
+    change_note: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

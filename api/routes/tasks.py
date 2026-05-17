@@ -11,7 +11,7 @@ from typing import Annotated
 
 import structlog
 from fastapi import APIRouter, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -22,12 +22,14 @@ from api.models.user import User
 from api.schemas.base import ConfirmRequest
 from api.schemas.task import (
     ReturnRequest,
+    ReviseRequest,
     TaskCreate,
     TaskResponse,
     TaskStepCreate,
     TaskStepResponse,
     TaskStepUpdate,
     TaskUpdate,
+    TaskVersionSummary,
 )
 from api.services import lifecycle
 
@@ -99,8 +101,15 @@ async def create_task(body: TaskCreate, session: DBSession, user: _Writer) -> Ta
 
 @router.get("", response_model=list[TaskResponse])
 async def list_tasks(session: DBSession, user: CurrentUser) -> list[TaskResponse]:
+    # Only return the latest version of each record.
+    latest = (
+        select(Task.record_id, func.max(Task.version).label("max_version"))
+        .group_by(Task.record_id)
+        .subquery()
+    )
     result = await session.execute(
         select(Task)
+        .join(latest, (Task.record_id == latest.c.record_id) & (Task.version == latest.c.max_version))
         .options(
             selectinload(Task.steps).selectinload(TaskStep.actions),
             selectinload(Task.steps).selectinload(TaskStep.images),
@@ -108,6 +117,19 @@ async def list_tasks(session: DBSession, user: CurrentUser) -> list[TaskResponse
         .order_by(Task.created_at.desc())
     )
     return [TaskResponse.model_validate(t) for t in result.scalars().all()]
+
+
+@router.get("/{record_id}/versions", response_model=list[TaskVersionSummary])
+async def list_task_versions(
+    record_id: uuid.UUID, session: DBSession, user: CurrentUser
+) -> list[TaskVersionSummary]:
+    result = await session.execute(
+        select(Task).where(Task.record_id == record_id).order_by(Task.version.desc())
+    )
+    tasks = result.scalars().all()
+    if not tasks:
+        raise HTTPException(status_code=404, detail="Task not found.")
+    return [TaskVersionSummary.model_validate(t) for t in tasks]
 
 
 @router.get("/{task_id}", response_model=TaskResponse)
@@ -226,6 +248,84 @@ async def retire_task(task_id: uuid.UUID, session: DBSession, user: _Admin) -> T
     task.updated_by = user.id
     await session.commit()
     return TaskResponse.model_validate(await _get_task(session, task.id))
+
+
+@router.post("/{record_id}/{version}/revise", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
+async def revise_task(
+    record_id: uuid.UUID, version: int, session: DBSession, user: _Writer,
+    body: ReviseRequest = ReviseRequest(),
+) -> TaskResponse:
+    """Create a new draft version of a task (§9.3).
+
+    Copies all fields and steps from the source version. The source version
+    remains unchanged; the new row gets record_id/version+1 and status=draft.
+    Returned tasks inherit the return note as the revision note; all other
+    statuses require an explicit note in the request body.
+    """
+    old = await _get_task_by_record_version(session, record_id, version)
+    lifecycle.assert_can_revise(old.created_by, user)
+    await lifecycle.assert_domain_access(old.domain, user, session)
+
+    if old.status != "returned" and not (body.note and body.note.strip()):
+        raise HTTPException(
+            status_code=422,
+            detail="A revision note is required when revising a record that has not been returned.",
+        )
+
+    change_note = old.change_note if old.status == "returned" else body.note
+
+    new_version = old.version + 1
+    existing = await session.scalar(select(Task).where(Task.record_id == old.record_id, Task.version == new_version))
+    if existing is not None:
+        raise HTTPException(status_code=409, detail="A revised draft for this record already exists.")
+    new_task = Task(
+        record_id=old.record_id,
+        version=new_version,
+        status="draft",
+        title=old.title,
+        outcome=old.outcome,
+        domain=old.domain,
+        software_name=old.software_name,
+        software_version=old.software_version,
+        media_url=old.media_url,
+        facts=old.facts,
+        concepts=old.concepts,
+        tags=list(old.tags),
+        change_note=change_note,
+        created_by=user.id,
+        updated_by=user.id,
+    )
+    session.add(new_task)
+    await session.flush()
+    new_task_id = new_task.id  # capture before commit expires the object
+
+    for old_step in old.steps:
+        new_step = TaskStep(
+            task_id=new_task.id,
+            order_index=old_step.order_index,
+            step=old_step.step,
+            notes=old_step.notes,
+            completion=old_step.completion,
+            irreversible=old_step.irreversible,
+        )
+        session.add(new_step)
+        await session.flush()
+        for old_action in old_step.actions:
+            session.add(TaskStepAction(
+                step_id=new_step.id,
+                order_index=old_action.order_index,
+                instruction=old_action.instruction,
+            ))
+
+    await session.commit()
+    log.info(
+        "task_revised",
+        record_id=str(record_id),
+        old_version=version,
+        new_version=new_version,
+        user_id=str(user.id),
+    )
+    return TaskResponse.model_validate(await _get_task(session, new_task_id))
 
 
 # ---------------------------------------------------------------------------
