@@ -11,7 +11,7 @@ from typing import Annotated
 
 import structlog
 from fastapi import APIRouter, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -24,6 +24,7 @@ from api.models.workflow import Workflow, WorkflowPrincipleRef, WorkflowTaskRef
 from api.schemas.base import ConfirmRequest
 from api.schemas.workflow import (
     ReturnRequest,
+    ReviseRequest,
     WorkflowCreate,
     WorkflowPrincipleRefCreate,
     WorkflowPrincipleRefResponse,
@@ -31,6 +32,7 @@ from api.schemas.workflow import (
     WorkflowTaskRefCreate,
     WorkflowTaskRefResponse,
     WorkflowUpdate,
+    WorkflowVersionSummary,
 )
 from api.services import lifecycle
 
@@ -78,12 +80,34 @@ async def create_workflow(
 
 @router.get("", response_model=list[WorkflowResponse])
 async def list_workflows(session: DBSession, user: CurrentUser) -> list[WorkflowResponse]:
+    latest = (
+        select(Workflow.record_id, func.max(Workflow.version).label("max_version"))
+        .group_by(Workflow.record_id)
+        .subquery()
+    )
     result = await session.execute(
         select(Workflow)
+        .join(
+            latest,
+            (Workflow.record_id == latest.c.record_id) & (Workflow.version == latest.c.max_version),
+        )
         .options(selectinload(Workflow.task_refs), selectinload(Workflow.principle_refs))
         .order_by(Workflow.created_at.desc())
     )
     return [WorkflowResponse.model_validate(w) for w in result.scalars().all()]
+
+
+@router.get("/{record_id}/versions", response_model=list[WorkflowVersionSummary])
+async def list_workflow_versions(
+    record_id: uuid.UUID, session: DBSession, user: CurrentUser
+) -> list[WorkflowVersionSummary]:
+    result = await session.execute(
+        select(Workflow).where(Workflow.record_id == record_id).order_by(Workflow.version.desc())
+    )
+    workflows = result.scalars().all()
+    if not workflows:
+        raise HTTPException(status_code=404, detail="Workflow not found.")
+    return [WorkflowVersionSummary.model_validate(w) for w in workflows]
 
 
 @router.get("/{workflow_id}", response_model=WorkflowResponse)
@@ -195,42 +219,67 @@ async def retire_workflow(
     return WorkflowResponse.model_validate(await _get_workflow_with_refs(session, workflow.id))
 
 
-@router.post("/{workflow_id}/revise", response_model=WorkflowResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{workflow_id}/revise",
+    response_model=WorkflowResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def revise_workflow(
-    workflow_id: uuid.UUID, session: DBSession, user: _Writer
+    workflow_id: uuid.UUID, session: DBSession, user: _Writer,
+    body: ReviseRequest | None = None,
 ) -> WorkflowResponse:
-    """Create a new draft version of a returned workflow (§9.3).
+    """Create a new draft version of a workflow (§9.3).
 
-    Copies all fields, task refs, and principle refs from the returned version.
+    Returned workflows inherit the return note; all other statuses require an explicit note.
     """
     old = await _get_workflow_with_refs(session, workflow_id)
     lifecycle.assert_can_revise(old.created_by, user)
     await lifecycle.assert_domain_access(old.domain, user, session)
 
+    note = body.note if body else None
+    if old.status != "returned" and not (note and note.strip()):
+        raise HTTPException(
+            status_code=422,
+            detail="A revision note is required when revising a record that has not been returned.",
+        )
+
+    change_note = old.change_note if old.status == "returned" else note
+
+    new_version = old.version + 1
+    existing = await session.scalar(
+        select(Workflow).where(Workflow.record_id == old.record_id, Workflow.version == new_version)
+    )
+    if existing is not None:
+        raise HTTPException(
+            status_code=409, detail="A revised draft for this record already exists."
+        )
+
     new_wf = Workflow(
         record_id=old.record_id,
-        version=old.version + 1,
+        version=new_version,
         status="draft",
         title=old.title,
         objective=old.objective,
         domain=old.domain,
         tags=list(old.tags),
+        change_note=change_note,
         created_by=user.id,
         updated_by=user.id,
     )
     session.add(new_wf)
     await session.flush()
+    new_wf_id = new_wf.id
 
-    for ref in old.task_refs:
+    for task_ref in old.task_refs:
         session.add(WorkflowTaskRef(
             workflow_id=new_wf.id,
-            task_record_id=ref.task_record_id,
-            order_index=ref.order_index,
+            task_record_id=task_ref.task_record_id,
+            order_index=task_ref.order_index,
         ))
-    for ref in old.principle_refs:
+    for principle_ref in old.principle_refs:
         session.add(WorkflowPrincipleRef(
             workflow_id=new_wf.id,
-            principle_record_id=ref.principle_record_id,
+            principle_record_id=principle_ref.principle_record_id,
             attached_at=datetime.now(tz=UTC),
             attached_by=user.id,
         ))
@@ -239,10 +288,11 @@ async def revise_workflow(
     log.info(
         "workflow_revised",
         old_workflow_id=str(workflow_id),
-        new_workflow_id=str(new_wf.id),
+        new_workflow_id=str(new_wf_id),
+        new_version=new_version,
         user_id=str(user.id),
     )
-    return WorkflowResponse.model_validate(await _get_workflow_with_refs(session, new_wf.id))
+    return WorkflowResponse.model_validate(await _get_workflow_with_refs(session, new_wf_id))
 
 
 # ---------------------------------------------------------------------------

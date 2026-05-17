@@ -5,7 +5,7 @@ from typing import Annotated
 
 import structlog
 from fastapi import APIRouter, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.auth import Role
@@ -13,7 +13,14 @@ from api.dependencies import ArqPool, CurrentUser, DBSession, require_role
 from api.models.principle import Principle
 from api.models.user import User
 from api.schemas.base import ConfirmRequest
-from api.schemas.principle import PrincipleCreate, PrincipleResponse, PrincipleUpdate, ReturnRequest
+from api.schemas.principle import (
+    PrincipleCreate,
+    PrincipleResponse,
+    PrincipleUpdate,
+    PrincipleVersionSummary,
+    ReturnRequest,
+    ReviseRequest,
+)
 from api.services import lifecycle
 
 log = structlog.get_logger(__name__)
@@ -54,8 +61,34 @@ async def create_principle(body: PrincipleCreate, session: DBSession, user: _Wri
 
 @router.get("", response_model=list[PrincipleResponse])
 async def list_principles(session: DBSession, user: CurrentUser) -> list[Principle]:
-    result = await session.execute(select(Principle).order_by(Principle.created_at.desc()))
+    latest = (
+        select(Principle.record_id, func.max(Principle.version).label("max_version"))
+        .group_by(Principle.record_id)
+        .subquery()
+    )
+    result = await session.execute(
+        select(Principle)
+        .join(
+            latest,
+            (Principle.record_id == latest.c.record_id)
+            & (Principle.version == latest.c.max_version),
+        )
+        .order_by(Principle.created_at.desc())
+    )
     return list(result.scalars().all())
+
+
+@router.get("/{record_id}/versions", response_model=list[PrincipleVersionSummary])
+async def list_principle_versions(
+    record_id: uuid.UUID, session: DBSession, user: CurrentUser
+) -> list[PrincipleVersionSummary]:
+    result = await session.execute(
+        select(Principle).where(Principle.record_id == record_id).order_by(Principle.version.desc())
+    )
+    principles = result.scalars().all()
+    if not principles:
+        raise HTTPException(status_code=404, detail="Principle not found.")
+    return [PrincipleVersionSummary.model_validate(p) for p in principles]
 
 
 @router.get("/{principle_id}", response_model=PrincipleResponse)
@@ -176,18 +209,46 @@ async def retire_principle(
     return principle
 
 
-@router.post("/{principle_id}/revise", response_model=PrincipleResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{principle_id}/revise",
+    response_model=PrincipleResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def revise_principle(
-    principle_id: uuid.UUID, session: DBSession, user: _Writer
+    principle_id: uuid.UUID, session: DBSession, user: _Writer,
+    body: ReviseRequest | None = None,
 ) -> Principle:
-    """Create a new draft version of a returned principle (§9.3)."""
+    """Create a new draft version of a principle (§9.3).
+
+    Returned principles inherit the return note; all other statuses require an explicit note.
+    """
     old = await _get_or_404(session, principle_id)
     lifecycle.assert_can_revise(old.created_by, user)
     await lifecycle.assert_domain_access(old.domain, user, session)
 
+    note = body.note if body else None
+    if old.status != "returned" and not (note and note.strip()):
+        raise HTTPException(
+            status_code=422,
+            detail="A revision note is required when revising a record that has not been returned.",
+        )
+
+    change_note = old.change_note if old.status == "returned" else note
+
+    new_version = old.version + 1
+    existing = await session.scalar(
+        select(Principle).where(
+            Principle.record_id == old.record_id, Principle.version == new_version
+        )
+    )
+    if existing is not None:
+        raise HTTPException(
+            status_code=409, detail="A revised draft for this record already exists."
+        )
+
     new_principle = Principle(
         record_id=old.record_id,
-        version=old.version + 1,
+        version=new_version,
         status="draft",
         title=old.title,
         summary=old.summary,
@@ -195,16 +256,21 @@ async def revise_principle(
         analogies=old.analogies,
         domain=old.domain,
         tags=list(old.tags),
+        change_note=change_note,
         created_by=user.id,
         updated_by=user.id,
     )
     session.add(new_principle)
+    await session.flush()
+    new_principle_id = new_principle.id
+
     await session.commit()
-    await session.refresh(new_principle)
     log.info(
         "principle_revised",
         old_principle_id=str(principle_id),
-        new_principle_id=str(new_principle.id),
+        new_principle_id=str(new_principle_id),
+        new_version=new_version,
         user_id=str(user.id),
     )
-    return new_principle
+    result = await session.execute(select(Principle).where(Principle.id == new_principle_id))
+    return result.scalar_one()

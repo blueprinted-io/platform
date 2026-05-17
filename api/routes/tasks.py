@@ -109,7 +109,10 @@ async def list_tasks(session: DBSession, user: CurrentUser) -> list[TaskResponse
     )
     result = await session.execute(
         select(Task)
-        .join(latest, (Task.record_id == latest.c.record_id) & (Task.version == latest.c.max_version))
+        .join(
+            latest,
+            (Task.record_id == latest.c.record_id) & (Task.version == latest.c.max_version),
+        )
         .options(
             selectinload(Task.steps).selectinload(TaskStep.actions),
             selectinload(Task.steps).selectinload(TaskStep.images),
@@ -250,10 +253,14 @@ async def retire_task(task_id: uuid.UUID, session: DBSession, user: _Admin) -> T
     return TaskResponse.model_validate(await _get_task(session, task.id))
 
 
-@router.post("/{record_id}/{version}/revise", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{record_id}/{version}/revise",
+    response_model=TaskResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def revise_task(
     record_id: uuid.UUID, version: int, session: DBSession, user: _Writer,
-    body: ReviseRequest = ReviseRequest(),
+    body: ReviseRequest | None = None,
 ) -> TaskResponse:
     """Create a new draft version of a task (§9.3).
 
@@ -266,18 +273,23 @@ async def revise_task(
     lifecycle.assert_can_revise(old.created_by, user)
     await lifecycle.assert_domain_access(old.domain, user, session)
 
-    if old.status != "returned" and not (body.note and body.note.strip()):
+    note = body.note if body else None
+    if old.status != "returned" and not (note and note.strip()):
         raise HTTPException(
             status_code=422,
             detail="A revision note is required when revising a record that has not been returned.",
         )
 
-    change_note = old.change_note if old.status == "returned" else body.note
+    change_note = old.change_note if old.status == "returned" else note
 
     new_version = old.version + 1
-    existing = await session.scalar(select(Task).where(Task.record_id == old.record_id, Task.version == new_version))
+    existing = await session.scalar(
+        select(Task).where(Task.record_id == old.record_id, Task.version == new_version)
+    )
     if existing is not None:
-        raise HTTPException(status_code=409, detail="A revised draft for this record already exists.")
+        raise HTTPException(
+            status_code=409, detail="A revised draft for this record already exists."
+        )
     new_task = Task(
         record_id=old.record_id,
         version=new_version,

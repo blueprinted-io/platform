@@ -2,7 +2,7 @@
 
 import uuid
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from api.schemas.base import LifecycleResponse
 
@@ -27,6 +27,18 @@ class PrincipleUpdate(BaseModel):
 
 class ReturnRequest(BaseModel):
     note: str | None = None
+
+
+class ReviseRequest(BaseModel):
+    note: str | None = None
+
+
+class PrincipleVersionSummary(BaseModel):
+    id: uuid.UUID
+    version: int
+    status: str
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class PrincipleResponse(LifecycleResponse):
