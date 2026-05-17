@@ -137,6 +137,7 @@ async def confirm_workflow(
 ) -> WorkflowResponse:
     workflow = await _get_workflow_with_refs(session, workflow_id)
     await lifecycle.assert_domain_access(workflow.domain, user, session)
+    await lifecycle.assert_no_foreign_claim("workflow", workflow.id, user, session)
     is_break_glass = lifecycle.assert_can_confirm(
         workflow.status, workflow.created_by, user, body.justification if body else None
     )
@@ -160,6 +161,7 @@ async def return_workflow(
     workflow = await _get_workflow_with_refs(session, workflow_id)
     lifecycle.assert_can_return(workflow.status, user)
     await lifecycle.assert_domain_access(workflow.domain, user, session)
+    await lifecycle.assert_no_foreign_claim("workflow", workflow.id, user, session)
     workflow.status = "returned"
     if body.note:
         workflow.change_note = body.note

@@ -176,6 +176,7 @@ async def confirm_task(
 ) -> TaskResponse:
     task = await _get_task(session, task_id)
     await lifecycle.assert_domain_access(task.domain, user, session)
+    await lifecycle.assert_no_foreign_claim("task", task.id, user, session)
     is_break_glass = lifecycle.assert_can_confirm(
         task.status, task.created_by, user, body.justification if body else None
     )
@@ -197,6 +198,7 @@ async def return_task(
     task = await _get_task(session, task_id)
     lifecycle.assert_can_return(task.status, user)
     await lifecycle.assert_domain_access(task.domain, user, session)
+    await lifecycle.assert_no_foreign_claim("task", task.id, user, session)
     task.status = "returned"
     if body.note:
         task.change_note = body.note

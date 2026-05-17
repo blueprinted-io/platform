@@ -431,6 +431,8 @@ async def confirm_via_review(
         domain_record = cast(_DomainRecord, record)
         await lifecycle.assert_domain_access(domain_record.domain, user, session)
 
+    singular_type = _TYPE_TO_SINGULAR.get(entity_type, entity_type)
+    await lifecycle.assert_no_foreign_claim(singular_type, entity_id, user, session)
     is_break_glass = lifecycle.assert_can_confirm(
         record.status, record.created_by, user, body.justification if body else None
     )
@@ -439,8 +441,7 @@ async def confirm_via_review(
     record.reviewed_by = user.id
     record.updated_by = user.id
 
-    # Release own claim if held (claim is advisory; release is best-effort)
-    singular_type = _TYPE_TO_SINGULAR.get(entity_type, entity_type)
+    # Release own claim if held
     if entity_type in _CLAIMABLE_TYPES:
         active_claim = await _get_active_claim(session, singular_type, entity_id)
         if active_claim is not None and active_claim.claimed_by == user.id:
@@ -488,6 +489,8 @@ async def return_via_review(
         domain_record = cast(_DomainRecord, record)
         await lifecycle.assert_domain_access(domain_record.domain, user, session)
 
+    singular_type = _TYPE_TO_SINGULAR.get(entity_type, entity_type)
+    await lifecycle.assert_no_foreign_claim(singular_type, entity_id, user, session)
     lifecycle.assert_can_return(record.status, user)
     record.status = "returned"
     if body.note:
@@ -496,7 +499,6 @@ async def return_via_review(
     record.updated_by = user.id
 
     # Release own claim if held
-    singular_type = _TYPE_TO_SINGULAR.get(entity_type, entity_type)
     if entity_type in _CLAIMABLE_TYPES:
         active_claim = await _get_active_claim(session, singular_type, entity_id)
         if active_claim is not None and active_claim.claimed_by == user.id:

@@ -32,6 +32,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.auth import Role
+from api.models.review_claim import ReviewClaim
 from api.models.user import User
 
 _EDITABLE_STATUSES = {"draft", "returned"}
@@ -148,6 +149,34 @@ def assert_can_retire(record_status: str, user: User) -> None:
         )
     if not _is_admin(user):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin role required.")
+
+
+async def assert_no_foreign_claim(
+    entity_type: str,
+    entity_id: uuid.UUID,
+    user: User,
+    session: AsyncSession,
+) -> None:
+    """Raise 409 if another user holds an active claim on this record (§8.2).
+
+    entity_type is the singular form stored in review_claims: "task", "workflow", "principle".
+    Claims are enforced, not advisory — only the claim holder may confirm or return.
+    The 48-hour timeout handles abandoned claims without requiring admin override.
+    """
+    result = await session.execute(
+        sa.select(ReviewClaim).where(
+            ReviewClaim.entity_type == entity_type,
+            ReviewClaim.entity_id == entity_id,
+            ReviewClaim.released_at.is_(None),
+            ReviewClaim.expires_at > sa.func.now(),
+        )
+    )
+    claim = result.scalar_one_or_none()
+    if claim is not None and claim.claimed_by != user.id:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This record is claimed by another reviewer.",
+        )
 
 
 async def assert_domain_active(domain: str, session: AsyncSession) -> None:

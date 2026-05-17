@@ -115,6 +115,7 @@ async def confirm_principle(
 ) -> Principle:
     principle = await _get_or_404(session, principle_id)
     await lifecycle.assert_domain_access(principle.domain, user, session)
+    await lifecycle.assert_no_foreign_claim("principle", principle.id, user, session)
     is_break_glass = lifecycle.assert_can_confirm(
         principle.status, principle.created_by, user, body.justification if body else None
     )
@@ -138,6 +139,7 @@ async def return_principle(
     principle = await _get_or_404(session, principle_id)
     lifecycle.assert_can_return(principle.status, user)
     await lifecycle.assert_domain_access(principle.domain, user, session)
+    await lifecycle.assert_no_foreign_claim("principle", principle.id, user, session)
     principle.status = "returned"
     if body.note:
         principle.change_note = body.note
