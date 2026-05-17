@@ -5,22 +5,20 @@ Format and rules: docs/session_protocol.md
 
 ---
 
-## Session — 2026-05-16 (CI recovery)
+## Session — 2026-05-17 (docs restructure + task create + confirm flow)
 
 ### Decisions
-- `starlette` pinned as a direct dependency in `pyproject.toml` until fastapi enforces a minimum starlette version covering the CVEs.
-- `seed/**/*.py` excluded from Ruff T20/S/E501 — print, subprocess, urllib, and inline SQL are intentional in a dev CLI tool, consistent with existing exemptions for `tests/` and `migrations/`.
+- `components.json` shadcn aliases corrected from bare `src/` paths to `@/` — future `shadcn add` commands will generate correct imports.
+- API container must be rebuilt after backend dependency upgrades — stale image had PyJWT 2.10.x installed against code expecting 2.12.x `Options` type.
+- Second admin user created in Authentik for testing the self-review prohibition (contributor role management UI deferred to Sprint 10, §7.5).
 
 ### Done
-- Reverted incorrect `workers/main.py` change from prior session (`procedure_name` erroneously re-added to `_validate_task` required set).
-- TEST_REVISED: `tests/test_process_chunks.py` — removed `procedure_name` from `test_validate_task_valid`, `test_validate_task_missing_field`, `test_validate_task_empty_steps`; authorised by prior session.
-- Fixed `api/config.py` `SettingsConfigDict` to use `extra="ignore"` — pydantic-settings 2.9.x changed default `extra` behaviour to `"forbid"`, causing CI collection failure on every commit.
-- Upgraded 6 vulnerable dependencies: PyJWT 2.10.1 → 2.12.1, python-multipart 0.0.20 → 0.0.28, starlette 0.46.2 → 0.52.1, fastapi 0.115.12 → 0.136.1, pytest 8.3.5 → 9.0.3, pytest-asyncio 0.25.3 → 1.3.0.
-- Fixed Ruff failures in `seed/dev_seed.py`; added per-file-ignore for T20/S/E501.
-- Fixed mypy failure from PyJWT 2.12 type change — imported `Options` TypedDict from `jwt.types` in `api/auth.py`.
-- Bumped CI actions to Node.js 24 compatible versions: `actions/checkout` v6, `astral-sh/setup-uv` v8.1.0.
-- Removed `.claude` from git history and added to `.gitignore`.
-- CI fully green — tests, Ruff, mypy, pip-audit all passing.
+- Meta-sprint: restructured project documentation — `CLAUDE.md` replaced with YAML frontmatter index; `docs/rules.md`, `docs/architecture.md`, `docs/session_protocol.md`, `docs/code_style.md` created; `SESSIONS.md` compacted to single active entry; `SESSIONS_ARCHIVE.md` and `SPRINTS.md` created. Committed to `blueprinted-io/platform`.
+- Fixed `components.json` shadcn alias misconfiguration; corrected bare `src/` imports to `@/` in all five new shadcn components.
+- Task create screen (`/tasks/new`) — title, outcome, domain, software, facts, concepts, tags, inline step editor with actions; Save as draft and Save and submit in one flow; redirects to detail on success.
+- "New task" button added to task list.
+- Confirm, Return, and Submit actions added to task detail — Confirm hidden for task creator (self-review prohibition enforced in UI and API).
+- First confirmed task created end-to-end in blueprinted.
 
 ### Next
-Sprint 8 feature work is unblocked — CI is clean and all debt resolved. Pick up the Task create screen (§23.3, `POST /api/v1/tasks`), which allows creating tasks from the UI rather than the seed script. Alternatively, confirm a seeded task to get a confirmed state visible in the UI by creating a second Authentik user and using their JWT (see SESSIONS_ARCHIVE.md for the curl command if needed).
+Sprint 8 read screens continue. Natural next pick: Workflow list and detail screens (§23.4), or Principles list and detail (§23.6) — both follow the same read-only pattern as the Task screens already built. The `app/` repo has `WorkflowsPage.tsx` and `PrinciplesPage.tsx` as stubs ready to fill in.
