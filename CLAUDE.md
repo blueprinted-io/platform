@@ -7,6 +7,10 @@ summary: >-
   confirm everything — no machine may perform a confirmed state transition on a governed record.
   The v1 platform is designed for a single operator and tenant.
 stack: Python/FastAPI, PostgreSQL/pgvector, React/TypeScript, ARQ, Authentik
+repos:
+  platform: "blueprinted-io/platform — Python backend, at platform/"
+  app: "blueprinted-io/app — React frontend, at app/"
+  note: "Working directory root (/home/ewan/projects/blueprinted/) is not a git repo. Commit and push from within each subdirectory."
 state: "Sprint 8 — Core read screens (in progress)"
 spec: "docs/requirements.md (v4.5)"
 sessions: "SESSIONS.md (active — one entry only); SESSIONS_ARCHIVE.md (history — do not load unless explicitly asked)"
