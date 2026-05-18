@@ -189,7 +189,8 @@ async def expire_review_claims(ctx: dict) -> None:  # type: ignore[type-arg]
             await create_notification(
                 session, claim.claimed_by, "claim_expired", claim.entity_type,
                 claim.entity_id,
-                f"Your review claim on a {claim.entity_type} has expired and returned to the queue.",
+                f"Your review claim on a {claim.entity_type} has expired"
+                " and returned to the queue.",
             )
 
         expired_count = len(expiring)
@@ -332,7 +333,8 @@ async def chunk_pdf(ctx: dict, ingestion_id: str) -> None:  # type: ignore[type-
             await session.commit()
             await create_notification(
                 session, ing.created_by, "ingestion_complete", "ingestion", iid,
-                f'Your PDF "{ing.original_filename or "upload"}" has been chunked and is ready for section selection.',
+                f'Your PDF "{ing.original_filename or "upload"}" has been chunked'
+                " and is ready for section selection.",
             )
             await session.commit()
 
@@ -813,8 +815,10 @@ async def crawl_html(
                         ingestion_row.chunk_count = len(chunks)
                         await session.commit()
                         await create_notification(
-                            session, ingestion_row.created_by, "ingestion_complete", "ingestion", iid,
-                            f"Your HTML import is ready for section selection ({len(chunks)} sections found).",
+                            session, ingestion_row.created_by,
+                            "ingestion_complete", "ingestion", iid,
+                            f"Your HTML import is ready for section selection"
+                            f" ({len(chunks)} sections found).",
                         )
                         await session.commit()
 
@@ -874,8 +878,11 @@ async def crawl_html(
                         ingestion_row.status = "ready"
                         await session.commit()
                         await create_notification(
-                            session, ingestion_row.created_by, "ingestion_complete", "ingestion", iid,
-                            f"Your HTML site navigation has been crawled ({len(nav_pages)} pages discovered). Select which pages to import.",
+                            session, ingestion_row.created_by,
+                            "ingestion_complete", "ingestion", iid,
+                            f"Your HTML site navigation has been crawled"
+                            f" ({len(nav_pages)} pages discovered)."
+                            " Select which pages to import.",
                         )
                         await session.commit()
 

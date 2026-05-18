@@ -41,7 +41,7 @@ async def notify_domain_users(
     result = await session.execute(
         select(UserDomain.user_id).where(UserDomain.domain == domain)
     )
-    user_ids = [row for row in result.scalars().all()]
+    user_ids = list(result.scalars().all())
 
     count = 0
     for uid in user_ids:
