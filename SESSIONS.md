@@ -3,23 +3,16 @@ One entry only. On closeout: move this entry to the top of SESSIONS_ARCHIVE.md (
 Archive: SESSIONS_ARCHIVE.md (do not load unless explicitly asked).
 Format and rules: docs/session_protocol.md
 
-## Session — 2026-05-18 (admin users tab + CI fix)
+## Session — 2026-05-18 (CI fix + Playwright Dockerfile)
 
 ### Decisions
-- Admin users implicitly own all active domains (§7.2 already enforced at API layer); domain assignment UI suppressed for admin-role users is noted for a follow-up polish pass.
-- `UserDomainSection` moved from DomainsPage to UsersPage — domain assignment belongs with user management, not domain registry.
-- CI check in `/plan` skill was broken: `gh run list` used `displayTitle` field which doesn't exist in the installed `gh` version; failed silently due to `2>/dev/null`. Fix to the skill command is outstanding.
-- `test_process_chunks.py` failures predated this session: tests passed raw `Settings` objects to `_process_single_chunk` which expects `LLMSettings`. Fixed by updating the fixture and removing inline `Settings` construction at call sites.
+- `/plan` skill CI check used `displayTitle` (invalid field) piped to `/dev/null` — silent failure treated as "no runs". Fixed by using `name` field; error output now visible.
+- Playwright Chromium binary was never in the Docker image — `--with-deps` fails on `python:3.12-slim` (Debian) because Ubuntu font packages are absent. Fixed by installing Chromium system deps explicitly and running `playwright install chromium` without `--with-deps`.
+- Stuck HTML ingestion (status `chunking`) was reset to `failed` in the DB — the `crawl_html` job was consumed by the old worker before Playwright was available. User should delete and re-submit.
 
 ### Done
-- `api/schemas/admin.py`: `UserListResponse` schema.
-- `api/routes/admin.py`: `GET /admin/users` — lists all users ordered by email, Admin only.
-- `app/src/pages/admin/AdminUsersPage.tsx`: user table with role badges; per-user domain assignment panel.
-- `app/src/pages/admin/AdminDomainsPage.tsx`: removed `UserDomainSection`; fixed bug calling non-existent `GET /users` (now `GET /admin/users`).
-- `app/src/pages/admin/AdminLayout.tsx`: added "Users" nav item.
-- `app/src/App.tsx`: wired `/admin/users` route.
-- `tests/test_process_chunks.py`: replaced inline `Settings` constructions with `LLMSettings` fixture; `test_process_chunks_with_llm_processes_all_queued` retains `Settings` in `ctx["settings"]` (correct path).
-- `workers/main.py`: removed dead `original_filename` assignment (ruff F841). CI green.
+- `.claude/commands/plan.md`: `displayTitle` → `name` in both `gh run list` commands.
+- `deploy/Dockerfile`: installs Chromium system deps and runs `playwright install chromium` at build time. Worker container verified: Chromium launches successfully.
 
 ### Next
-End-to-end ingestion test: PDF path is unblocked. URL ingestion hung and failed — cause not yet diagnosed (Playwright availability or LLM config issue); check worker logs on next attempt. Also fix the `/plan` skill's CI check command (`displayTitle` → `name`).
+End-to-end URL ingestion test: Playwright is now installed. Delete the stuck HTML ingestion and re-submit the URL to verify the full `crawl_html` → `render_nav_pages` → candidate review path. PDF ingestion is also unblocked — verify end-to-end with LLM configured.
