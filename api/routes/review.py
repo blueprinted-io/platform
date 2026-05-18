@@ -35,6 +35,7 @@ from api.schemas.review import (
 )
 from api.services import lifecycle
 from api.services.notifications import notify_domain_users
+from api.services.settings_service import get_setting
 
 log = structlog.get_logger(__name__)
 
@@ -42,8 +43,15 @@ router = APIRouter(prefix="/review", tags=["review"])
 
 _Reviewer = Annotated[User, require_role(Role.CONTRIBUTOR, Role.ADMIN)]
 
-# Claim expiry default in hours. Pulls from system_settings once that API exists (Sprint 10).
 REVIEW_CLAIM_EXPIRY_HOURS_DEFAULT: int = 48
+
+
+async def _get_expiry_hours(session: AsyncSession) -> int:
+    val = await get_setting(session, "review_claim_expiry_hours")
+    try:
+        return int(val) if val is not None else REVIEW_CLAIM_EXPIRY_HOURS_DEFAULT
+    except ValueError:
+        return REVIEW_CLAIM_EXPIRY_HOURS_DEFAULT
 
 _CLAIMABLE_TYPES = {"tasks", "workflows", "principles"}
 _ALL_REVIEW_TYPES = {"tasks", "workflows", "principles"}
@@ -322,12 +330,12 @@ async def claim_item(
     singular_type = _TYPE_TO_SINGULAR[entity_type]
     active_claim = await _get_active_claim(session, singular_type, entity_id)
 
+    expiry_hours = await _get_expiry_hours(session)
+
     if active_claim is not None:
         if active_claim.claimed_by == user.id:
             # Re-claiming own active claim: refresh expiry
-            active_claim.expires_at = datetime.now(UTC) + timedelta(
-                hours=REVIEW_CLAIM_EXPIRY_HOURS_DEFAULT
-            )
+            active_claim.expires_at = datetime.now(UTC) + timedelta(hours=expiry_hours)
             await session.commit()
             await session.refresh(active_claim)
             log.info(
@@ -348,7 +356,7 @@ async def claim_item(
         entity_type=singular_type,
         entity_id=entity_id,
         claimed_by=user.id,
-        expires_at=datetime.now(UTC) + timedelta(hours=REVIEW_CLAIM_EXPIRY_HOURS_DEFAULT),
+        expires_at=datetime.now(UTC) + timedelta(hours=expiry_hours),
     )
     session.add(claim)
     await session.commit()

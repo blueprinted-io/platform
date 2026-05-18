@@ -3,6 +3,7 @@
 from fastapi import APIRouter
 
 from api.routes import (
+    admin,
     ingestions,
     notifications,
     principles,
@@ -22,3 +23,4 @@ router.include_router(review.router)
 router.include_router(search.router)
 router.include_router(ingestions.router)
 router.include_router(notifications.router)
+router.include_router(admin.router)

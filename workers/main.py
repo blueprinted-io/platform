@@ -35,10 +35,12 @@ from api.logging import configure_logging
 from api.models.ingestion import Ingestion, IngestionCandidate, IngestionChunk, IngestionNavPage
 from api.models.principle import Principle
 from api.models.review_claim import ReviewClaim
+from api.models.settings import SystemSetting
 from api.models.task import Task
 from api.models.workflow import Workflow
 from api.prompts import Prompt
 from api.services.notifications import create_notification
+from api.services.settings_service import LLMSettings, load_llm_settings
 from api.services.storage import read_ingestion_file
 
 log = structlog.get_logger(__name__)
@@ -108,10 +110,16 @@ async def generate_embedding(ctx: dict, record_type: str, record_id: str) -> Non
     is not configured, the job logs a warning and exits cleanly — the record
     remains discoverable via tsvector full-text search.
     """
-    settings: Settings = ctx["settings"]
+    env_settings: Settings = ctx["settings"]
     engine: AsyncEngine = ctx["db_engine"]
 
-    if not settings.llm_embedding_base_url or not settings.llm_embedding_model:
+    async with AsyncSession(engine) as session:
+        llm = await load_llm_settings(
+            session, env_settings.app_secret_key.get_secret_value(), env_settings
+        )
+        record_text = await _fetch_record_text(session, record_type, record_id)
+
+    if not llm.embedding_base_url or not llm.embedding_model:
         log.warning(
             "embedding_skipped_no_config",
             record_type=record_type,
@@ -119,10 +127,7 @@ async def generate_embedding(ctx: dict, record_type: str, record_id: str) -> Non
         )
         return
 
-    async with AsyncSession(engine) as session:
-        text = await _fetch_record_text(session, record_type, record_id)
-
-    if text is None:
+    if record_text is None:
         log.warning(
             "embedding_record_not_found",
             record_type=record_type,
@@ -131,17 +136,16 @@ async def generate_embedding(ctx: dict, record_type: str, record_id: str) -> Non
         return
 
     headers: dict[str, str] = {"Content-Type": "application/json"}
-    api_key = settings.llm_embedding_api_key.get_secret_value()
-    if api_key:
-        headers["Authorization"] = f"Bearer {api_key}"
+    if llm.embedding_api_key:
+        headers["Authorization"] = f"Bearer {llm.embedding_api_key}"
 
     try:
         async with httpx.AsyncClient() as http:
             response = await http.post(
-                f"{settings.llm_embedding_base_url}/embeddings",
-                json={"model": settings.llm_embedding_model, "input": text},
+                f"{llm.embedding_base_url}/embeddings",
+                json={"model": llm.embedding_model, "input": record_text},
                 headers=headers,
-                timeout=settings.llm_embedding_timeout_seconds,
+                timeout=llm.embedding_timeout,
             )
             response.raise_for_status()
         embedding: list[float] = response.json()["data"][0]["embedding"]
@@ -421,7 +425,7 @@ def _validate_principle(candidate: dict[str, Any]) -> str | None:
 
 async def _process_single_chunk(
     engine: AsyncEngine,
-    settings: Settings,
+    llm: LLMSettings,
     chunk: IngestionChunk,
     triage_prompt: Prompt,
     task_prompt: Prompt,
@@ -452,12 +456,12 @@ async def _process_single_chunk(
             text=chunk.text[:6000],
         )
         raw_triage = await _call_llm(
-            base_url=settings.resolved_triage_base_url(),
-            model=settings.resolved_triage_model(),
-            api_key=settings.resolved_triage_api_key(),
+            base_url=llm.triage_base_url,
+            model=llm.triage_model,
+            api_key=llm.triage_api_key,
             system=triage_system,
             user=triage_user,
-            timeout=settings.llm_triage_timeout_seconds,
+            timeout=llm.triage_timeout,
         )
         triage_result: dict[str, Any] = json.loads(raw_triage)
         category = triage_result.get("category", "")
@@ -485,12 +489,12 @@ async def _process_single_chunk(
                 text=chunk.text,
             )
             raw_extraction = await _call_llm(
-                base_url=settings.resolved_extraction_base_url(),
-                model=settings.resolved_extraction_model(),
-                api_key=settings.resolved_extraction_api_key(),
+                base_url=llm.extraction_base_url,
+                model=llm.extraction_model,
+                api_key=llm.extraction_api_key,
                 system=extraction_system,
                 user=extraction_user,
-                timeout=settings.llm_extraction_timeout_seconds,
+                timeout=llm.extraction_timeout,
             )
             extraction_result: dict[str, Any] = json.loads(raw_extraction)
             for task_json in extraction_result.get("tasks", []):
@@ -513,12 +517,12 @@ async def _process_single_chunk(
                 text=chunk.text,
             )
             raw_extraction = await _call_llm(
-                base_url=settings.resolved_extraction_base_url(),
-                model=settings.resolved_extraction_model(),
-                api_key=settings.resolved_extraction_api_key(),
+                base_url=llm.extraction_base_url,
+                model=llm.extraction_model,
+                api_key=llm.extraction_api_key,
                 system=extraction_system,
                 user=extraction_user,
-                timeout=settings.llm_extraction_timeout_seconds,
+                timeout=llm.extraction_timeout,
             )
             extraction_result = json.loads(raw_extraction)
             for principle_json in extraction_result.get("principles", []):
@@ -576,14 +580,16 @@ async def process_chunks(ctx: dict, ingestion_id: str) -> None:  # type: ignore[
     Only processes chunks in `queued` state. Chunks in any other state are skipped.
     When LLM is not configured, queued chunks are marked done with no candidates.
     """
-    settings: Settings = ctx["settings"]
+    env_settings: Settings = ctx["settings"]
     engine: AsyncEngine = ctx["db_engine"]
     iid = uuid.UUID(ingestion_id)
 
-    triage_url = settings.resolved_triage_base_url()
-    extraction_url = settings.resolved_extraction_base_url()
+    async with AsyncSession(engine) as session:
+        llm = await load_llm_settings(
+            session, env_settings.app_secret_key.get_secret_value(), env_settings
+        )
 
-    if not triage_url or not extraction_url:
+    if not llm.triage_base_url or not llm.extraction_base_url:
         log.warning(
             "process_chunks_no_llm_config",
             ingestion_id=ingestion_id,
@@ -622,7 +628,7 @@ async def process_chunks(ctx: dict, ingestion_id: str) -> None:  # type: ignore[
 
     for chunk in queued_chunks:
         await _process_single_chunk(
-            engine, settings, chunk, triage_prompt, task_prompt, principle_prompt
+            engine, llm, chunk, triage_prompt, task_prompt, principle_prompt
         )
 
 
@@ -789,10 +795,15 @@ async def crawl_html(
 
     respect_robots: bool = True
     try:
-        from api.services import settings as settings_service  # type: ignore[attr-defined]
-        val = await settings_service.get("ingestion_html_respect_robots_txt", engine)
-        if val is not None:
-            respect_robots = str(val).lower() not in ("false", "0", "no")
+        async with AsyncSession(engine) as _s:
+            result = await _s.execute(
+                select(SystemSetting.value).where(
+                    SystemSetting.key == "ingestion_html_respect_robots_txt"
+                )
+            )
+            row = result.scalar_one_or_none()
+            if row is not None:
+                respect_robots = str(row).lower() not in ("false", "0", "no")
     except Exception as settings_exc:
         log.debug("crawl_html_robots_setting_lookup_failed", error=str(settings_exc))
 
