@@ -124,7 +124,13 @@ async def test_llm_connection(
     try:
         async with httpx.AsyncClient(timeout=10) as http:
             resp = await http.get(f"{body.base_url.rstrip('/')}/models", headers=headers)
-            resp.raise_for_status()
+
+        # 404 means the server is reachable but this provider doesn't implement /models.
+        # Treat as connected with no enumerable model list.
+        if resp.status_code == 404:
+            return TestConnectionResponse(ok=True, models=[])
+
+        resp.raise_for_status()
         data = resp.json()
         # OpenAI-compatible: { data: [{ id: "..." }, ...] }
         model_ids: list[str] = []
