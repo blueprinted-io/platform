@@ -32,6 +32,7 @@ from api.schemas.task import (
     TaskVersionSummary,
 )
 from api.services import lifecycle
+from api.services.notifications import create_notification, notify_domain_users
 
 log = structlog.get_logger(__name__)
 
@@ -188,6 +189,12 @@ async def submit_task(task_id: uuid.UUID, session: DBSession, user: _Writer) -> 
     task.status = "submitted"
     task.updated_by = user.id
     await session.commit()
+    await notify_domain_users(
+        session, task.domain, "record_submitted", "task", task.id,
+        f'Task "{task.title}" has been submitted for review.',
+        exclude_user_id=user.id,
+    )
+    await session.commit()
     return TaskResponse.model_validate(await _get_task(session, task.id))
 
 
@@ -211,6 +218,11 @@ async def confirm_task(
     task.updated_by = user.id
     await session.commit()
     log.info("task_confirmed", task_id=str(task.id), user_id=str(user.id))
+    await create_notification(
+        session, task.created_by, "record_confirmed", "task", task.id,
+        f'Your task "{task.title}" has been confirmed.',
+    )
+    await session.commit()
     if arq_pool is not None:
         await arq_pool.enqueue_job("generate_embedding", record_type="task", record_id=str(task.id))
     return TaskResponse.model_validate(await _get_task(session, task.id))
@@ -229,6 +241,11 @@ async def return_task(
         task.change_note = body.note
     task.reviewed_by = user.id
     task.updated_by = user.id
+    await session.commit()
+    await create_notification(
+        session, task.created_by, "record_returned", "task", task.id,
+        f'Your task "{task.title}" has been returned for changes.',
+    )
     await session.commit()
     return TaskResponse.model_validate(await _get_task(session, task.id))
 

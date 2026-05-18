@@ -22,6 +22,7 @@ from api.schemas.principle import (
     ReviseRequest,
 )
 from api.services import lifecycle
+from api.services.notifications import create_notification, notify_domain_users
 
 log = structlog.get_logger(__name__)
 
@@ -134,6 +135,12 @@ async def submit_principle(
     principle.status = "submitted"
     principle.updated_by = user.id
     await session.commit()
+    await notify_domain_users(
+        session, principle.domain, "record_submitted", "principle", principle.id,
+        f'Principle "{principle.title}" has been submitted for review.',
+        exclude_user_id=user.id,
+    )
+    await session.commit()
     await session.refresh(principle)
     return principle
 
@@ -157,6 +164,11 @@ async def confirm_principle(
     principle.reviewed_by = user.id
     principle.updated_by = user.id
     await session.commit()
+    await create_notification(
+        session, principle.created_by, "record_confirmed", "principle", principle.id,
+        f'Your principle "{principle.title}" has been confirmed.',
+    )
+    await session.commit()
     await session.refresh(principle)
     if arq_pool is not None:
         await arq_pool.enqueue_job(
@@ -178,6 +190,11 @@ async def return_principle(
         principle.change_note = body.note
     principle.reviewed_by = user.id
     principle.updated_by = user.id
+    await session.commit()
+    await create_notification(
+        session, principle.created_by, "record_returned", "principle", principle.id,
+        f'Your principle "{principle.title}" has been returned for changes.',
+    )
     await session.commit()
     await session.refresh(principle)
     return principle

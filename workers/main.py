@@ -34,9 +34,11 @@ from api.database import create_engine
 from api.logging import configure_logging
 from api.models.ingestion import Ingestion, IngestionCandidate, IngestionChunk, IngestionNavPage
 from api.models.principle import Principle
+from api.models.review_claim import ReviewClaim
 from api.models.task import Task
 from api.models.workflow import Workflow
 from api.prompts import Prompt
+from api.services.notifications import create_notification
 from api.services.storage import read_ingestion_file
 
 log = structlog.get_logger(__name__)
@@ -168,19 +170,29 @@ async def expire_review_claims(ctx: dict) -> None:  # type: ignore[type-arg]
     """Release review claims whose expiry has passed (§8.2, §14).
 
     Runs every 15 minutes via cron. Sets released_at on any claim where
-    released_at IS NULL AND expires_at < NOW().
+    released_at IS NULL AND expires_at < NOW(). Notifies each claimer.
     """
     engine: AsyncEngine = ctx["db_engine"]
     async with AsyncSession(engine) as session:
-        result = await session.execute(
-            sa.text("""
-                UPDATE review_claims
-                SET released_at = NOW()
-                WHERE released_at IS NULL
-                  AND expires_at < NOW()
-            """)
-        )
-        expired_count: int = result.rowcount  # type: ignore[attr-defined]
+        # Fetch expiring claims before releasing so we can notify claimers.
+        expiring = (
+            await session.execute(
+                select(ReviewClaim).where(
+                    ReviewClaim.released_at.is_(None),
+                    ReviewClaim.expires_at < sa.func.now(),
+                )
+            )
+        ).scalars().all()
+
+        for claim in expiring:
+            claim.released_at = sa.func.now()
+            await create_notification(
+                session, claim.claimed_by, "claim_expired", claim.entity_type,
+                claim.entity_id,
+                f"Your review claim on a {claim.entity_type} has expired and returned to the queue.",
+            )
+
+        expired_count = len(expiring)
         await session.commit()
 
     if expired_count:
@@ -318,6 +330,11 @@ async def chunk_pdf(ctx: dict, ingestion_id: str) -> None:  # type: ignore[type-
             ing.page_count = page_count
             ing.chunk_count = len(raw_chunks)
             await session.commit()
+            await create_notification(
+                session, ing.created_by, "ingestion_complete", "ingestion", iid,
+                f'Your PDF "{ing.original_filename or "upload"}" has been chunked and is ready for section selection.',
+            )
+            await session.commit()
 
         log.info(
             "chunk_pdf_complete",
@@ -333,6 +350,11 @@ async def chunk_pdf(ctx: dict, ingestion_id: str) -> None:  # type: ignore[type-
             ).scalar_one()
             ing.status = "failed"
             ing.error_detail = str(exc)
+            await session.commit()
+            await create_notification(
+                session, ing.created_by, "ingestion_failed", "ingestion", iid,
+                f'Your PDF "{ing.original_filename or "upload"}" could not be processed: {exc}',
+            )
             await session.commit()
         log.error("chunk_pdf_failed", ingestion_id=ingestion_id, error=str(exc))
         raise
@@ -790,6 +812,11 @@ async def crawl_html(
                         ingestion_row.status = "ready"
                         ingestion_row.chunk_count = len(chunks)
                         await session.commit()
+                        await create_notification(
+                            session, ingestion_row.created_by, "ingestion_complete", "ingestion", iid,
+                            f"Your HTML import is ready for section selection ({len(chunks)} sections found).",
+                        )
+                        await session.commit()
 
                     log.info(
                         "crawl_html_single_done",
@@ -846,6 +873,11 @@ async def crawl_html(
                         ).scalar_one()
                         ingestion_row.status = "ready"
                         await session.commit()
+                        await create_notification(
+                            session, ingestion_row.created_by, "ingestion_complete", "ingestion", iid,
+                            f"Your HTML site navigation has been crawled ({len(nav_pages)} pages discovered). Select which pages to import.",
+                        )
+                        await session.commit()
 
                     log.info(
                         "crawl_html_sitenav_done",
@@ -865,6 +897,11 @@ async def crawl_html(
             if failed_row is not None:
                 failed_row.status = "failed"
                 failed_row.error_detail = error_msg
+                await session.commit()
+                await create_notification(
+                    session, failed_row.created_by, "ingestion_failed", "ingestion", iid,
+                    f"Your HTML import failed: {error_msg}",
+                )
                 await session.commit()
         raise
 

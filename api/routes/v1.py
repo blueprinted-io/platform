@@ -4,6 +4,7 @@ from fastapi import APIRouter
 
 from api.routes import (
     ingestions,
+    notifications,
     principles,
     review,
     search,
@@ -20,3 +21,4 @@ router.include_router(workflows.router)
 router.include_router(review.router)
 router.include_router(search.router)
 router.include_router(ingestions.router)
+router.include_router(notifications.router)

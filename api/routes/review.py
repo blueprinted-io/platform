@@ -34,6 +34,7 @@ from api.schemas.review import (
     ReviewReturnRequest,
 )
 from api.services import lifecycle
+from api.services.notifications import notify_domain_users
 
 log = structlog.get_logger(__name__)
 
@@ -358,6 +359,12 @@ async def claim_item(
         entity_id=str(entity_id),
         user_id=str(user.id),
     )
+    await notify_domain_users(
+        session, record.domain, "claim_made", singular_type, entity_id,
+        f"A {singular_type} in your domain has been claimed for review.",
+        exclude_user_id=user.id,
+    )
+    await session.commit()
     return claim
 
 

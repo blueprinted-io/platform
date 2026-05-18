@@ -35,6 +35,7 @@ from api.schemas.workflow import (
     WorkflowVersionSummary,
 )
 from api.services import lifecycle
+from api.services.notifications import create_notification, notify_domain_users
 
 log = structlog.get_logger(__name__)
 
@@ -148,6 +149,12 @@ async def submit_workflow(
     workflow.status = "submitted"
     workflow.updated_by = user.id
     await session.commit()
+    await notify_domain_users(
+        session, workflow.domain, "record_submitted", "workflow", workflow.id,
+        f'Workflow "{workflow.title}" has been submitted for review.',
+        exclude_user_id=user.id,
+    )
+    await session.commit()
     return WorkflowResponse.model_validate(await _get_workflow_with_refs(session, workflow.id))
 
 
@@ -171,6 +178,11 @@ async def confirm_workflow(
     workflow.updated_by = user.id
     await session.commit()
     log.info("workflow_confirmed", workflow_id=str(workflow.id), user_id=str(user.id))
+    await create_notification(
+        session, workflow.created_by, "record_confirmed", "workflow", workflow.id,
+        f'Your workflow "{workflow.title}" has been confirmed.',
+    )
+    await session.commit()
     if arq_pool is not None:
         await arq_pool.enqueue_job(
             "generate_embedding", record_type="workflow", record_id=str(workflow.id)
@@ -191,6 +203,11 @@ async def return_workflow(
         workflow.change_note = body.note
     workflow.reviewed_by = user.id
     workflow.updated_by = user.id
+    await session.commit()
+    await create_notification(
+        session, workflow.created_by, "record_returned", "workflow", workflow.id,
+        f'Your workflow "{workflow.title}" has been returned for changes.',
+    )
     await session.commit()
     return WorkflowResponse.model_validate(await _get_workflow_with_refs(session, workflow.id))
 
