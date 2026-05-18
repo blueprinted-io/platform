@@ -40,6 +40,7 @@ from api.schemas.admin import (
     TestConnectionResponse,
     UserDomainResponse,
     UserDomainsReplace,
+    UserListResponse,
 )
 from api.services.settings_service import get_setting, set_setting
 
@@ -148,6 +149,16 @@ async def test_llm_connection(
         return TestConnectionResponse(ok=False, models=[], error=f"HTTP {exc.response.status_code}")
     except Exception as exc:
         return TestConnectionResponse(ok=False, models=[], error=str(exc))
+
+
+# ---------------------------------------------------------------------------
+# Users
+# ---------------------------------------------------------------------------
+
+@router.get("/users", response_model=list[UserListResponse])
+async def list_users(session: DBSession, _user: _Admin) -> list[User]:
+    result = await session.execute(select(User).order_by(User.email))
+    return list(result.scalars().all())
 
 
 # ---------------------------------------------------------------------------
