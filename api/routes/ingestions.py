@@ -45,7 +45,7 @@ from api.schemas.ingestion import (
     SelectChunksResponse,
 )
 from api.services import lifecycle
-from api.services.storage import save_ingestion_file
+from api.services.storage import delete_ingestion_dir, save_ingestion_file
 
 log = structlog.get_logger(__name__)
 
@@ -151,6 +151,23 @@ async def list_ingestions(
         .offset(offset)
     )
     return [IngestionResponse.model_validate(i) for i in result.scalars().all()]
+
+
+@router.delete("/{ingestion_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_ingestion(
+    ingestion_id: uuid.UUID,
+    session: DBSession,
+    user: CurrentUser,
+    app_settings: AppSettings,
+) -> None:
+    ingestion = await session.get(Ingestion, ingestion_id)
+    if ingestion is None or ingestion.created_by != user.id:
+        raise HTTPException(status_code=404, detail="Ingestion not found.")
+    storage_path = ingestion.storage_path
+    await session.delete(ingestion)
+    await session.commit()
+    if storage_path is not None:
+        delete_ingestion_dir(app_settings, ingestion_id)
 
 
 @router.get("/{ingestion_id}/status", response_model=IngestionStatusResponse)

@@ -30,3 +30,11 @@ def save_ingestion_file(
 def read_ingestion_file(settings: Settings, storage_path: str) -> bytes:
     """Read a previously stored ingestion file."""
     return Path(storage_path).read_bytes()
+
+
+def delete_ingestion_dir(settings: Settings, ingestion_id: uuid.UUID) -> None:
+    """Remove the storage directory for an ingestion (no-op if absent)."""
+    import shutil
+    dest_dir = _ingestion_dir(settings, ingestion_id)
+    if dest_dir.exists():
+        shutil.rmtree(dest_dir)
