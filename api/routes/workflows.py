@@ -314,7 +314,7 @@ async def add_task_ref(
     task_result = await session.execute(
         select(Task).where(Task.record_id == body.task_record_id, Task.status == "confirmed")
     )
-    if task_result.scalar_one_or_none() is None:
+    if task_result.scalars().first() is None:
         raise HTTPException(status_code=422, detail="No confirmed Task found with that record_id.")
 
     next_index = len(workflow.task_refs)
@@ -375,7 +375,7 @@ async def attach_principle(
             Principle.record_id == body.principle_record_id, Principle.status == "confirmed"
         )
     )
-    if p_result.scalar_one_or_none() is None:
+    if p_result.scalars().first() is None:
         raise HTTPException(
             status_code=422, detail="No confirmed Principle found with that record_id."
         )
