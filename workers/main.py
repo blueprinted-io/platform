@@ -279,13 +279,15 @@ async def chunk_pdf(ctx: dict, ingestion_id: str) -> None:  # type: ignore[type-
             log.error("chunk_pdf_ingestion_not_found", ingestion_id=ingestion_id)
             return
 
+        storage_path = ingestion.storage_path
+        original_filename = ingestion.original_filename
         ingestion.status = "chunking"
         await session.commit()
 
     try:
-        if ingestion.storage_path is None:
+        if storage_path is None:
             raise ValueError("ingestion has no storage_path")
-        pdf_bytes = read_ingestion_file(settings, ingestion.storage_path)
+        pdf_bytes = read_ingestion_file(settings, storage_path)
 
         # Scanned-PDF heuristic: reject if no extractable text across entire document.
         doc_check = fitz.open(stream=pdf_bytes, filetype="pdf")
@@ -331,13 +333,15 @@ async def chunk_pdf(ctx: dict, ingestion_id: str) -> None:  # type: ignore[type-
                 )
                 session.add(chunk)
 
+            created_by = ing.created_by
+            pdf_filename = ing.original_filename
             ing.status = "ready"
             ing.page_count = page_count
             ing.chunk_count = len(raw_chunks)
             await session.commit()
             await create_notification(
-                session, ing.created_by, "ingestion_complete", "ingestion", iid,
-                f'Your PDF "{ing.original_filename or "upload"}" has been chunked'
+                session, created_by, "ingestion_complete", "ingestion", iid,
+                f'Your PDF "{pdf_filename or "upload"}" has been chunked'
                 " and is ready for section selection.",
             )
             await session.commit()
@@ -354,12 +358,14 @@ async def chunk_pdf(ctx: dict, ingestion_id: str) -> None:  # type: ignore[type-
             ing = (
                 await session.execute(select(Ingestion).where(Ingestion.id == iid))
             ).scalar_one()
+            created_by = ing.created_by
+            pdf_filename = ing.original_filename
             ing.status = "failed"
             ing.error_detail = str(exc)
             await session.commit()
             await create_notification(
-                session, ing.created_by, "ingestion_failed", "ingestion", iid,
-                f'Your PDF "{ing.original_filename or "upload"}" could not be processed: {exc}',
+                session, created_by, "ingestion_failed", "ingestion", iid,
+                f'Your PDF "{pdf_filename or "upload"}" could not be processed: {exc}',
             )
             await session.commit()
         log.error("chunk_pdf_failed", ingestion_id=ingestion_id, error=str(exc))
@@ -789,9 +795,9 @@ async def crawl_html(
             log.error("crawl_html_ingestion_not_found", ingestion_id=ingestion_id)
             return
 
+        url = ingestion.source_url or ""
         ingestion.status = "chunking"
         await session.commit()
-        url = ingestion.source_url or ""
 
     respect_robots: bool = True
     try:
@@ -822,11 +828,12 @@ async def crawl_html(
                                 select(Ingestion).where(Ingestion.id == iid)
                             )
                         ).scalar_one()
+                        html_created_by = ingestion_row.created_by
                         ingestion_row.status = "ready"
                         ingestion_row.chunk_count = len(chunks)
                         await session.commit()
                         await create_notification(
-                            session, ingestion_row.created_by,
+                            session, html_created_by,
                             "ingestion_complete", "ingestion", iid,
                             f"Your HTML import is ready for section selection"
                             f" ({len(chunks)} sections found).",
@@ -886,10 +893,11 @@ async def crawl_html(
                                 select(Ingestion).where(Ingestion.id == iid)
                             )
                         ).scalar_one()
+                        sitenav_created_by = ingestion_row.created_by
                         ingestion_row.status = "ready"
                         await session.commit()
                         await create_notification(
-                            session, ingestion_row.created_by,
+                            session, sitenav_created_by,
                             "ingestion_complete", "ingestion", iid,
                             f"Your HTML site navigation has been crawled"
                             f" ({len(nav_pages)} pages discovered)."
@@ -913,11 +921,12 @@ async def crawl_html(
                 await session.execute(select(Ingestion).where(Ingestion.id == iid))
             ).scalar_one_or_none()
             if failed_row is not None:
+                html_failed_by = failed_row.created_by
                 failed_row.status = "failed"
                 failed_row.error_detail = error_msg
                 await session.commit()
                 await create_notification(
-                    session, failed_row.created_by, "ingestion_failed", "ingestion", iid,
+                    session, html_failed_by, "ingestion_failed", "ingestion", iid,
                     f"Your HTML import failed: {error_msg}",
                 )
                 await session.commit()
