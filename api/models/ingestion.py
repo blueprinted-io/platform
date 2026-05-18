@@ -37,13 +37,14 @@ class Ingestion(Base):
     error_detail: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     chunks: Mapped[list["IngestionChunk"]] = relationship(
-        "IngestionChunk", back_populates="ingestion", order_by="IngestionChunk.chunk_index"
+        "IngestionChunk", back_populates="ingestion", order_by="IngestionChunk.chunk_index",
+        passive_deletes=True,
     )
     candidates: Mapped[list["IngestionCandidate"]] = relationship(
-        "IngestionCandidate", back_populates="ingestion"
+        "IngestionCandidate", back_populates="ingestion", passive_deletes=True,
     )
     nav_pages: Mapped[list["IngestionNavPage"]] = relationship(
-        "IngestionNavPage", back_populates="ingestion"
+        "IngestionNavPage", back_populates="ingestion", passive_deletes=True,
     )
 
 
