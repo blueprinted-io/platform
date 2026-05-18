@@ -62,6 +62,23 @@ class UserDomainsReplace(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# LLM connection test
+# ---------------------------------------------------------------------------
+
+class TestConnectionRequest(BaseModel):
+    base_url: str
+    api_key: str = ""
+    # If api_key is blank, the backend decrypts and uses this system_settings key instead.
+    api_key_setting: str = ""
+
+
+class TestConnectionResponse(BaseModel):
+    ok: bool
+    models: list[str]
+    error: str | None = None
+
+
+# ---------------------------------------------------------------------------
 # Health
 # ---------------------------------------------------------------------------
 
