@@ -112,21 +112,25 @@ async def test_llm_connection(
     if not body.base_url:
         return TestConnectionResponse(ok=False, models=[], error="base_url is required")
 
-    api_key = body.api_key
-    if not api_key and body.api_key_setting:
-        secret = app_settings.app_secret_key.get_secret_value()
-        api_key = await get_setting(session, body.api_key_setting, app_secret_key=secret) or ""
-
-    headers: dict[str, str] = {"Content-Type": "application/json"}
-    if api_key:
-        headers["Authorization"] = f"Bearer {api_key}"
-
     try:
-        async with httpx.AsyncClient(timeout=10) as http:
-            resp = await http.get(f"{body.base_url.rstrip('/')}/models", headers=headers)
+        api_key = body.api_key
+        if not api_key and body.api_key_setting:
+            secret = app_settings.app_secret_key.get_secret_value()
+            api_key = await get_setting(session, body.api_key_setting, app_secret_key=secret) or ""
 
-        # 404 means the server is reachable but this provider doesn't implement /models.
-        # Treat as connected with no enumerable model list.
+        headers: dict[str, str] = {"Content-Type": "application/json"}
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
+
+        url = f"{body.base_url.rstrip('/')}/models"
+        async with httpx.AsyncClient(timeout=10, follow_redirects=True) as http:
+            resp = await http.get(url, headers=headers)
+
+        if resp.status_code == 401:
+            return TestConnectionResponse(ok=False, models=[], error="Invalid API key (401)")
+        if resp.status_code == 403:
+            return TestConnectionResponse(ok=False, models=[], error="Forbidden (403) — check API key permissions")  # noqa: E501
+        # 404: server reachable but provider doesn't implement /models listing.
         if resp.status_code == 404:
             return TestConnectionResponse(ok=True, models=[])
 
