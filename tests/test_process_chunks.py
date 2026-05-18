@@ -31,6 +31,7 @@ from api.config import Settings
 from api.database import create_engine
 from api.models.ingestion import IngestionCandidate, IngestionChunk
 from api.prompts import Prompt
+from api.services.settings_service import LLMSettings
 from workers.main import (
     _process_single_chunk,
     _validate_principle,
@@ -50,21 +51,21 @@ _LLM_CHAT = f"{_LLM_URL}/chat/completions"
 
 
 @pytest.fixture
-def llm_settings(test_settings: Settings) -> Settings:
-    """Settings with LLM URLs configured so process_chunks takes the real path."""
-    return Settings(
-        _env_file=None,  # type: ignore[call-arg]
-        app_env="test",
-        database_url=test_settings.database_url,
-        database_url_sync=test_settings.database_url_sync,
-        redis_url=test_settings.redis_url,
-        log_level="WARNING",
-        app_secret_key="ci-test-secret-not-for-production",  # type: ignore[arg-type]
-        oidc_issuer="https://auth.test.example.com/",
-        oidc_audience="blueprinted-test",
-        oidc_roles_claim="roles",
-        llm_base_url=_LLM_URL,
-        llm_model="test-model",
+def llm_settings() -> LLMSettings:
+    """Resolved LLM settings for use with _process_single_chunk directly."""
+    return LLMSettings(
+        triage_base_url=_LLM_URL,
+        triage_model="test-model",
+        triage_api_key="",
+        triage_timeout=60,
+        extraction_base_url=_LLM_URL,
+        extraction_model="test-model",
+        extraction_api_key="",
+        extraction_timeout=120,
+        embedding_base_url="",
+        embedding_model="text-embedding-3-small",
+        embedding_api_key="",
+        embedding_timeout=30,
     )
 
 
@@ -293,7 +294,9 @@ async def test_process_chunks_no_llm_marks_done(test_settings: Settings) -> None
 
 
 @respx.mock
-async def test_process_single_chunk_task_candidate(test_settings: Settings) -> None:
+async def test_process_single_chunk_task_candidate(
+    test_settings: Settings, llm_settings: LLMSettings
+) -> None:
     engine = create_engine(test_settings)
     ingestion_id, chunk_id = await _insert_queued_chunk(engine)
 
@@ -309,20 +312,7 @@ async def test_process_single_chunk_task_candidate(test_settings: Settings) -> N
         assert chunk is not None
         await _process_single_chunk(
             engine,
-            Settings(  # type: ignore[call-arg]
-                _env_file=None,
-                app_env="test",
-                database_url=test_settings.database_url,
-                database_url_sync=test_settings.database_url_sync,
-                redis_url=test_settings.redis_url,
-                log_level="WARNING",
-                app_secret_key="ci-test-secret",  # type: ignore[arg-type]
-                oidc_issuer="https://auth.test.example.com/",
-                oidc_audience="blueprinted-test",
-                oidc_roles_claim="roles",
-                llm_base_url=_LLM_URL,
-                llm_model="test-model",
-            ),
+            llm_settings,
             chunk,
             prompt_store.load("triage"),
             prompt_store.load("extract_task"),
@@ -347,7 +337,9 @@ async def test_process_single_chunk_task_candidate(test_settings: Settings) -> N
 
 
 @respx.mock
-async def test_process_single_chunk_principle_candidate(test_settings: Settings) -> None:
+async def test_process_single_chunk_principle_candidate(
+    test_settings: Settings, llm_settings: LLMSettings
+) -> None:
     engine = create_engine(test_settings)
     ingestion_id, chunk_id = await _insert_queued_chunk(engine)
 
@@ -356,21 +348,6 @@ async def test_process_single_chunk_principle_candidate(test_settings: Settings)
             _chat_response(_triage_json("principle_candidate")),
             _chat_response(_principle_extraction_json()),
         ]
-    )
-
-    llm_settings = Settings(  # type: ignore[call-arg]
-        _env_file=None,
-        app_env="test",
-        database_url=test_settings.database_url,
-        database_url_sync=test_settings.database_url_sync,
-        redis_url=test_settings.redis_url,
-        log_level="WARNING",
-        app_secret_key="ci-test-secret",  # type: ignore[arg-type]
-        oidc_issuer="https://auth.test.example.com/",
-        oidc_audience="blueprinted-test",
-        oidc_roles_claim="roles",
-        llm_base_url=_LLM_URL,
-        llm_model="test-model",
     )
 
     async with AsyncSession(engine) as session:
@@ -402,28 +379,13 @@ async def test_process_single_chunk_principle_candidate(test_settings: Settings)
 @pytest.mark.parametrize("category", ["reference_material", "skip"])
 @respx.mock
 async def test_process_single_chunk_no_extraction(
-    category: str, test_settings: Settings
+    category: str, test_settings: Settings, llm_settings: LLMSettings
 ) -> None:
     engine = create_engine(test_settings)
     ingestion_id, chunk_id = await _insert_queued_chunk(engine)
 
     respx.post(_LLM_CHAT).mock(
         return_value=_chat_response(_triage_json(category))
-    )
-
-    llm_settings = Settings(  # type: ignore[call-arg]
-        _env_file=None,
-        app_env="test",
-        database_url=test_settings.database_url,
-        database_url_sync=test_settings.database_url_sync,
-        redis_url=test_settings.redis_url,
-        log_level="WARNING",
-        app_secret_key="ci-test-secret",  # type: ignore[arg-type]
-        oidc_issuer="https://auth.test.example.com/",
-        oidc_audience="blueprinted-test",
-        oidc_roles_claim="roles",
-        llm_base_url=_LLM_URL,
-        llm_model="test-model",
     )
 
     async with AsyncSession(engine) as session:
@@ -450,7 +412,9 @@ async def test_process_single_chunk_no_extraction(
 
 
 @respx.mock
-async def test_invalid_task_candidate_marked_invalid(test_settings: Settings) -> None:
+async def test_invalid_task_candidate_marked_invalid(
+    test_settings: Settings, llm_settings: LLMSettings
+) -> None:
     """A task missing required fields gets candidate_status='invalid', chunk still done."""
     engine = create_engine(test_settings)
     ingestion_id, chunk_id = await _insert_queued_chunk(engine)
@@ -461,21 +425,6 @@ async def test_invalid_task_candidate_marked_invalid(test_settings: Settings) ->
             _chat_response(_triage_json("task_candidate")),
             _chat_response(bad_task),
         ]
-    )
-
-    llm_settings = Settings(  # type: ignore[call-arg]
-        _env_file=None,
-        app_env="test",
-        database_url=test_settings.database_url,
-        database_url_sync=test_settings.database_url_sync,
-        redis_url=test_settings.redis_url,
-        log_level="WARNING",
-        app_secret_key="ci-test-secret",  # type: ignore[arg-type]
-        oidc_issuer="https://auth.test.example.com/",
-        oidc_audience="blueprinted-test",
-        oidc_roles_claim="roles",
-        llm_base_url=_LLM_URL,
-        llm_model="test-model",
     )
 
     async with AsyncSession(engine) as session:
@@ -505,27 +454,14 @@ async def test_invalid_task_candidate_marked_invalid(test_settings: Settings) ->
 
 
 @respx.mock
-async def test_triage_non_json_marks_chunk_error(test_settings: Settings) -> None:
+async def test_triage_non_json_marks_chunk_error(
+    test_settings: Settings, llm_settings: LLMSettings
+) -> None:
     engine = create_engine(test_settings)
     ingestion_id, chunk_id = await _insert_queued_chunk(engine)
 
     respx.post(_LLM_CHAT).mock(
         return_value=_chat_response("Sorry, I cannot classify this content.")
-    )
-
-    llm_settings = Settings(  # type: ignore[call-arg]
-        _env_file=None,
-        app_env="test",
-        database_url=test_settings.database_url,
-        database_url_sync=test_settings.database_url_sync,
-        redis_url=test_settings.redis_url,
-        log_level="WARNING",
-        app_secret_key="ci-test-secret",  # type: ignore[arg-type]
-        oidc_issuer="https://auth.test.example.com/",
-        oidc_audience="blueprinted-test",
-        oidc_roles_claim="roles",
-        llm_base_url=_LLM_URL,
-        llm_model="test-model",
     )
 
     async with AsyncSession(engine) as session:
@@ -545,7 +481,9 @@ async def test_triage_non_json_marks_chunk_error(test_settings: Settings) -> Non
 
 
 @respx.mock
-async def test_triage_unknown_category_marks_chunk_error(test_settings: Settings) -> None:
+async def test_triage_unknown_category_marks_chunk_error(
+    test_settings: Settings, llm_settings: LLMSettings
+) -> None:
     engine = create_engine(test_settings)
     ingestion_id, chunk_id = await _insert_queued_chunk(engine)
 
@@ -553,21 +491,6 @@ async def test_triage_unknown_category_marks_chunk_error(test_settings: Settings
         return_value=_chat_response(
             json.dumps({"category": "hallucinated_category", "confidence": 0.5, "reason": "oops"})
         )
-    )
-
-    llm_settings = Settings(  # type: ignore[call-arg]
-        _env_file=None,
-        app_env="test",
-        database_url=test_settings.database_url,
-        database_url_sync=test_settings.database_url_sync,
-        redis_url=test_settings.redis_url,
-        log_level="WARNING",
-        app_secret_key="ci-test-secret",  # type: ignore[arg-type]
-        oidc_issuer="https://auth.test.example.com/",
-        oidc_audience="blueprinted-test",
-        oidc_roles_claim="roles",
-        llm_base_url=_LLM_URL,
-        llm_model="test-model",
     )
 
     async with AsyncSession(engine) as session:
@@ -587,7 +510,9 @@ async def test_triage_unknown_category_marks_chunk_error(test_settings: Settings
 
 
 @respx.mock
-async def test_extraction_non_json_marks_chunk_error(test_settings: Settings) -> None:
+async def test_extraction_non_json_marks_chunk_error(
+    test_settings: Settings, llm_settings: LLMSettings
+) -> None:
     engine = create_engine(test_settings)
     ingestion_id, chunk_id = await _insert_queued_chunk(engine)
 
@@ -596,21 +521,6 @@ async def test_extraction_non_json_marks_chunk_error(test_settings: Settings) ->
             _chat_response(_triage_json("task_candidate")),
             _chat_response("Here are the tasks: step 1, step 2."),  # not JSON
         ]
-    )
-
-    llm_settings = Settings(  # type: ignore[call-arg]
-        _env_file=None,
-        app_env="test",
-        database_url=test_settings.database_url,
-        database_url_sync=test_settings.database_url_sync,
-        redis_url=test_settings.redis_url,
-        log_level="WARNING",
-        app_secret_key="ci-test-secret",  # type: ignore[arg-type]
-        oidc_issuer="https://auth.test.example.com/",
-        oidc_audience="blueprinted-test",
-        oidc_roles_claim="roles",
-        llm_base_url=_LLM_URL,
-        llm_model="test-model",
     )
 
     async with AsyncSession(engine) as session:
@@ -658,7 +568,7 @@ async def test_process_chunks_with_llm_processes_all_queued(
         ]
     )
 
-    llm_settings = Settings(  # type: ignore[call-arg]
+    env_settings = Settings(  # type: ignore[call-arg]
         _env_file=None,
         app_env="test",
         database_url=test_settings.database_url,
@@ -673,7 +583,7 @@ async def test_process_chunks_with_llm_processes_all_queued(
         llm_model="test-model",
     )
 
-    ctx: dict[str, Any] = {"settings": llm_settings, "db_engine": engine}
+    ctx: dict[str, Any] = {"settings": env_settings, "db_engine": engine}
     await process_chunks(ctx, str(ingestion_id))
 
     state_1 = await _get_chunk(engine, chunk_id_1)
