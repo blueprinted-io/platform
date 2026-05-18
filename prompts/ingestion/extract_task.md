@@ -43,7 +43,7 @@ Every field on every object must be present, including `null` and `[]` values.
 You are extracting structured task records from a section of technical
 documentation.
 
-## Field definitions
+### Field definitions
 
 **title**: A concise noun phrase (5-10 words) naming the task from the
 operator's perspective. Must be unique within the document. Do not start with
@@ -138,7 +138,7 @@ false.
   configurations, or conditional caveats that don't always apply. Extract
   from callouts, notes, or asides in the source text. null if none.
 
-## Output rules
+### Output rules
 
 1. Output valid JSON only. No preamble, no explanation, no markdown code
    fences.
@@ -150,15 +150,13 @@ false.
    If facts, concepts, or dependencies are not present in the source, use [].
 5. Do not use em dashes in any field. Use commas, colons, or rewrite the
    sentence instead.
+6. Use EXACTLY the field names defined above. Do not substitute synonyms:
+   "title" not "name" or "label"; "outcome" not "purpose" or "goal";
+   "dependencies" not "preconditions" or "prerequisites";
+   "facts" not "background"; "concepts" not "rationale" or "why";
+   "steps" not "procedure" or "instructions".
 
-## User Message Template
-
-SECTION: {section_title}
-
-SOURCE TEXT:
-{text}
-
-## Known-Good Example
+### Known-Good Example
 
 Input:
 SECTION: 3.2 Configuring the iSCSI Initiator on Ubuntu
@@ -229,3 +227,10 @@ Output:
     }
   ]
 }
+
+## User Message Template
+
+SECTION: {section_title}
+
+SOURCE TEXT:
+{text}

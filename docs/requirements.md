@@ -2,11 +2,13 @@
 
 ## Platform Rebuild — Requirements Specification
 
-**Version 4.5 · May 2026**
+**Version 4.6 · May 2026**
 
 *Confidential. Internal Use Only*
 
 github.com/blueprinted-io/platform
+
+v4.6 changes from v4.5: Triage and extraction separated by a human review gate (§11.3, §11.5, §11.5a, §11.8a). Triage is now a two-output stage: chunk classification (task_candidate | principle_candidate | reference_material | skip) and a candidate estimate list (one entry per expected candidate, each with an estimated title and type). The operator reviews the estimate list before extraction runs — correcting types (principle → task and vice versa), discarding unwanted candidates, and merging multiple estimates into a single targeted extraction. The extraction LLM receives the approved estimate list as input and performs targeted extraction per approved candidate rather than open-ended extraction of all content. This decoupling means the cheap triage model runs speculatively on every chunk, but the expensive extraction model runs only on human-approved candidates with precise intent. chunk_status gains two new values: triage_complete (triage done, awaiting estimate review) and extraction_queued (estimates approved, awaiting extraction). New table: ingestion_triage_estimates (§11.8a). Operator workflow description updated. §11.5 updated. §11.6 updated. §11.7 updated.
 
 v4.5 changes from v4.4: Three procedure-level corrections following review of the original MVP design document. (1) `procedure_name` removed from the Task schema — it duplicated the task `title` with no distinct meaning; a task's title is the name of its procedure. Removed from `tasks` table, ingestion candidate schema, and JSON import schema. (2) `notes` on `task_steps` formally described: it holds alternatives, caveats, and tool-choice guidance that contextualises a step's actions without being an action itself (e.g. step: "Open /etc/fstab in a text editor"; action: "sudo nano /etc/fstab"; note: "vim or any other editor may be substituted for nano"). This field existed in the schema; it now has authoritative prose. (3) `task_step_screenshots` renamed to `task_step_images` — "image" is the correct generalisation for non-software contexts where a screenshot is not the right word. `caption TEXT` field added to support alt text and display labels. Step image storage path updated in §4.4. LLM-assisted image-to-step association during ingestion deferred to v1.1 (§24); in v1 images are attached to steps manually post-ingestion.
 
@@ -590,10 +592,12 @@ The intended operator workflow is:
 
 1. Upload the document
 2. Review the chunk list, select a small number of sections (2-5 is typical)
-3. Run triage and extraction on the selected batch
-4. Review and commit candidates from that batch
-5. Return to the chunk list and select the next batch
-6. Repeat until the document is processed to the desired depth
+3. Run triage on the selected batch — each chunk is classified and a candidate estimate list produced
+4. Review the estimate list: correct types, discard unwanted candidates, merge over-split candidates
+5. Approve estimates to trigger targeted extraction
+6. Review and commit the extracted candidates
+7. Return to the chunk list and select the next batch
+8. Repeat until the document is processed to the desired depth
 
 An operator is never expected to process an entire document in one session. The chunk list persists. Processed chunks are marked done. The operator can stop at any point and resume later. There is no concept of an ingestion job being "incomplete" — every committed batch is a valid stopping point.
 
@@ -633,10 +637,11 @@ API keys are stored encrypted in system_settings. Never logged. Never returned v
 | --- | --- |
 | 1. Structural decomposition | Source-specific. PDF: outline-and-heading hybrid chunking (§11.9). HTML: heading-based chunking, single page or site-nav crawl (§11.10, §11.11). JSON: schema validation, direct conversion to candidates without chunking (§11.12). |
 | 2. Section selection | Operator reviews chunk list and selects a batch of sections to process (typically 2-5). Primary navigation surface — returned to repeatedly. See §11.5. |
-| 3. Triage / classification | Each selected chunk classified: task_candidate, principle_candidate, reference_material, or skip. Confidence score and reason captured per chunk. |
-| 4. Extraction | Classified chunks processed by extraction LLM. Produces structured typed candidates written to ingestion_candidates. |
-| 5. Human review | Contributor reviews candidates from this batch. Accept, edit, or discard each. |
-| 6. Commit | Accepted candidates committed as draft or submitted records via API. ingestion_candidates.committed_record_id set. Operator returns to stage 2 for the next batch. |
+| 3. Triage | Each selected chunk classified (task_candidate, principle_candidate, reference_material, skip) and a candidate estimate list produced (one entry per expected candidate, each with estimated title and type). Cheap model. Chunk moves to triage_complete. See §11.5. |
+| 4. Estimate review | Operator reviews the estimate list. May correct types (principle ↔ task), discard unwanted candidates, or merge over-split candidates into a single targeted extraction. Approving the list moves the chunk to extraction_queued. See §11.5a. |
+| 5. Extraction | Extraction LLM runs per approved estimate, not per chunk. Each estimate produces one structured candidate. Expensive model; runs only on human-approved candidates with explicit intent. Chunk moves to done. |
+| 6. Candidate review | Contributor reviews extracted candidates. Accept, edit, or discard each. |
+| 7. Commit | Accepted candidates committed as draft or submitted records via API. ingestion_candidates.committed_record_id set. Operator returns to stage 2 for the next batch. |
 
 ## 11.4 Candidate Output Schemas
 
@@ -696,14 +701,25 @@ After structural decomposition completes (PDF chunking, or HTML rendering and ch
 **Operator actions:**
 - Select individual chunks to queue for the current batch
 - Select all unprocessed / deselect all controls available
-- Submit selection — selected chunks marked `chunk_status = queued`, LLM triage and extraction fires
+- Submit selection — selected chunks marked `chunk_status = queued`, triage job fires
 - Return to this screen at any point to queue the next batch
 
-**Recommended batch size:** 2-5 sections per pass. Large batches produce large candidate queues. The operator controls their own review burden.
+**Recommended batch size:** 2-5 sections per pass. Large batches produce large estimate review queues. The operator controls their own review burden.
 
 Scanned sections are automatically excluded and flagged. They cannot be selected.
 
-Chunks in `done`, `error`, or `skipped` status are visually distinct. Done chunks show a candidate count. Error chunks show a retry option.
+Chunk status values and their display treatment:
+
+| Status | Meaning | Display |
+| --- | --- | --- |
+| pending | Not yet queued | Default |
+| queued | Queued for triage | Subtle indicator |
+| processing | Triage running | Spinner |
+| triage_complete | Triage done, estimates awaiting review | Action required badge |
+| extraction_queued | Estimates approved, extraction pending | Subtle indicator |
+| done | Extraction complete | Candidate count shown |
+| error | Failed at triage or extraction | Retry option shown |
+| skipped | Manually excluded | Muted |
 
 ```
 POST /api/v1/ingestions/{id}/select
@@ -713,13 +729,48 @@ Response: { "queued_count": N, "ingestion_id": "uuid" }
 
 This endpoint is callable multiple times on the same ingestion. Each call queues the specified chunks. Previously processed chunks are not affected.
 
+## 11.5a Triage Estimate Review
+
+After triage completes, each chunk in `triage_complete` state has an associated estimate list in `ingestion_triage_estimates`. The operator reviews this list before extraction runs.
+
+**The estimate list shows per chunk:**
+- One row per expected candidate
+- Estimated title (LLM's best guess at the candidate name)
+- Type (task or principle) with a toggle to correct it
+- A discard control to remove unwanted candidates
+- A merge control to combine two or more estimates into one targeted extraction
+
+**Merge behaviour:** When estimates are merged, the operator provides (or edits) a single combined title. The extraction LLM receives this merged title as its target and extracts one candidate. The individual estimates that were merged are marked `merged` and do not receive their own extraction call. This is the primary remedy for over-splitting — where a section describes one procedure but the triage LLM identified it as multiple discrete tasks.
+
+**Type correction:** Changing an estimate's type (e.g. principle → task) causes extraction to use the task extraction prompt and produce a task candidate, regardless of the chunk's original triage classification.
+
+**Approving the list:** The operator approves the estimate list for a chunk, moving it to `extraction_queued`. Chunks with all estimates discarded move directly to `done` with zero candidates and no extraction call.
+
+```
+GET  /api/v1/ingestions/{id}/chunks/{chunk_id}/estimates
+Response: [ { "id": "uuid", "estimated_title": "...", "record_type": "task|principle",
+              "approved_type": "task|principle", "estimate_status": "pending|approved|rejected|merged",
+              "merged_into_id": "uuid|null", "sort_order": N } ]
+
+PATCH /api/v1/ingestions/{id}/chunks/{chunk_id}/estimates/{estimate_id}
+Body: { "approved_type": "task|principle", "estimated_title": "...", "estimate_status": "rejected" }
+
+POST /api/v1/ingestions/{id}/chunks/{chunk_id}/estimates/merge
+Body: { "estimate_ids": ["uuid1", "uuid2"], "merged_title": "..." }
+Response: { "surviving_id": "uuid" }
+
+POST /api/v1/ingestions/{id}/chunks/{chunk_id}/estimates/approve
+Response: { "extraction_queued": N }
+```
+
 ## 11.6 Candidate Validation Rules
 
-- Required fields missing → candidate marked invalid, chunk marked extraction_failed
+- Required fields missing → candidate marked invalid
 - Steps array empty on task candidate → candidate marked invalid
 - Unknown fields → stripped silently, not an error
-- LLM returns non-JSON → chunk marked extraction_failed, error captured
+- LLM returns non-JSON → estimate marked error, chunk error_detail updated; other estimates in the chunk continue
 - Partial extraction: valid candidates proceed, invalid marked separately
+- If all estimates for a chunk error → chunk marked error
 
 ## 11.7 Failure Behaviour
 
@@ -746,6 +797,32 @@ ingestion_candidates
   reviewed_by           UUID FK → users.id
   reviewed_at           TIMESTAMPTZ
 ```
+
+## 11.8a ingestion_triage_estimates Table
+
+Stores the candidate estimate list produced by the triage LLM for each chunk. One row per estimated candidate. Created when a chunk reaches `triage_complete`. Read and edited during the estimate review step (§11.5a). Consumed by the extraction job when the chunk is approved.
+
+```
+ingestion_triage_estimates
+  id                UUID PRIMARY KEY
+  ingestion_id      UUID FK → ingestions.id
+  chunk_id          UUID FK → ingestion_chunks.id
+  record_type       TEXT         -- LLM's original classification: 'task' | 'principle'
+  approved_type     TEXT         -- human-corrected type, defaults to record_type
+  estimated_title   TEXT         -- LLM's estimated candidate title
+  estimate_status   TEXT         -- pending | approved | rejected | merged
+  merged_into_id    UUID FK → ingestion_triage_estimates.id  -- null unless merged
+  sort_order        INT NOT NULL -- display order within chunk, assigned by triage
+```
+
+`estimate_status` transitions:
+- `pending` → `approved` (operator approves without change)
+- `pending` → `rejected` (operator discards)
+- `pending` → `merged` (operator merges into another estimate; merged_into_id set)
+
+The surviving estimate in a merge inherits the operator-provided `merged_title` via an `estimated_title` update. Its `estimate_status` remains `pending` until the chunk is approved.
+
+The extraction job processes only estimates in `approved` status. Each approved estimate produces exactly one extraction LLM call and one `ingestion_candidates` row.
 
 ## 11.9 PDF Ingestion
 

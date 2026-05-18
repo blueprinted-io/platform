@@ -43,14 +43,7 @@ Return JSON only, no markdown, no commentary:
 
 {"category": "task_candidate|principle_candidate|reference_material|skip", "confidence": 0.0, "reason": "one sentence"}
 
-## User Message Template
-
-SECTION: {section_title}
-
-TEXT:
-{text}
-
-## Known-Good Example
+### Known-Good Example
 
 Input:
 SECTION: 3.2 Configuring the iSCSI Initiator on Ubuntu
@@ -64,3 +57,10 @@ service is running with systemctl status iscsid.
 
 Output:
 {"category": "task_candidate", "confidence": 0.95, "reason": "Section describes a concrete installation procedure with imperative steps and observable completion checks."}
+
+## User Message Template
+
+SECTION: {section_title}
+
+TEXT:
+{text}

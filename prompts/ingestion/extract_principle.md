@@ -32,7 +32,7 @@ documentation.
 A principle is a standalone conceptual record that explains *why* and
 *how* — not *what to do*.
 
-## Fields
+### Fields
 
 **title**: Concise noun phrase naming the concept. 5-12 words.
 
@@ -56,13 +56,52 @@ named in the source. null if not determinable.
 **software_version**: Version string if stated in the source. null if not
 determinable.
 
-## Output rules
+### Output rules
 
 1. Output valid JSON only. No preamble, no markdown, no code fences.
 2. Every field must be present, even if null or empty string.
 3. Do not invent content not present in the source.
 4. Do not use em dashes in any field. Use commas, colons, or rewrite the
    sentence instead.
+5. Use EXACTLY the field names defined above. Do not substitute synonyms:
+   "summary" not "why" or "purpose"; "explanation" not "how" or "content"
+   or "body"; "analogies" not "examples"; "title" not "name" or "concept".
+
+### Known-Good Example
+
+Input:
+SECTION: Changed Block Tracking
+
+SOURCE TEXT:
+Veeam Agent for Microsoft Windows uses Changed Block Tracking (CBT) to identify
+which data blocks have changed since the last backup job ran. Instead of reading
+every block on the disk to detect changes, CBT records a digest of file system
+metadata (for volume-level backups) or file modification timestamps (for
+file-level backups). During an incremental backup job, only the blocks flagged
+by CBT are read from the VSS snapshot and transferred to the repository, rather
+than the full volume.
+
+Two CBT mechanisms are available. The default mechanism reads the NTFS change
+journal and file system metadata. The optional Veeam CBT Driver is a kernel
+driver that provides more reliable tracking, particularly for machines running
+large database workloads where the default mechanism may miss high-frequency
+changes. The driver must be installed separately via the agent's Control Panel
+and requires a reboot. It cannot be used on Windows Server 2012 R2 volumes
+protected by BitLocker.
+
+Output:
+{
+  "principles": [
+    {
+      "title": "Changed Block Tracking Reduces Incremental Backup Data Volume",
+      "summary": "CBT identifies only modified disk blocks between backups, so incremental jobs transfer a fraction of the data a full backup would require.",
+      "explanation": "## How CBT Works\n\nVeeam Agent uses **Changed Block Tracking (CBT)** to avoid reading entire volumes during incremental backup jobs. Rather than scanning every block for differences, CBT maintains a record of which blocks have changed since the last backup:\n\n- For **volume-level backups**: digests of NTFS file system metadata are compared.\n- For **file-level backups**: file modification timestamps are used.\n\nDuring an incremental job, Veeam creates a VSS snapshot of the volume and then reads only the blocks flagged by CBT, transferring them to the backup repository.\n\n## CBT Mechanism Options\n\nTwo mechanisms are available:\n\n| Mechanism | How it works | When to use |\n|---|---|---|\n| Default (NTFS change journal) | Reads the NTFS change journal and file system metadata | General workloads |\n| Veeam CBT Driver | Kernel driver for precise block-level tracking | Machines with large database workloads or high write rates |\n\nThe Veeam CBT Driver provides more reliable tracking where the default mechanism may miss high-frequency changes. It requires a separate installation via the agent Control Panel and a reboot. It cannot be used on Windows Server 2012 R2 volumes protected by BitLocker.",
+      "analogies": null,
+      "software_name": "Veeam Agent for Microsoft Windows",
+      "software_version": null
+    }
+  ]
+}
 
 ## User Message Template
 
@@ -70,19 +109,3 @@ SECTION: {section_title}
 
 SOURCE TEXT:
 {text}
-
-## Known-Good Example
-
-<!-- TODO: Draft a known-good example from a real conceptual passage before
-the first production ingestion run. The MVP's extract_primer prompt shipped
-without an embedded example — this is a gap the rebuild explicitly fixes.
-A Veeam concept passage (e.g. VSS quiescing behaviour, or the difference
-between application-aware and crash-consistent backups) would be appropriate.
-See §11.16 for the requirement: every prompt must contain at least one
-fully-worked known-good example in the prompt body. -->
-
-Input:
-[PLACEHOLDER — to be drafted before first production ingestion run]
-
-Output:
-[PLACEHOLDER — to be drafted before first production ingestion run]

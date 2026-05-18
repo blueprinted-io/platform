@@ -405,7 +405,37 @@ async def _call_llm(
             timeout=timeout,
         )
         response.raise_for_status()
-    return str(response.json()["choices"][0]["message"]["content"])
+    body = response.json()
+    message = body["choices"][0]["message"]
+    content = message.get("content") or message.get("reasoning_content") or ""
+    content = content.strip()
+    # Extract content from a ```...``` fence even if preceded by preamble text
+    fence_match = re.search(r"```(?:json)?\s*\n(.*?)\n```", content, re.DOTALL)
+    if fence_match:
+        content = fence_match.group(1).strip()
+    elif content.startswith("```"):
+        content = re.sub(r"^```[a-z]*\n?", "", content)
+        content = re.sub(r"\n?```$", "", content.rstrip())
+    return content
+
+
+def _parse_llm_json(raw: str, context: str) -> dict[str, Any]:
+    """Parse LLM output as JSON, falling back to json_repair on malformed output."""
+    from json_repair import repair_json  # type: ignore[import-untyped]
+
+    try:
+        return json.loads(raw)  # type: ignore[no-any-return]
+    except json.JSONDecodeError:
+        log.warning("llm_json_parse_failed", context=context, attempting="repair")
+    try:
+        repaired = repair_json(raw, return_objects=True)
+        if isinstance(repaired, dict):
+            log.info("llm_json_repaired", context=context)
+            return repaired  # type: ignore[no-any-return]
+    except Exception:
+        pass
+    log.error("llm_json_unparseable", context=context, raw_preview=raw[:500])
+    raise ValueError(f"LLM returned unparseable JSON for {context!r}")
 
 
 def _validate_task(candidate: dict[str, Any]) -> str | None:
@@ -468,7 +498,9 @@ async def _process_single_chunk(
             user=triage_user,
             timeout=llm.triage_timeout,
         )
-        triage_result: dict[str, Any] = json.loads(raw_triage)
+        triage_result: dict[str, Any] = _parse_llm_json(
+            raw_triage, chunk.section_title or "triage"
+        )
         category = triage_result.get("category", "")
         if category not in _TRIAGE_CATEGORIES:
             raise ValueError(f"Triage returned unknown category: {category!r}")
@@ -501,7 +533,9 @@ async def _process_single_chunk(
                 user=extraction_user,
                 timeout=llm.extraction_timeout,
             )
-            extraction_result: dict[str, Any] = json.loads(raw_extraction)
+            extraction_result: dict[str, Any] = _parse_llm_json(
+                raw_extraction, chunk.section_title or "task"
+            )
             for task_json in extraction_result.get("tasks", []):
                 err = _validate_task(task_json)
                 status = "invalid" if err else "pending"
@@ -529,7 +563,9 @@ async def _process_single_chunk(
                 user=extraction_user,
                 timeout=llm.extraction_timeout,
             )
-            extraction_result = json.loads(raw_extraction)
+            extraction_result = _parse_llm_json(
+                raw_extraction, chunk.section_title or "principle"
+            )
             for principle_json in extraction_result.get("principles", []):
                 err = _validate_principle(principle_json)
                 status = "invalid" if err else "pending"
