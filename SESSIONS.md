@@ -3,17 +3,19 @@ One entry only. On closeout: move this entry to the top of SESSIONS_ARCHIVE.md (
 Archive: SESSIONS_ARCHIVE.md (do not load unless explicitly asked).
 Format and rules: docs/session_protocol.md
 
-## Session — 2026-05-18 (CI fixes + root config repo)
+## Session — 2026-05-18 (workflow ref management UI + backend 500 fix)
 
 ### Decisions
-- Root-level local-only git repo created at `~/projects/blueprinted/` to track shared config (`.claude/` commands, skills, settings). Sub-repos excluded via `.gitignore`; nothing pushed remotely.
-- `ReviseRequest` default arg changed from `ReviseRequest()` to `None` — ruff B008 prohibits function calls in argument defaults; FastAPI handles `None` body correctly.
+- Task and principle refs managed on `WorkflowEditPage` (add/remove), not the detail page. Detail page remains read-only for refs.
+- On `WorkflowCreatePage`, refs collected in local state and posted after workflow creation in parallel — avoids a two-step create-then-edit flow.
+- `RefPickerDialog` extracted as a reusable component (searchable list, fires `onPick` callback); used for both task and principle picking.
+- `scalar_one_or_none()` is wrong for ref existence checks — multiple confirmed versions of the same record are valid. Changed to `scalars().first()`.
 
 ### Done
-- CI failures resolved: B008 (revise endpoint default args), E501 (line length in tasks/workflows/principles routes), I001/F811 (import sort + duplicate `uuid` in principle schema), mypy loop-variable type clash in `revise_workflow`.
-- `TaskEditPage.tsx` and `api/schemas/workflow.py` committed — both were written last session but missed from their respective commits.
-- Root local repo initialised; `.claude/commands/` and `.claude/settings.json` committed.
-- `/plan` skill updated to run `gh run list` for both repos at session start and surface any failures on `main`.
+- `RefPickerDialog` component created with live search and `onPick` callback.
+- `WorkflowEditPage`: extended with task and principle refs sections; add/remove controls visible only for drafts.
+- `WorkflowCreatePage`: Tasks and Principles cards added; refs collected locally and posted after workflow creation; "Save as draft" navigates to edit page.
+- Backend: `scalar_one_or_none()` → `scalars().first()` in `add_task_ref` and `attach_principle` — fixes 500 when a record has multiple confirmed versions.
 
 ### Next
-Workflows and principles have no inline UI for managing task refs or principle refs from the edit page — refs exist on the detail page but `WorkflowEditPage` has no add/remove controls. That is the natural next gap to close.
+A few small fixes to look at next session (noted by user at close-out). No specific items recorded — pick up with user at session start.
