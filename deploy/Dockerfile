@@ -9,6 +9,9 @@ COPY --from=ghcr.io/astral-sh/uv:0.11.14 /uv /usr/local/bin/uv
 COPY pyproject.toml .python-version uv.lock ./
 RUN uv sync --no-dev --frozen
 
+# Install Playwright browser binaries (required by crawl_html / render_nav_pages)
+RUN .venv/bin/playwright install --with-deps chromium
+
 # Copy application source
 COPY api/ ./api/
 COPY cli/ ./cli/
