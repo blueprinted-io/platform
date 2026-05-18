@@ -3,20 +3,23 @@ One entry only. On closeout: move this entry to the top of SESSIONS_ARCHIVE.md (
 Archive: SESSIONS_ARCHIVE.md (do not load unless explicitly asked).
 Format and rules: docs/session_protocol.md
 
-## Session — 2026-05-18 (bug fixes + ingestion delete)
+## Session — 2026-05-18 (admin users tab + CI fix)
 
 ### Decisions
-- `PATCH /admin/settings` 500 was caused by missing DB migrations, not a code bug — `notifications` and `system_settings` migrations had never been applied to the running DB.
-- `DetachedInstanceError` in workers: ORM attributes must be read into local variables before `await session.commit()` — commit expires all attributes, and accessing them afterward on a detached object raises the error.
-- Ingestion delete checks ownership (creator only) and removes the storage directory after the DB row is deleted; child rows cascade via FK constraints.
+- Admin users implicitly own all active domains (§7.2 already enforced at API layer); domain assignment UI suppressed for admin-role users is noted for a follow-up polish pass.
+- `UserDomainSection` moved from DomainsPage to UsersPage — domain assignment belongs with user management, not domain registry.
+- CI check in `/plan` skill was broken: `gh run list` used `displayTitle` field which doesn't exist in the installed `gh` version; failed silently due to `2>/dev/null`. Fix to the skill command is outstanding.
+- `test_process_chunks.py` failures predated this session: tests passed raw `Settings` objects to `_process_single_chunk` which expects `LLMSettings`. Fixed by updating the fixture and removing inline `Settings` construction at call sites.
 
 ### Done
-- Applied pending migrations (`notifications`, `system_settings`) to the running DB via `alembic upgrade head`.
-- `AdminSettingsPage.tsx`: `InputRow` moved to module scope — was defined inside the component, causing React to remount it (and drop focus) on every keystroke.
-- `workers/main.py`: Fixed `DetachedInstanceError` in `chunk_pdf` and `crawl_html` — `storage_path`, `source_url`, `created_by`, and `original_filename` now read before `session.commit()` in all affected blocks.
-- `api/services/storage.py`: `delete_ingestion_dir` helper.
-- `api/routes/ingestions.py`: `DELETE /ingestions/{id}` — ownership check, cascade DB delete, storage directory removal.
-- `IngestionListPage.tsx`: Trash icon button per row with confirmation dialog; invalidates query on success.
+- `api/schemas/admin.py`: `UserListResponse` schema.
+- `api/routes/admin.py`: `GET /admin/users` — lists all users ordered by email, Admin only.
+- `app/src/pages/admin/AdminUsersPage.tsx`: user table with role badges; per-user domain assignment panel.
+- `app/src/pages/admin/AdminDomainsPage.tsx`: removed `UserDomainSection`; fixed bug calling non-existent `GET /users` (now `GET /admin/users`).
+- `app/src/pages/admin/AdminLayout.tsx`: added "Users" nav item.
+- `app/src/App.tsx`: wired `/admin/users` route.
+- `tests/test_process_chunks.py`: replaced inline `Settings` constructions with `LLMSettings` fixture; `test_process_chunks_with_llm_processes_all_queued` retains `Settings` in `ctx["settings"]` (correct path).
+- `workers/main.py`: removed dead `original_filename` assignment (ruff F841). CI green.
 
 ### Next
-End-to-end ingestion test: PDF path is unblocked. URL ingestion hung and failed — cause not yet diagnosed (Playwright availability or LLM config issue); check worker logs on next attempt.
+End-to-end ingestion test: PDF path is unblocked. URL ingestion hung and failed — cause not yet diagnosed (Playwright availability or LLM config issue); check worker logs on next attempt. Also fix the `/plan` skill's CI check command (`displayTitle` → `name`).
