@@ -280,7 +280,6 @@ async def chunk_pdf(ctx: dict, ingestion_id: str) -> None:  # type: ignore[type-
             return
 
         storage_path = ingestion.storage_path
-        original_filename = ingestion.original_filename
         ingestion.status = "chunking"
         await session.commit()
 
