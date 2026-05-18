@@ -9,8 +9,16 @@ COPY --from=ghcr.io/astral-sh/uv:0.11.14 /uv /usr/local/bin/uv
 COPY pyproject.toml .python-version uv.lock ./
 RUN uv sync --no-dev --frozen
 
-# Install Playwright browser binaries (required by crawl_html / render_nav_pages)
-RUN .venv/bin/playwright install --with-deps chromium
+# Install Playwright Chromium and its runtime deps.
+# --with-deps fails on python:slim (Ubuntu font packages absent in Debian);
+# install the Chromium system requirements explicitly instead.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libnss3 libnspr4 libdbus-1-3 libatk1.0-0 libatk-bridge2.0-0 \
+    libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 \
+    libxfixes3 libxrandr2 libgbm1 libasound2 \
+    libpango-1.0-0 libcairo2 libgtk-3-0 \
+    && rm -rf /var/lib/apt/lists/* \
+    && .venv/bin/playwright install chromium
 
 # Copy application source
 COPY api/ ./api/
