@@ -1,6 +1,6 @@
 # blueprinted.io — Platform
 
-**AI-native knowledge governance platform.** Internal use only — not yet public.
+**AI-native knowledge governance platform.** Internal use only: not yet public.
 
 ---
 
@@ -10,7 +10,7 @@ Blueprinted is a structured knowledge platform built around a single proposition
 
 > *Your agents consume the same knowledge and skills data that your humans do.*
 
-Knowledge is expressed as governed, versioned API records — not documents or wikis. The API is the product. The UI is one consumer; AI agents, automation, and downstream products are others. All consumers use the same authentication and access rules with no privileged path.
+Knowledge is expressed as governed, versioned API records, not documents or wikis. The API is the product. The UI is one consumer; AI agents, automation, and downstream products are others. All consumers use the same authentication and access rules with no privileged path.
 
 This repository is a ground-up rebuild of the original MVP (`blueprinted-io/core`). The governance model and record types are largely unchanged — the rebuild is about foundations and architecture, not a redesign.
 
@@ -26,7 +26,7 @@ Cookie-switched roles are replaced by a self-hosted [Authentik](https://goauthen
 
 ### A real database
 
-PostgreSQL 16 replaces SQLite, with pgvector as an extension. Beyond powering search today, the vector store is the foundation for relationship traversal — surfacing connections between records semantically rather than requiring explicit links to be authored.
+PostgreSQL 16 replaces SQLite, with pgvector as an extension. Beyond powering search today, the vector store is the foundation for relationship traversal, surfacing connections between records semantically rather than requiring explicit links to be authored.
 
 ### Ingestion redesigned
 
@@ -44,7 +44,7 @@ Search was an afterthought in the MVP. Here it's a first-class API endpoint — 
 
 ### Truly API-first
 
-The MVP was a web app with a database behind it. This platform inverts that: the API is the product, and the UI (`blueprinted-io/app`) is simply one consumer of it — no different in principle to an automation pipeline, an AI agent, or a third-party product. No privileged routes, no server-rendered shortcuts.
+The MVP was a web app with a database behind it. This platform inverts that: the API is the product, and the UI (`blueprinted-io/app`) is simply one consumer of it, no different in principle to an automation pipeline, an AI agent, or a third-party product. No privileged routes, no server-rendered shortcuts.
 
 ---
 
