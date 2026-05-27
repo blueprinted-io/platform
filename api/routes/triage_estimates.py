@@ -223,10 +223,18 @@ async def approve_estimates(
     result = await session.execute(
         select(IngestionTriageEstimate).where(
             IngestionTriageEstimate.chunk_id == chunk_id,
-            IngestionTriageEstimate.estimate_status == "pending",
         )
     )
-    pending = result.scalars().all()
+    all_estimates = result.scalars().all()
+
+    # Identify estimates whose effective outcome is extraction — pending estimates
+    # whose merge chain has not been rejected. A pending estimate that is the
+    # survivor of a merge and has since been rejected is already status='rejected',
+    # so it won't appear in pending. The edge case we guard against: a 'merged'
+    # estimate points to a survivor that was subsequently rejected. These merged
+    # estimates contribute nothing to extraction but their survivor is already
+    # gone from pending, so approved_count is naturally correct.
+    pending = [e for e in all_estimates if e.estimate_status == "pending"]
 
     for est in pending:
         est.estimate_status = "approved"

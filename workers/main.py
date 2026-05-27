@@ -576,6 +576,24 @@ async def _extract_from_estimate(
         if estimate is None or estimate.estimate_status != "approved":
             return None
 
+        # Idempotency guard: skip if a candidate was already created for this
+        # chunk+type in a previous (crashed) run of this job.
+        existing = (
+            await session.execute(
+                select(IngestionCandidate).where(
+                    IngestionCandidate.chunk_id == chunk.id,
+                    IngestionCandidate.record_type == estimate.approved_type,
+                )
+            )
+        ).scalars().first()
+        if existing is not None:
+            log.info(
+                "extract_candidate_already_exists",
+                estimate_id=str(estimate_id),
+                chunk_id=str(chunk.id),
+            )
+            return None
+
         record_type = estimate.approved_type
         section_label = estimate.estimated_title or chunk.section_title or ""
 
@@ -611,6 +629,15 @@ async def _extract_from_estimate(
         log.warning("extract_no_items", estimate_id=str(estimate_id), record_type=record_type)
         return None
 
+    if len(items) > 1:
+        log.warning(
+            "extract_items_discarded",
+            estimate_id=str(estimate_id),
+            record_type=record_type,
+            total=len(items),
+            kept=1,
+        )
+
     candidate_json = items[0]
     err = validate(candidate_json)
     return IngestionCandidate(
@@ -628,6 +655,8 @@ async def extract_chunk(ctx: dict, chunk_id: str) -> None:  # type: ignore[type-
 
     Reads all approved estimates, calls the extraction LLM once per estimate,
     creates one IngestionCandidate per estimate, then marks the chunk done.
+    Chunk status: extraction_queued → extracting → done | error.
+    The startup hook resets extracting → extraction_queued on crash.
     """
     engine: AsyncEngine = ctx["db_engine"]
     env_settings: Settings = ctx["settings"]
@@ -639,6 +668,13 @@ async def extract_chunk(ctx: dict, chunk_id: str) -> None:  # type: ignore[type-
         )
         chunk = await session.get(IngestionChunk, cid)
         if chunk is None or chunk.chunk_status != "extraction_queued":
+            return
+        chunk.chunk_status = "extracting"
+        await session.commit()
+
+    async with AsyncSession(engine) as session:
+        chunk = await session.get(IngestionChunk, cid)
+        if chunk is None:
             return
 
         result = await session.execute(
@@ -1212,17 +1248,34 @@ async def startup(ctx: dict) -> None:  # type: ignore[type-arg]
     if reset_count:
         log.warning("worker_startup_chunks_reset", count=reset_count)
 
-    # Re-enqueue extract_chunk jobs for any extraction_queued chunks whose ARQ job
-    # was lost (e.g. Redis restart between approve and job pickup).
+    # Reset extracting → extraction_queued for chunks whose extract_chunk job
+    # was mid-execution when the worker crashed (prevents duplicate candidates).
+    async with AsyncSession(engine) as session:
+        result2 = await session.execute(
+            sa.text("""
+                UPDATE ingestion_chunks
+                SET chunk_status = 'extraction_queued',
+                    error_detail  = 'Reset from extracting state after worker restart'
+                WHERE chunk_status = 'extracting'
+            """)
+        )
+        extracting_reset: int = result2.rowcount  # type: ignore[attr-defined]
+        await session.commit()
+
+    if extracting_reset:
+        log.warning("worker_startup_extracting_reset", count=extracting_reset)
+
+    # Re-enqueue extract_chunk jobs for extraction_queued chunks (covers both
+    # chunks that were reset above and any whose ARQ job was lost before pickup).
     arq_pool = ctx.get("redis")
     if arq_pool is not None:
         async with AsyncSession(engine) as session:
-            result = await session.execute(
+            requeue_result = await session.execute(
                 select(IngestionChunk).where(
                     IngestionChunk.chunk_status == "extraction_queued"
                 )
             )
-            orphaned = result.scalars().all()
+            orphaned = requeue_result.scalars().all()
 
         for chunk in orphaned:
             await arq_pool.enqueue_job("extract_chunk", chunk_id=str(chunk.id))
