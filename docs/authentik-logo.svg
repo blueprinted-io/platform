@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 36" width="200" height="36">
+  <text
+    x="0" y="26"
+    font-family="Inter, ui-sans-serif, system-ui, sans-serif"
+    font-size="28"
+    font-weight="700"
+    letter-spacing="-0.3"
+    fill="#ffffff"
+  >blue<tspan fill="#F59E0B">printed</tspan>.io</text>
+</svg>
