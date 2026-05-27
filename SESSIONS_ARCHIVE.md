@@ -4,6 +4,32 @@ Active session: SESSIONS.md
 
 ---
 
+## Session — 2026-05-27 (Triage/extraction split — §11.5a)
+
+### Decisions
+- `_parse_llm_json`: replaced stale `# type: ignore` with `cast(dict[str, Any], ...)` on `json.loads`; `repair_json` return no longer needs suppression now that json_repair ships type stubs.
+- `_triage_chunk` replaces `_process_single_chunk` — triage stops at `triage_complete` and writes estimate rows; extraction is a separate `extract_chunk` ARQ job triggered by `POST .../estimates/approve`.
+- `reference_material` / `skip` chunks skip directly to `done` with no approval step.
+- `extract_chunk` sets chunk to `extracting` at job start; startup hook resets `extracting` → `extraction_queued` on crash; `_extract_from_estimate` is idempotent via `chunk_id + record_type` guard.
+- `docs/issues.md` created; issues 1–3 resolved same session; issues 4–5 remain open.
+
+### Done
+- `workers/main.py`: CI fix; triage/extraction split; `extracting` status; idempotency guard; discard warning.
+- `prompts/ingestion/triage.md`: output schema extended with `estimates[]` array.
+- `migrations/versions/20260527_a1b2c3d4e5f6_triage_estimates.py`: `ingestion_triage_estimates` table.
+- `api/models/ingestion.py`: `IngestionTriageEstimate` ORM model and relationships.
+- `api/models/__init__.py`: ingestion models registered.
+- `api/schemas/triage_estimate.py`: response/request schemas.
+- `api/routes/triage_estimates.py`: GET / PATCH / merge / approve endpoints.
+- `api/routes/v1.py`: triage_estimates router wired.
+- `tests/test_triage_estimates.py`: 18 tests covering all new endpoints.
+- `docs/issues.md`: issues 1–3 resolved; issues 4–5 open.
+
+### Next
+Apply the migration to the dev DB, then run an end-to-end ingestion: submit a PDF, select sections, observe `triage_complete` chunks, call the estimates endpoints to review/approve, confirm `extract_chunk` runs and produces candidates. Issue 5 (`ctx['redis']` key) will be verified during this test. Once confirmed, build the frontend estimate review UI (app-side sprint, issue 4).
+
+---
+
 ## Session — 2026-05-27 (Platform CI fix + design system migration)
 
 ### Decisions
