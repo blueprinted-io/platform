@@ -3,18 +3,31 @@ One entry only. On closeout: move this entry to the top of SESSIONS_ARCHIVE.md (
 Archive: SESSIONS_ARCHIVE.md (do not load unless explicitly asked).
 Format and rules: docs/session_protocol.md
 
-## Session — 2026-05-26 (OIDC silent renew fix + Authentik login page styling)
+## Session — 2026-05-27 (Platform CI fix + design system migration)
 
 ### Decisions
-- Switched OIDC silent renew from iframe to refresh-token grant. Authentik blocks iframes via `X-Frame-Options: deny`; adding `offline_access` scope causes Authentik to issue a refresh token and `oidc-client-ts` uses `grant_type=refresh_token` directly — no redirect or iframe needed.
-- Token storage moved from `sessionStorage` to `localStorage` so sessions survive tab close and browser restart.
-- Authentik login page styled via Authentik's Custom CSS field (System → Brands) — no changes to app codebase. Flow title ("Welcome to authentik") changed via Flows → edit authentication flow → Title.
-- Authentik logo served from `app/public/authentik-logo.svg` and referenced by URL in Authentik Brand settings.
+- `bp-btn` and `bp-link` CSS classes were not defined in globals.css despite being used in TasksPage/TaskDetailPage — added them in this session alongside the page migrations.
+- `Button`/`buttonVariants` shadcn imports removed from WorkflowDetailPage and PrincipleDetailPage; replaced with `bp-btn` throughout for consistency.
 
 ### Done
-- `app/src/lib/auth.ts`: added `offline_access` to scope, switched to `localStorage`, enabled `automaticSilentRenew: true`.
-- `app/public/authentik-logo.svg`: "blue**printed**.io" SVG logo in brand colours for Authentik login page.
-- Committed previously uncommitted design system work from 2026-05-18 session (tokens, shell, StatusBadge, 9 pages, Inter font).
+- `platform/workers/main.py`: fixed Ruff S110 (`try/except Exception: pass` → log warning), unblocking platform CI.
+- `app/src/styles/globals.css`: added `.bp-btn`, `.bp-btn--secondary`, `.bp-btn--ghost`, `.bp-link` CSS rules.
+- `app/src/pages/WorkflowsPage.tsx`: migrated to `bp-page` / `bp-page__head` / `bp-btn` / shadcn Table.
+- `app/src/pages/WorkflowDetailPage.tsx`: migrated to `bp-page` / `bp-crumbs` / `bp-card` sections / `bp-btn` actions.
+- `app/src/pages/PrinciplesPage.tsx`: migrated to `bp-page` layout.
+- `app/src/pages/PrincipleDetailPage.tsx`: migrated to `bp-page` / `bp-crumbs` / `bp-card` sections / `bp-btn` actions.
+- `app/src/pages/ReviewQueuePage.tsx`: migrated to `bp-page` / `bp-card`-wrapped table / `bp-btn` actions; removed shadcn `Button`/`Badge` dependencies.
+- `app/src/pages/DashboardPage.tsx`: migrated to `bp-page` / `bp-card` placeholder.
+- `app/src/pages/SearchPage.tsx`: migrated to `bp-page` / inline `bp-card` result links / type filter chips using design tokens.
+
+- `app/src/components/TagInput.tsx`: extracted shared tag-chip input from 6 duplicated implementations.
+- `app/src/styles/globals.css`: added `.bp-input`, `.bp-label`, `.bp-form-field` for raw `<input>` elements.
+- Migrated all remaining pages to bp design system (commit `dda7ef5`):
+  TaskCreatePage, TaskEditPage, WorkflowCreatePage, WorkflowEditPage,
+  PrincipleCreatePage, PrincipleEditPage, IngestionListPage, IngestionCreatePage,
+  IngestionDetailPage, CandidateReviewPage, NavSelectionPage, SectionSelectionPage,
+  NotificationsPage, ProfilePage.
 
 ### Next
-Apply bp page-chrome styling (`bp-page`, `bp-page__head`, `bp-card`) to individual screens — start with TasksPage and TaskDetailPage to replace raw Tailwind padding/typography with the design system's page layout classes.
+All app pages now use the bp design system. TypeScript clean (0 errors).
+Next sprint task: per SESSIONS context / requirements.md.
