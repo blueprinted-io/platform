@@ -38,3 +38,6 @@ deploy/authentik/certs/
 
 # Uploads (mounted volume in production)
 uploads/
+
+# Graphify knowledge graph output
+graphify-out/
