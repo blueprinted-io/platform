@@ -432,8 +432,8 @@ def _parse_llm_json(raw: str, context: str) -> dict[str, Any]:
         if isinstance(repaired, dict):
             log.info("llm_json_repaired", context=context)
             return repaired  # type: ignore[no-any-return]
-    except Exception:
-        pass
+    except Exception as exc:
+        log.warning("llm_json_repair_failed", context=context, exc=str(exc))
     log.error("llm_json_unparseable", context=context, raw_preview=raw[:500])
     raise ValueError(f"LLM returned unparseable JSON for {context!r}")
 
