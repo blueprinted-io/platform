@@ -1,4 +1,4 @@
-"""ORM models for the ingestion pipeline tables (SS11.13-SS11.15)."""
+"""ORM models for the ingestion pipeline tables (SS11.13-SS11.15, SS11.8a)."""
 
 import uuid
 from datetime import datetime
@@ -46,6 +46,9 @@ class Ingestion(Base):
     nav_pages: Mapped[list["IngestionNavPage"]] = relationship(
         "IngestionNavPage", back_populates="ingestion", passive_deletes=True,
     )
+    triage_estimates: Mapped[list["IngestionTriageEstimate"]] = relationship(
+        "IngestionTriageEstimate", back_populates="ingestion", passive_deletes=True,
+    )
 
 
 class IngestionChunk(Base):
@@ -75,6 +78,12 @@ class IngestionChunk(Base):
     ingestion: Mapped[Ingestion] = relationship("Ingestion", back_populates="chunks")
     candidates: Mapped[list["IngestionCandidate"]] = relationship(
         "IngestionCandidate", back_populates="chunk"
+    )
+    estimates: Mapped[list["IngestionTriageEstimate"]] = relationship(
+        "IngestionTriageEstimate",
+        back_populates="chunk",
+        order_by="IngestionTriageEstimate.sort_order",
+        passive_deletes=True,
     )
 
 
@@ -130,3 +139,30 @@ class IngestionNavPage(Base):
     chunk_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
     ingestion: Mapped[Ingestion] = relationship("Ingestion", back_populates="nav_pages")
+
+
+class IngestionTriageEstimate(Base):
+    """LLM-generated candidate estimate for a chunk, reviewed before extraction runs (§11.8a)."""
+
+    __tablename__ = "ingestion_triage_estimates"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    ingestion_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("ingestions.id", ondelete="CASCADE"), nullable=False
+    )
+    chunk_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("ingestion_chunks.id", ondelete="CASCADE"), nullable=False
+    )
+    record_type: Mapped[str] = mapped_column(Text, nullable=False)
+    approved_type: Mapped[str] = mapped_column(Text, nullable=False)
+    estimated_title: Mapped[str] = mapped_column(Text, nullable=False)
+    estimate_status: Mapped[str] = mapped_column(Text, nullable=False, default="pending")
+    merged_into_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("ingestion_triage_estimates.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    sort_order: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    ingestion: Mapped[Ingestion] = relationship("Ingestion", back_populates="triage_estimates")
+    chunk: Mapped[IngestionChunk] = relationship("IngestionChunk", back_populates="estimates")

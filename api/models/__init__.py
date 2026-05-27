@@ -1,5 +1,12 @@
 # Import all models here so Alembic and test setup see them in Base.metadata.
 from api.models.domain import Domain, UserDomain  # noqa: F401
+from api.models.ingestion import (  # noqa: F401
+    Ingestion,
+    IngestionCandidate,
+    IngestionChunk,
+    IngestionNavPage,
+    IngestionTriageEstimate,
+)
 from api.models.principle import Principle  # noqa: F401
 from api.models.review_claim import ReviewClaim  # noqa: F401
 from api.models.task import (  # noqa: F401

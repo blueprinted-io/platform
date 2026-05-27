@@ -10,6 +10,7 @@ from api.routes import (
     review,
     search,
     tasks,
+    triage_estimates,
     users,
     workflows,
 )
@@ -22,5 +23,6 @@ router.include_router(workflows.router)
 router.include_router(review.router)
 router.include_router(search.router)
 router.include_router(ingestions.router)
+router.include_router(triage_estimates.router)
 router.include_router(notifications.router)
 router.include_router(admin.router)

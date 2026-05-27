@@ -13,11 +13,19 @@ per chunk after section selection (SS11.3 stage 3).
 {
   "category": "task_candidate | principle_candidate | reference_material | skip",
   "confidence": 0.0,
-  "reason": "one sentence"
+  "reason": "one sentence",
+  "estimates": [
+    {"title": "estimated candidate title", "type": "task | principle"}
+  ]
 }
 ```
 
-All three fields are required. `confidence` is in the range 0.0 to 1.0.
+All fields are required. `confidence` is 0.0–1.0. `estimates` lists one entry per expected
+extractable candidate in this chunk — the LLM's best guess at how many records the chunk
+contains and what they are called. For `reference_material` and `skip`, `estimates` must
+be an empty array. For `task_candidate` and `principle_candidate`, at least one estimate
+is required. `type` must match the category (`task_candidate` → `task`, `principle_candidate`
+→ `principle`), except where the chunk clearly contains both types.
 
 ## System Prompt
 
@@ -39,9 +47,7 @@ Classify this section of technical documentation as exactly one of:
 
 Do not use em dashes in any output. Use commas, colons, or rewrite instead.
 
-Return JSON only, no markdown, no commentary:
-
-{"category": "task_candidate|principle_candidate|reference_material|skip", "confidence": 0.0, "reason": "one sentence"}
+Return JSON only, no markdown, no commentary.
 
 ### Known-Good Example
 
@@ -56,7 +62,7 @@ service to start automatically on boot, then start it. Verify the
 service is running with systemctl status iscsid.
 
 Output:
-{"category": "task_candidate", "confidence": 0.95, "reason": "Section describes a concrete installation procedure with imperative steps and observable completion checks."}
+{"category": "task_candidate", "confidence": 0.95, "reason": "Section describes a concrete installation procedure with imperative steps and observable completion checks.", "estimates": [{"title": "Configure iSCSI Initiator on Ubuntu", "type": "task"}]}
 
 ## User Message Template
 
