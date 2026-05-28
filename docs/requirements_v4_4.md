@@ -2,11 +2,13 @@
 
 ## Platform Rebuild — Requirements Specification
 
-**Version 4.3 · May 2026**
+**Version 4.4 · May 2026**
 
 *Confidential. Internal Use Only*
 
 github.com/blueprinted-io/platform
+
+v4.4 changes from v4.3: Maps introduced as a new entity between Domain and Workflow (§9.5). Maps table schema added; map_id added to workflows table. Map ingestion specified as a discrete pipeline separate from Task/Principle ingestion, with its own candidate type, human review gate, and one-and-done-per-domain model (§11.17). ingestion_candidates.record_type extended to include 'map'. Authoring sequence constraint documented: Maps must exist before Workflows can be created, Workflows before Tasks — UI-enforced, not schema-enforced (§11.17). §11 intro updated to reflect that ingestion now produces map candidates as a discrete prior step. Two parked decisions added: Map ownership, Map context for pgvector traversal (§24). Three entries added to Key Decisions Log: Maps as display layer, authoring sequence enforcement, Map ingestion as discrete pipeline step. Existing Key Decisions Log entry revised: ingestion now produces Maps as a prior step in addition to Tasks and Principles (§25). maps added to §9.6 platform tables list.
 
 v4.3 changes from v4.2: Prompt contracts defined as a first-class spec concern (§11.16). LLM prompts for v1 ingestion stages (triage, task extraction, principle extraction) extracted from inline code strings into versioned prompts/ingestion/*.md files referenced by code. Operator-editable prompts deferred to v1.1 — v1 ships prompts as part of the platform release, change-on-release semantics. Primer→principle terminology corrected in all extracted prompts. Triage output values aligned to v4.1's four-category model (task_candidate | principle_candidate | reference_material | skip). JSON import schema drift between three existing documents resolved — docs/operational_documentation/json_import_schema_spec.md becomes the single source of truth; prompts/external/manual_json_authoring.md rewritten to match. v1.1+ prompts (changelog-impact pipeline, principle-level rewriting) extracted to prompts/v1.1/ but not specced; await their feature subsections. §4.1 backend stack extended with prompt-loading row. Note added in §11.4 distinguishing pipeline-internal candidate schemas from the JSON import payload format.
 
@@ -485,6 +487,29 @@ task_step_screenshots
   storage_path TEXT NOT NULL  -- resolved via storage backend abstraction
 ```
 
+### Maps
+
+An organisational grouping of Workflows within a Domain. Display layer only — no governance lifecycle, no lifecycle state, no version. Reorganising Maps never triggers review or invalidation of Workflows or Tasks beneath them. Maps are flat; a Map cannot contain another Map. An empty Map is a valid, expected state.
+
+The act of creating Maps for a Domain is called domain mapping. Maps must exist before Workflows can be created in a Domain — this is a UI-enforced authoring sequence, not a schema constraint.
+
+Map ownership is explicitly unresolved — see §24.
+
+```
+maps
+  id           UUID PRIMARY KEY
+  record_id    UUID NOT NULL
+  domain       TEXT NOT NULL
+  title        TEXT NOT NULL
+  description  TEXT
+  created_at   TIMESTAMPTZ
+  created_by   UUID FK → users.id
+  updated_at   TIMESTAMPTZ
+  updated_by   UUID FK → users.id
+```
+
+Maps do not use the shared lifecycle fields — no status, no version, no review fields.
+
 ### Workflows
 
 An ordered sequence of Tasks with attached Principles. The consumable product. References latest confirmed Task versions.
@@ -495,6 +520,7 @@ workflows
   title                       TEXT NOT NULL
   objective                   TEXT NOT NULL
   domain                      TEXT
+  map_id                      UUID FK → maps.id    -- nullable; required once domain mapping is established
   tags                        TEXT[]
   ingestion_id                UUID FK → ingestions.id
   has_incoming_task_change    BOOL NOT NULL DEFAULT FALSE
@@ -539,6 +565,7 @@ Assessments are not included in v1. No table, no API endpoints, no UI, no system
 
 ```
 users, sessions, user_domains, domains
+maps
 achievements, user_achievements   -- stub: tables exist, no specified behaviour in v1
 system_settings
 audit_log
@@ -637,7 +664,7 @@ An operator is never expected to process an entire document in one session. The 
 
 **High-volume ingestion patterns** — bulk processing of large corpora with minimal per-candidate review — are a v1.1 workstream. v1 is optimised for quality over throughput. The human reviewer is the quality gate on every candidate.
 
-The ingestion pipeline produces **task and principle candidates only**. Workflows are not extracted. Workflow composition is always a human act — it expresses expert judgment about how tasks should be sequenced for a specific operational context. That judgment cannot be extracted from documentation by an LLM. The ingestion pipeline produces the raw material; humans compose it into workflows using the authoring UI.
+The ingestion pipeline produces **task, principle, and map candidates**. Map ingestion is a discrete prior step — it runs in a separate pipeline pass before Task and Principle extraction (§11.17). Workflows are not extracted. Workflow composition is always a human act — it expresses expert judgment about how tasks should be sequenced for a specific operational context. That judgment cannot be extracted from documentation by an LLM. The ingestion pipeline produces the raw material and proposes the domain structure; humans confirm both.
 
 ## 11.1 LLM Provider Strategy
 
@@ -777,7 +804,7 @@ ingestion_candidates
   id                    UUID PRIMARY KEY
   ingestion_id          UUID FK → ingestions.id
   chunk_id              UUID FK → ingestion_chunks.id
-  record_type           TEXT         -- 'task' | 'principle'
+  record_type           TEXT         -- 'task' | 'principle' | 'map'
   proposed_json         JSONB        -- structured typed candidate
   candidate_status      TEXT         -- pending|accepted|edited|discarded|invalid
   review_note           TEXT
@@ -1093,6 +1120,35 @@ Prompts that are added or modified must satisfy:
 5. **Field-by-field guidance.** Extraction prompts include precise definitions of each field, with good-and-bad examples for fields that are commonly misinterpreted (the `concepts` field is the canonical example — generic explanations of the product are wrong; task-specific reasons-this-task-exists are right).
 
 Prompts that pass these criteria can be added without further spec change. Substantive changes to existing prompts require a worklog entry justifying the change.
+
+## 11.17 Map Ingestion
+
+Map ingestion is a discrete pipeline entirely separate from the Task and Principle ingestion pipeline. It runs before Task and Principle extraction. Its purpose is to produce a proposed Map structure for a Domain — the skeleton into which Workflows and Tasks will later be organised.
+
+### Pipeline model
+
+Map ingestion is one-and-done per Domain by default. Once a Domain's Maps are confirmed, Task and Principle ingestion proceeds into that structure. Editorial extension is available if the Domain grows — new Maps can be proposed and confirmed without invalidating existing Workflows or Tasks.
+
+The authoring flow mirrors the manual authoring sequence: sketch the Domain structure first, then extract content into it. The same sequencing constraint applies: Maps must be confirmed before Workflows can be created.
+
+### Candidates
+
+Map ingestion produces `ingestion_candidates` rows with `record_type = 'map'`. Candidate output schema:
+
+```json
+{
+  "type": "map",
+  "title": "string, required",
+  "description": "string, optional",
+  "domain": "string, required"
+}
+```
+
+A human reviewer confirms, edits, or discards each Map candidate before any Maps are committed. Confirmed candidates are committed as Maps via the standard API. The existing principle holds: ingestion produces candidates only; humans confirm structure.
+
+### Relationship to Task/Principle ingestion
+
+Map ingestion and Task/Principle ingestion are separate pipeline runs, not stages within the same run. They do not share LLM stages. The shared tables (`ingestion_candidates`, `ingestion_chunks`) are used by both pipelines, distinguished by `record_type`.
 
 ---
 
@@ -1550,6 +1606,8 @@ A flat inventory of all views. Role column shows minimum role required. Primary 
 - *High-volume ingestion patterns — v1.1. v1 is optimised for quality over throughput.*
 - *Seeded documentation tenant — post-v1 demonstration project. v1 ships with markdown docs.*
 - *agent:relationship_suggester role — v1.1, alongside first relationship kind definition*
+- *Map ownership — whether Maps have an explicit owner or inherit Domain ownership. Unresolved. Do not assume either way.*
+- *Map context for pgvector traversal — Maps may provide useful metadata when traversing relationships in semantic search. Flagged for consideration when pgvector work begins. Not a current constraint.*
 
 ---
 
@@ -1586,13 +1644,16 @@ A flat inventory of all views. Role column shows minimum role required. Primary 
 | Embedding model is stable infrastructure | pgvector column dimension fixed at schema creation. Changing models requires migration and full re-embedding. Operators choose model before first confirmed records. |
 | ARQ resumability is application code | ARQ does not natively resume partially-executed jobs. Chunk-level resumability via chunk_status checkpoints and mandatory worker startup hook. |
 | Iterative ingestion as primary model | Single-pass processing of large documents produces unmanageable candidate queues. Operator controls review burden via batch size. High-volume patterns are v1.1. |
-| Ingestion produces tasks and principles only | Workflows are human-composed judgment. LLM extracts raw material; humans sequence it. |
+| Ingestion produces tasks, principles, and maps | Map ingestion is a discrete prior step producing Map candidates. Workflows remain human-composed judgment — LLM extracts raw material and proposes domain structure; humans confirm both. |
 | TEST_REVISED process over immutable tests | Immutable tests cause legitimate spec gaps to become permanent bugs. TEST_REVISED commits preserve the protection against silent weakening while allowing honest corrections. |
 | Seeded documentation tenant deferred | Requires stable platform and second reviewer for self-review prohibition. Post-v1 demonstration project. |
 | Domain as soft-deletable slug registry | Replicates MVP pattern. Hard delete orphans existing records. Domain name stored as free-text slug on records, not a DB FK — application-enforced at write time. Disabled domains remain on historical records for audit integrity. |
 | Admin break-glass requires justification + scar flag | `self_confirmed_by_admin` flag added to shared lifecycle fields. Confirm endpoint requires non-empty justification when admin confirms own content. Audit log entry deferred until `audit_log` table exists in Sprint 10. |
 | `record_id` ref columns are application-enforced not DB FK | `record_id` is not unique across versions. DB-level FK cannot reference it. Application validates existence of a confirmed record with that `record_id` before inserting into ref tables. |
 | PKCE frontend flow deferred to Sprint 8 | blueprinted-io/app repository did not exist during Sprint 2. Backend JWT validation tested with mock JWTs. PKCE implemented when React frontend exists. |
+| Maps as display layer only | Organisational hierarchy for Workflows within a Domain. No governance lifecycle. Reorganising Maps never triggers governance cascade. |
+| Authoring sequence enforced in UI | Maps before Workflows before Tasks. Constraint lives in UI, not schema. Enforces domain mapping as the entry point to Blueprinted. |
+| Map ingestion as discrete pipeline step | Mirrors manual authoring sequence. Produces candidates only. One-and-done per Domain with editorial extension available. |
 
 ---
 
