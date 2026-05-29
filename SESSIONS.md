@@ -3,17 +3,17 @@ One entry only. On closeout: move this entry to the top of SESSIONS_ARCHIVE.md (
 Archive: SESSIONS_ARCHIVE.md (do not load unless explicitly asked).
 Format and rules: docs/session_protocol.md
 
-## Session — 2026-05-29 (CI fix — duplicate migration ID, stale tests, starlette CVE)
+## Session — 2026-05-29 (E2E verification + empty error_detail fix)
 
 ### Decisions
-- Triage migration revision ID changed from `a1b2c3d4e5f6` to `1a2b3c4d5e6f` to avoid collision with the search-indexes migration.
-- Starlette pinned to 1.2.0 (latest) rather than minimum fix version 1.0.1.
+- `_exc_str(exc)` helper introduced: `str(exc) or repr(exc)` applied at all worker error-capture sites. Some httpx exceptions have empty `__str__`; `repr()` is always non-empty.
+- Issue 5 (startup hook `ctx['redis']` re-enqueue path) left open — reset SQL verified but re-enqueue path requires a crash-scenario test to fully close.
 
 ### Done
-- `migrations/versions/`: renamed triage estimates migration with unique revision ID.
-- `tests/test_process_chunks.py`: rewritten for triage/extraction split — imports `_triage_chunk` / `extract_chunk` instead of deleted `_process_single_chunk`; assertions updated to `triage_complete` end state.
-- `tests/test_triage_estimates.py`: added `candidate_count` to both raw chunk INSERTs (Python-level `default=0` is not a `server_default`; omitting it caused NOT NULL violation).
-- `pyproject.toml` / `uv.lock`: starlette 0.52.1 → 1.2.0 (PYSEC-2026-161).
+- Dev DB migrated to head (`1a2b3c4d5e6f`) and triage/extraction pipeline verified end-to-end: triage → `triage_complete` with estimates; approve → `extract_chunk` → `done` with candidates.
+- `reference_material` skip path confirmed working in live environment.
+- `workers/main.py`: `_exc_str()` helper; all `str(exc)` error-capture sites updated.
+- `docs/issues.md`: issue 6 filed and resolved.
 
 ### Next
-Apply the migration to the dev DB and run an end-to-end ingestion test to verify the triage/extraction split in a live environment. Issue 5 (`ctx['redis']` key in the startup hook) should be confirmed during this test. Once end-to-end is verified, build the frontend estimate review UI (app-side sprint, issue 4).
+Build the frontend estimate review UI (issue 4, app-side sprint). Prerequisites: none — backend API is complete and verified. Screens needed: list estimates for a chunk, reject/merge/type-correct individual estimates, approve all.
