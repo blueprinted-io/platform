@@ -3,19 +3,19 @@ One entry only. On closeout: move this entry to the top of SESSIONS_ARCHIVE.md (
 Archive: SESSIONS_ARCHIVE.md (do not load unless explicitly asked).
 Format and rules: docs/session_protocol.md
 
-## Session — 2026-05-29 (startup hook, embedding, HTML worker tests + two bug fixes)
+## Session — 2026-05-29 (task diff view — §23.3)
 
 ### Decisions
-- `_store_embedding` in `workers/main.py` used `:embedding::vector` which asyncpg rejects as a syntax error. Changed to `CAST(:embedding AS vector)`. This was a latent production bug — embeddings were silently broken; the new tests exposed it.
-- Playwright mocked throughout HTML worker tests — CI workflow has no `playwright install chromium` step, so launching a real browser would fail.
+- Diff endpoint returns full `TaskResponse` objects for both current and previous versions rather than a computed delta — simpler backend, frontend computes what changed.
+- Diff access restricted to `_Writer` (Contributor/Admin); read-only users have no path to reach a versioned diff.
+- `includeCoAuthoredBy: false` added to `~/.claude/settings.json` — co-author attribution removed from all future commits.
 
 ### Done
-- `tests/test_startup_hook.py`: processing→queued reset, extracting→extraction_queued reset, re-enqueue with/without ctx['redis']. Issue 5 closed in `docs/issues.md`.
-- `tests/test_embedding_worker.py`: no-config exit, record-not-found exit, principle/workflow/task happy paths (respx), API error raises HTTPStatusError.
-- `tests/test_html_worker.py`: _make_chunks_from_sections and _is_robots_allowed units; crawl_html single/site-nav/error paths; render_nav_pages happy/empty/partial-failure paths.
-- `workers/main.py`: CAST() fix for asyncpg embedding update.
-- `docs/issues.md`: issue 5 resolved.
-- CI: clean pass after two-commit fix sequence.
+- `api/schemas/task.py`: `TaskDiffResponse` schema (`current`, `previous` both `TaskResponse`).
+- `api/routes/tasks.py`: `GET /tasks/{record_id}/{version}/diff` — 404 for v1, returns both versions for v2+.
+- `app/src/pages/TaskDiffPage.tsx`: side-by-side scalar field diff (amber highlight on changed), inline added/removed colouring for facts/concepts/tags, step-level added/removed/modified labelling.
+- `app/src/App.tsx`: route `tasks/:recordId/:version/diff` wired.
+- `app/src/pages/TaskDetailPage.tsx`: "View changes" link in version bar (visible when `task.version > 1`).
 
 ### Next
-All tracked platform test gaps and issues are now resolved. App-side: task list screen (§23.3) is the next natural screen to build in blueprinted-io/app.
+All §23.3 Task screens are now complete. §23.4 Workflow diff view is the natural parallel next step, or move on to another sprint item.
