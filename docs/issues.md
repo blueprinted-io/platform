@@ -42,9 +42,9 @@ used at all error-capture sites in `workers/main.py`.
 
 ---
 
-## 5. Startup hook requires `ctx['redis']` — verify ARQ sets this
+## 5. ~~Startup hook requires `ctx['redis']` — verify ARQ sets this~~ — RESOLVED
 
-The startup hook uses `ctx.get('redis')` to re-enqueue `extraction_queued` chunks after
-a crash. ARQ's `Worker` class sets `ctx['redis']` before calling `on_startup`, but this
-has not been verified end-to-end in a running worker. If the key name differs, the
-re-enqueue silently skips. Verify during the next end-to-end ingestion test.
+`tests/test_startup_hook.py` verifies both paths: with `ctx['redis']` set (mock ARQ pool),
+`enqueue_job("extract_chunk", ...)` is called for every `extraction_queued` chunk; without
+`ctx['redis']`, the re-enqueue block is skipped cleanly. The `processing → queued` and
+`extracting → extraction_queued` SQL resets are also covered.
