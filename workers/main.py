@@ -103,8 +103,9 @@ async def _store_embedding(
         log.warning("embedding_unknown_type_store", record_type=record_type)
         return
     # table comes from a hardcoded dict — not user input, so f-string is safe.
+    # CAST() form required — asyncpg rejects :param::type syntax as a syntax error.
     await session.execute(
-        sa.text(f"UPDATE {table} SET embedding = :embedding::vector WHERE id = :id"),  # noqa: S608
+        sa.text(f"UPDATE {table} SET embedding = CAST(:embedding AS vector) WHERE id = :id"),  # noqa: S608
         {"embedding": str(embedding), "id": uuid.UUID(record_id)},
     )
 
