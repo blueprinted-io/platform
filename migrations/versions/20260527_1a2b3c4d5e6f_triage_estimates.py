@@ -1,6 +1,6 @@
 """Add ingestion_triage_estimates table; add triage_complete/extraction_queued chunk statuses (§11.5a, §11.8a).
 
-Revision ID: a1b2c3d4e5f6
+Revision ID: 1a2b3c4d5e6f
 Revises: f6a7b8c9d0e1
 Create Date: 2026-05-27
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects.postgresql import UUID
 
-revision: str = "a1b2c3d4e5f6"
+revision: str = "1a2b3c4d5e6f"
 down_revision: str | None = "f6a7b8c9d0e1"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
