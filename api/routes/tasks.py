@@ -24,6 +24,7 @@ from api.schemas.task import (
     ReturnRequest,
     ReviseRequest,
     TaskCreate,
+    TaskDiffResponse,
     TaskResponse,
     TaskStepCreate,
     TaskStepResponse,
@@ -147,6 +148,20 @@ async def get_task_version(
 ) -> TaskResponse:
     return TaskResponse.model_validate(
         await _get_task_by_record_version(session, record_id, version)
+    )
+
+
+@router.get("/{record_id}/{version}/diff", response_model=TaskDiffResponse)
+async def get_task_diff(
+    record_id: uuid.UUID, version: int, session: DBSession, user: _Writer
+) -> TaskDiffResponse:
+    if version < 2:
+        raise HTTPException(status_code=404, detail="No previous version to diff against.")
+    current = await _get_task_by_record_version(session, record_id, version)
+    previous = await _get_task_by_record_version(session, record_id, version - 1)
+    return TaskDiffResponse(
+        current=TaskResponse.model_validate(current),
+        previous=TaskResponse.model_validate(previous),
     )
 
 

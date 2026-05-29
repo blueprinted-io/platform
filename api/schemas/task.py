@@ -118,3 +118,10 @@ class TaskResponse(LifecycleResponse):
     def irreversible(self) -> bool:
         """Derived from steps: True if any step has irreversible=True (§9.5)."""
         return any(s.irreversible for s in self.steps)
+
+
+class TaskDiffResponse(BaseModel):
+    current: TaskResponse
+    previous: TaskResponse
+
+    model_config = ConfigDict(from_attributes=True)
