@@ -1,19 +1,22 @@
-"""Tests for the process_chunks ARQ job and supporting helpers (§11.3, §11.6, §11.7).
+"""Tests for the process_chunks ARQ job, _triage_chunk, extract_chunk, and helpers.
+
+Spec sections: §11.3, §11.6, §11.7.
 
 Covers:
   - prompts.py: load() returns Prompt; render() interpolates variables
   - No-LLM path: queued chunks marked done when LLM not configured
-  - Triage + extraction: task_candidate → task candidates written
-  - Triage + extraction: principle_candidate → principle candidates written
-  - reference_material / skip: chunk marked done, zero candidates
-  - Validation: missing required fields → candidate_status="invalid"
-  - Triage non-JSON → chunk status="error"
-  - Triage unknown category → chunk status="error"
-  - Extraction non-JSON → chunk status="error"
-  - chunk_status checkpointing: processing state set before LLM call
+  - Triage: task_candidate → chunk triage_complete with pending estimates
+  - Triage: principle_candidate → chunk triage_complete with pending estimates
+  - Triage: reference_material / skip → chunk done, no estimates
+  - Triage: non-JSON → chunk status="error"
+  - Triage: unknown category → chunk status="error"
+  - Extraction: approved task estimate → task candidate written, chunk done
+  - Extraction: approved principle estimate → principle candidate written, chunk done
+  - Extraction: missing required fields → candidate_status="invalid"
+  - Extraction: LLM error → chunk status="error"
 
-Test approach: call _process_single_chunk() and process_chunks() directly
-with a real test DB and mocked httpx via respx.
+Test approach: call _triage_chunk() / extract_chunk() directly with a real
+test DB and mocked httpx via respx.
 """
 
 import json
@@ -29,13 +32,14 @@ from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 from api import prompts as prompt_store
 from api.config import Settings
 from api.database import create_engine
-from api.models.ingestion import IngestionCandidate, IngestionChunk
+from api.models.ingestion import IngestionCandidate, IngestionChunk, IngestionTriageEstimate
 from api.prompts import Prompt
 from api.services.settings_service import LLMSettings
 from workers.main import (
-    _process_single_chunk,
+    _triage_chunk,
     _validate_principle,
     _validate_task,
+    extract_chunk,
     process_chunks,
 )
 
@@ -52,7 +56,7 @@ _LLM_CHAT = f"{_LLM_URL}/chat/completions"
 
 @pytest.fixture
 def llm_settings() -> LLMSettings:
-    """Resolved LLM settings for use with _process_single_chunk directly."""
+    """Resolved LLM settings for direct calls to _triage_chunk."""
     return LLMSettings(
         triage_base_url=_LLM_URL,
         triage_model="test-model",
@@ -69,6 +73,24 @@ def llm_settings() -> LLMSettings:
     )
 
 
+def _make_env_settings(test_settings: Settings) -> Settings:
+    """Return a Settings with LLM configured for use in ARQ ctx dicts."""
+    return Settings(  # type: ignore[call-arg]
+        _env_file=None,
+        app_env="test",
+        database_url=test_settings.database_url,
+        database_url_sync=test_settings.database_url_sync,
+        redis_url=test_settings.redis_url,
+        log_level="WARNING",
+        app_secret_key="ci-test-secret",  # type: ignore[arg-type]
+        oidc_issuer="https://auth.test.example.com/",
+        oidc_audience="blueprinted-test",
+        oidc_roles_claim="roles",
+        llm_base_url=_LLM_URL,
+        llm_model="test-model",
+    )
+
+
 def _chat_response(content: str) -> Response:
     """Build a minimal chat completions response."""
     return Response(
@@ -79,8 +101,17 @@ def _chat_response(content: str) -> Response:
     )
 
 
-def _triage_json(category: str = "task_candidate") -> str:
-    return json.dumps({"category": category, "confidence": 0.9, "reason": "test"})
+def _triage_json(
+    category: str = "task_candidate",
+    estimates: list[dict[str, str]] | None = None,
+) -> str:
+    payload: dict[str, Any] = {"category": category, "confidence": 0.9, "reason": "test"}
+    if category not in ("reference_material", "skip"):
+        if estimates is None:
+            record_type = "principle" if category == "principle_candidate" else "task"
+            estimates = [{"title": "Test Estimate", "type": record_type}]
+        payload["estimates"] = estimates
+    return json.dumps(payload)
 
 
 def _task_extraction_json(tasks: list[dict[str, Any]] | None = None) -> str:
@@ -163,6 +194,60 @@ async def _insert_queued_chunk(
     return ingestion_id, chunk_id
 
 
+async def _insert_extraction_queued_chunk(
+    engine: AsyncEngine,
+    record_type: str = "task",
+) -> tuple[uuid.UUID, uuid.UUID, uuid.UUID]:
+    """Insert chunk at extraction_queued with one approved estimate.
+
+    Returns (ingestion_id, chunk_id, estimate_id).
+    """
+    ingestion_id = uuid.uuid4()
+    chunk_id = uuid.uuid4()
+    estimate_id = uuid.uuid4()
+    system_user_id = uuid.UUID("00000000-0000-0000-0000-000000000001")
+    async with engine.begin() as conn:
+        await conn.execute(
+            sa.text("""
+                INSERT INTO ingestions
+                  (id, source_type, status, created_by, original_filename, source_sha256)
+                VALUES (:id, 'pdf', 'ready', :user, 'test.pdf', :sha)
+            """),
+            {
+                "id": ingestion_id,
+                "user": system_user_id,
+                "sha": str(uuid.uuid4()).replace("-", ""),
+            },
+        )
+        await conn.execute(
+            sa.text("""
+                INSERT INTO ingestion_chunks
+                  (id, ingestion_id, chunk_index, section_title, section_level,
+                   text, text_preview, word_count, chunk_status, is_scanned,
+                   candidate_count)
+                VALUES (:id, :iid, 0, 'Test Section', 1,
+                        'Full chunk text for testing.', 'Full chunk text', 5,
+                        'extraction_queued', false, 0)
+            """),
+            {"id": chunk_id, "iid": ingestion_id},
+        )
+        await conn.execute(
+            sa.text("""
+                INSERT INTO ingestion_triage_estimates
+                  (id, ingestion_id, chunk_id, record_type, approved_type,
+                   estimated_title, estimate_status, sort_order)
+                VALUES (:id, :iid, :cid, :rtype, :rtype, 'Test Estimate', 'approved', 0)
+            """),
+            {
+                "id": estimate_id,
+                "iid": ingestion_id,
+                "cid": chunk_id,
+                "rtype": record_type,
+            },
+        )
+    return ingestion_id, chunk_id, estimate_id
+
+
 async def _get_chunk(engine: AsyncEngine, chunk_id: uuid.UUID) -> dict[str, Any]:
     async with AsyncSession(engine) as session:
         ch = await session.get(IngestionChunk, chunk_id)
@@ -191,6 +276,26 @@ async def _get_candidates(
                 "review_note": c.review_note,
             }
             for c in result.scalars().all()
+        ]
+
+
+async def _get_estimates(
+    engine: AsyncEngine, chunk_id: uuid.UUID
+) -> list[dict[str, Any]]:
+    async with AsyncSession(engine) as session:
+        result = await session.execute(
+            sa.select(IngestionTriageEstimate)
+            .where(IngestionTriageEstimate.chunk_id == chunk_id)
+            .order_by(IngestionTriageEstimate.sort_order)
+        )
+        return [
+            {
+                "record_type": e.record_type,
+                "approved_type": e.approved_type,
+                "estimated_title": e.estimated_title,
+                "estimate_status": e.estimate_status,
+            }
+            for e in result.scalars().all()
         ]
 
 
@@ -289,96 +394,75 @@ async def test_process_chunks_no_llm_marks_done(test_settings: Settings) -> None
 
 
 # ---------------------------------------------------------------------------
-# task_candidate path
+# Triage phase: task_candidate
 # ---------------------------------------------------------------------------
 
 
 @respx.mock
-async def test_process_single_chunk_task_candidate(
+async def test_triage_chunk_task_candidate(
     test_settings: Settings, llm_settings: LLMSettings
 ) -> None:
     engine = create_engine(test_settings)
     ingestion_id, chunk_id = await _insert_queued_chunk(engine)
 
     respx.post(_LLM_CHAT).mock(
-        side_effect=[
-            _chat_response(_triage_json("task_candidate")),
-            _chat_response(_task_extraction_json()),
-        ]
+        return_value=_chat_response(_triage_json("task_candidate"))
     )
 
     async with AsyncSession(engine) as session:
         chunk = await session.get(IngestionChunk, chunk_id)
         assert chunk is not None
-        await _process_single_chunk(
-            engine,
-            llm_settings,
-            chunk,
-            prompt_store.load("triage"),
-            prompt_store.load("extract_task"),
-            prompt_store.load("extract_principle"),
-        )
+        await _triage_chunk(engine, llm_settings, chunk, prompt_store.load("triage"))
 
     state = await _get_chunk(engine, chunk_id)
-    assert state["chunk_status"] == "done"
-    assert state["candidate_count"] == 1
+    assert state["chunk_status"] == "triage_complete"
 
-    candidates = await _get_candidates(engine, chunk_id)
-    assert len(candidates) == 1
-    assert candidates[0]["record_type"] == "task"
-    assert candidates[0]["candidate_status"] == "pending"
-    assert candidates[0]["proposed_json"]["title"] == "iSCSI Initiator Installation"
+    estimates = await _get_estimates(engine, chunk_id)
+    assert len(estimates) == 1
+    assert estimates[0]["record_type"] == "task"
+    assert estimates[0]["estimate_status"] == "pending"
     await engine.dispose()
 
 
 # ---------------------------------------------------------------------------
-# principle_candidate path
+# Triage phase: principle_candidate
 # ---------------------------------------------------------------------------
 
 
 @respx.mock
-async def test_process_single_chunk_principle_candidate(
+async def test_triage_chunk_principle_candidate(
     test_settings: Settings, llm_settings: LLMSettings
 ) -> None:
     engine = create_engine(test_settings)
     ingestion_id, chunk_id = await _insert_queued_chunk(engine)
 
     respx.post(_LLM_CHAT).mock(
-        side_effect=[
-            _chat_response(_triage_json("principle_candidate")),
-            _chat_response(_principle_extraction_json()),
-        ]
+        return_value=_chat_response(_triage_json("principle_candidate"))
     )
 
     async with AsyncSession(engine) as session:
         chunk = await session.get(IngestionChunk, chunk_id)
         assert chunk is not None
-        await _process_single_chunk(
-            engine, llm_settings, chunk,
-            prompt_store.load("triage"),
-            prompt_store.load("extract_task"),
-            prompt_store.load("extract_principle"),
-        )
+        await _triage_chunk(engine, llm_settings, chunk, prompt_store.load("triage"))
 
     state = await _get_chunk(engine, chunk_id)
-    assert state["chunk_status"] == "done"
-    assert state["candidate_count"] == 1
+    assert state["chunk_status"] == "triage_complete"
 
-    candidates = await _get_candidates(engine, chunk_id)
-    assert len(candidates) == 1
-    assert candidates[0]["record_type"] == "principle"
-    assert candidates[0]["candidate_status"] == "pending"
+    estimates = await _get_estimates(engine, chunk_id)
+    assert len(estimates) == 1
+    assert estimates[0]["record_type"] == "principle"
+    assert estimates[0]["estimate_status"] == "pending"
     await engine.dispose()
 
 
 # ---------------------------------------------------------------------------
-# reference_material / skip paths
+# Triage phase: reference_material / skip
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.parametrize("category", ["reference_material", "skip"])
 @respx.mock
-async def test_process_single_chunk_no_extraction(
+async def test_triage_chunk_no_extraction(
     category: str, test_settings: Settings, llm_settings: LLMSettings
 ) -> None:
     engine = create_engine(test_settings)
@@ -391,65 +475,18 @@ async def test_process_single_chunk_no_extraction(
     async with AsyncSession(engine) as session:
         chunk = await session.get(IngestionChunk, chunk_id)
         assert chunk is not None
-        await _process_single_chunk(
-            engine, llm_settings, chunk,
-            prompt_store.load("triage"),
-            prompt_store.load("extract_task"),
-            prompt_store.load("extract_principle"),
-        )
+        await _triage_chunk(engine, llm_settings, chunk, prompt_store.load("triage"))
 
     state = await _get_chunk(engine, chunk_id)
     assert state["chunk_status"] == "done"
     assert state["candidate_count"] == 0
-    candidates = await _get_candidates(engine, chunk_id)
-    assert candidates == []
+    estimates = await _get_estimates(engine, chunk_id)
+    assert estimates == []
     await engine.dispose()
 
 
 # ---------------------------------------------------------------------------
-# Validation: invalid candidate
-# ---------------------------------------------------------------------------
-
-
-@respx.mock
-async def test_invalid_task_candidate_marked_invalid(
-    test_settings: Settings, llm_settings: LLMSettings
-) -> None:
-    """A task missing required fields gets candidate_status='invalid', chunk still done."""
-    engine = create_engine(test_settings)
-    ingestion_id, chunk_id = await _insert_queued_chunk(engine)
-
-    bad_task = json.dumps({"tasks": [{"title": "Only title, no steps or outcome"}]})
-    respx.post(_LLM_CHAT).mock(
-        side_effect=[
-            _chat_response(_triage_json("task_candidate")),
-            _chat_response(bad_task),
-        ]
-    )
-
-    async with AsyncSession(engine) as session:
-        chunk = await session.get(IngestionChunk, chunk_id)
-        assert chunk is not None
-        await _process_single_chunk(
-            engine, llm_settings, chunk,
-            prompt_store.load("triage"),
-            prompt_store.load("extract_task"),
-            prompt_store.load("extract_principle"),
-        )
-
-    state = await _get_chunk(engine, chunk_id)
-    assert state["chunk_status"] == "done"
-    assert state["candidate_count"] == 0  # invalid candidates don't count
-
-    candidates = await _get_candidates(engine, chunk_id)
-    assert len(candidates) == 1
-    assert candidates[0]["candidate_status"] == "invalid"
-    assert candidates[0]["review_note"] is not None
-    await engine.dispose()
-
-
-# ---------------------------------------------------------------------------
-# Error paths
+# Triage error paths
 # ---------------------------------------------------------------------------
 
 
@@ -467,12 +504,7 @@ async def test_triage_non_json_marks_chunk_error(
     async with AsyncSession(engine) as session:
         chunk = await session.get(IngestionChunk, chunk_id)
         assert chunk is not None
-        await _process_single_chunk(
-            engine, llm_settings, chunk,
-            prompt_store.load("triage"),
-            prompt_store.load("extract_task"),
-            prompt_store.load("extract_principle"),
-        )
+        await _triage_chunk(engine, llm_settings, chunk, prompt_store.load("triage"))
 
     state = await _get_chunk(engine, chunk_id)
     assert state["chunk_status"] == "error"
@@ -496,12 +528,7 @@ async def test_triage_unknown_category_marks_chunk_error(
     async with AsyncSession(engine) as session:
         chunk = await session.get(IngestionChunk, chunk_id)
         assert chunk is not None
-        await _process_single_chunk(
-            engine, llm_settings, chunk,
-            prompt_store.load("triage"),
-            prompt_store.load("extract_task"),
-            prompt_store.load("extract_principle"),
-        )
+        await _triage_chunk(engine, llm_settings, chunk, prompt_store.load("triage"))
 
     state = await _get_chunk(engine, chunk_id)
     assert state["chunk_status"] == "error"
@@ -509,29 +536,113 @@ async def test_triage_unknown_category_marks_chunk_error(
     await engine.dispose()
 
 
-@respx.mock
-async def test_extraction_non_json_marks_chunk_error(
-    test_settings: Settings, llm_settings: LLMSettings
-) -> None:
-    engine = create_engine(test_settings)
-    ingestion_id, chunk_id = await _insert_queued_chunk(engine)
+# ---------------------------------------------------------------------------
+# Extraction phase: task candidate
+# ---------------------------------------------------------------------------
 
-    respx.post(_LLM_CHAT).mock(
-        side_effect=[
-            _chat_response(_triage_json("task_candidate")),
-            _chat_response("Here are the tasks: step 1, step 2."),  # not JSON
-        ]
+
+@respx.mock
+async def test_extract_chunk_task_candidate(test_settings: Settings) -> None:
+    engine = create_engine(test_settings)
+    _, chunk_id, _ = await _insert_extraction_queued_chunk(
+        engine, record_type="task"
     )
 
-    async with AsyncSession(engine) as session:
-        chunk = await session.get(IngestionChunk, chunk_id)
-        assert chunk is not None
-        await _process_single_chunk(
-            engine, llm_settings, chunk,
-            prompt_store.load("triage"),
-            prompt_store.load("extract_task"),
-            prompt_store.load("extract_principle"),
-        )
+    respx.post(_LLM_CHAT).mock(return_value=_chat_response(_task_extraction_json()))
+
+    env_settings = _make_env_settings(test_settings)
+    ctx: dict[str, Any] = {"settings": env_settings, "db_engine": engine}
+    await extract_chunk(ctx, str(chunk_id))
+
+    state = await _get_chunk(engine, chunk_id)
+    assert state["chunk_status"] == "done"
+    assert state["candidate_count"] == 1
+
+    candidates = await _get_candidates(engine, chunk_id)
+    assert len(candidates) == 1
+    assert candidates[0]["record_type"] == "task"
+    assert candidates[0]["candidate_status"] == "pending"
+    assert candidates[0]["proposed_json"]["title"] == "iSCSI Initiator Installation"
+    await engine.dispose()
+
+
+# ---------------------------------------------------------------------------
+# Extraction phase: principle candidate
+# ---------------------------------------------------------------------------
+
+
+@respx.mock
+async def test_extract_chunk_principle_candidate(test_settings: Settings) -> None:
+    engine = create_engine(test_settings)
+    _, chunk_id, _ = await _insert_extraction_queued_chunk(
+        engine, record_type="principle"
+    )
+
+    respx.post(_LLM_CHAT).mock(return_value=_chat_response(_principle_extraction_json()))
+
+    env_settings = _make_env_settings(test_settings)
+    ctx: dict[str, Any] = {"settings": env_settings, "db_engine": engine}
+    await extract_chunk(ctx, str(chunk_id))
+
+    state = await _get_chunk(engine, chunk_id)
+    assert state["chunk_status"] == "done"
+    assert state["candidate_count"] == 1
+
+    candidates = await _get_candidates(engine, chunk_id)
+    assert len(candidates) == 1
+    assert candidates[0]["record_type"] == "principle"
+    assert candidates[0]["candidate_status"] == "pending"
+    await engine.dispose()
+
+
+# ---------------------------------------------------------------------------
+# Extraction phase: invalid candidate
+# ---------------------------------------------------------------------------
+
+
+@respx.mock
+async def test_invalid_task_candidate_marked_invalid(test_settings: Settings) -> None:
+    """A task missing required fields gets candidate_status='invalid', chunk still done."""
+    engine = create_engine(test_settings)
+    _, chunk_id, _ = await _insert_extraction_queued_chunk(
+        engine, record_type="task"
+    )
+
+    bad_task = json.dumps({"tasks": [{"title": "Only title, no steps or outcome"}]})
+    respx.post(_LLM_CHAT).mock(return_value=_chat_response(bad_task))
+
+    env_settings = _make_env_settings(test_settings)
+    ctx: dict[str, Any] = {"settings": env_settings, "db_engine": engine}
+    await extract_chunk(ctx, str(chunk_id))
+
+    state = await _get_chunk(engine, chunk_id)
+    assert state["chunk_status"] == "done"
+    assert state["candidate_count"] == 0  # invalid candidates don't count
+
+    candidates = await _get_candidates(engine, chunk_id)
+    assert len(candidates) == 1
+    assert candidates[0]["candidate_status"] == "invalid"
+    assert candidates[0]["review_note"] is not None
+    await engine.dispose()
+
+
+# ---------------------------------------------------------------------------
+# Extraction phase: LLM error marks chunk error
+# ---------------------------------------------------------------------------
+
+
+@respx.mock
+async def test_extraction_llm_error_marks_chunk_error(test_settings: Settings) -> None:
+    engine = create_engine(test_settings)
+    _, chunk_id, _ = await _insert_extraction_queued_chunk(
+        engine, record_type="task"
+    )
+
+    respx.post(_LLM_CHAT).mock(return_value=Response(500))
+
+    env_settings = _make_env_settings(test_settings)
+    ctx: dict[str, Any] = {"settings": env_settings, "db_engine": engine}
+    await extract_chunk(ctx, str(chunk_id))
 
     state = await _get_chunk(engine, chunk_id)
     assert state["chunk_status"] == "error"
@@ -547,7 +658,7 @@ async def test_extraction_non_json_marks_chunk_error(
 async def test_process_chunks_with_llm_processes_all_queued(
     test_settings: Settings,
 ) -> None:
-    """process_chunks processes all queued chunks and skips non-queued ones."""
+    """process_chunks triages all queued chunks and skips non-queued ones."""
     engine = create_engine(test_settings)
     ingestion_id = uuid.uuid4()
     _, chunk_id_1 = await _insert_queued_chunk(engine, ingestion_id)
@@ -560,38 +671,23 @@ async def test_process_chunks_with_llm_processes_all_queued(
             {"id": chunk_id_2},
         )
 
-    # Two LLM calls: one triage + one extraction for chunk_1 only
+    # One LLM call: triage for chunk_1 only (chunk_2 is already done)
     respx.post(_LLM_CHAT).mock(
-        side_effect=[
-            _chat_response(_triage_json("task_candidate")),
-            _chat_response(_task_extraction_json()),
-        ]
+        return_value=_chat_response(_triage_json("task_candidate"))
     )
 
-    env_settings = Settings(  # type: ignore[call-arg]
-        _env_file=None,
-        app_env="test",
-        database_url=test_settings.database_url,
-        database_url_sync=test_settings.database_url_sync,
-        redis_url=test_settings.redis_url,
-        log_level="WARNING",
-        app_secret_key="ci-test-secret",  # type: ignore[arg-type]
-        oidc_issuer="https://auth.test.example.com/",
-        oidc_audience="blueprinted-test",
-        oidc_roles_claim="roles",
-        llm_base_url=_LLM_URL,
-        llm_model="test-model",
-    )
-
+    env_settings = _make_env_settings(test_settings)
     ctx: dict[str, Any] = {"settings": env_settings, "db_engine": engine}
     await process_chunks(ctx, str(ingestion_id))
 
     state_1 = await _get_chunk(engine, chunk_id_1)
     state_2 = await _get_chunk(engine, chunk_id_2)
 
-    assert state_1["chunk_status"] == "done"
-    assert state_1["candidate_count"] == 1
+    assert state_1["chunk_status"] == "triage_complete"
     assert state_2["chunk_status"] == "done"  # unchanged — was already done
-    assert state_2["candidate_count"] == 0  # no candidates added for skipped chunk
+
+    estimates_1 = await _get_estimates(engine, chunk_id_1)
+    assert len(estimates_1) == 1
+    assert estimates_1[0]["record_type"] == "task"
 
     await engine.dispose()
