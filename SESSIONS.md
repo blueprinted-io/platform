@@ -3,19 +3,19 @@ One entry only. On closeout: move this entry to the top of SESSIONS_ARCHIVE.md (
 Archive: SESSIONS_ARCHIVE.md (do not load unless explicitly asked).
 Format and rules: docs/session_protocol.md
 
-## Session — 2026-05-29 (estimate review UI — §11.5a)
+## Session — 2026-05-29 (startup hook, embedding, HTML worker tests + two bug fixes)
 
 ### Decisions
-- Per-chunk links in IngestionDetailPage (one button per triage_complete chunk) rather than a single "review all" entry point — keeps the operator oriented to which section they're reviewing.
-- Merge flow uses checkbox-select + merged title input rather than drag-and-drop — consistent with SectionSelectionPage pattern and simpler to implement correctly.
-- Polling in IngestionDetailPage extended to cover `extraction_queued` and `extracting` so the page stays live during the extraction phase.
+- `_store_embedding` in `workers/main.py` used `:embedding::vector` which asyncpg rejects as a syntax error. Changed to `CAST(:embedding AS vector)`. This was a latent production bug — embeddings were silently broken; the new tests exposed it.
+- Playwright mocked throughout HTML worker tests — CI workflow has no `playwright install chromium` step, so launching a real browser would fail.
 
 ### Done
-- `src/pages/EstimateReviewPage.tsx`: inline title editing, type toggle, reject, merge, approve. Resolved estimates shown below at reduced opacity.
-- `src/pages/IngestionDetailPage.tsx`: triage_complete action card with per-chunk links; polling updated for extraction statuses.
-- `src/components/StatusBadge.tsx`: triage_complete, extraction_queued, extracting mapped to submitted (amber) style.
-- `src/App.tsx`: route `ingestion/:id/chunks/:chunkId/estimates` wired.
-- CI: clean pass (blueprinted-io/app).
+- `tests/test_startup_hook.py`: processing→queued reset, extracting→extraction_queued reset, re-enqueue with/without ctx['redis']. Issue 5 closed in `docs/issues.md`.
+- `tests/test_embedding_worker.py`: no-config exit, record-not-found exit, principle/workflow/task happy paths (respx), API error raises HTTPStatusError.
+- `tests/test_html_worker.py`: _make_chunks_from_sections and _is_robots_allowed units; crawl_html single/site-nav/error paths; render_nav_pages happy/empty/partial-failure paths.
+- `workers/main.py`: CAST() fix for asyncpg embedding update.
+- `docs/issues.md`: issue 5 resolved.
+- CI: clean pass after two-commit fix sequence.
 
 ### Next
-Issue 4 is resolved. Remaining platform gaps: HTML ingestion worker tests (crawl_html, render_nav_pages) and embedding worker tests. Issue 5 (startup hook re-enqueue crash scenario) still open. Or continue app-side — candidate review page already exists; next natural app screen is ingestion list improvements or task list (§23.3).
+All tracked platform test gaps and issues are now resolved. App-side: task list screen (§23.3) is the next natural screen to build in blueprinted-io/app.
