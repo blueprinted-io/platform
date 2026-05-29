@@ -61,9 +61,9 @@ async def _make_ingestion_with_triage_complete_chunk(
             sa.text("""
                 INSERT INTO ingestion_chunks
                   (id, ingestion_id, chunk_index, section_title, section_level,
-                   text, text_preview, word_count, chunk_status)
+                   text, text_preview, word_count, chunk_status, candidate_count)
                 VALUES (:id, :ing_id, 0, 'Test Section', 1,
-                        'chunk text', 'chunk text', 2, 'triage_complete')
+                        'chunk text', 'chunk text', 2, 'triage_complete', 0)
             """),
             {"id": chunk_id, "ing_id": ing_id},
         )
@@ -483,9 +483,9 @@ async def test_approve_estimates_wrong_chunk_status_returns_422(
             sa.text("""
                 INSERT INTO ingestion_chunks
                   (id, ingestion_id, chunk_index, section_title, section_level,
-                   text, text_preview, word_count, chunk_status)
+                   text, text_preview, word_count, chunk_status, candidate_count)
                 VALUES (:id, :ing_id, 99, 'Queued Section', 1,
-                        'text', 'text', 1, 'queued')
+                        'text', 'text', 1, 'queued', 0)
             """),
             {"id": queued_chunk_id, "ing_id": ing_id, "user_id": user_id},
         )
