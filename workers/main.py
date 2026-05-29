@@ -160,7 +160,7 @@ async def generate_embedding(ctx: dict, record_type: str, record_id: str) -> Non
             "embedding_api_failed",
             record_type=record_type,
             record_id=record_id,
-            error=str(exc),
+            error=_exc_str(exc),
         )
         raise
 
@@ -366,14 +366,14 @@ async def chunk_pdf(ctx: dict, ingestion_id: str) -> None:  # type: ignore[type-
             created_by = ing.created_by
             pdf_filename = ing.original_filename
             ing.status = "failed"
-            ing.error_detail = str(exc)
+            ing.error_detail = _exc_str(exc)
             await session.commit()
             await create_notification(
                 session, created_by, "ingestion_failed", "ingestion", iid,
                 f'Your PDF "{pdf_filename or "upload"}" could not be processed: {exc}',
             )
             await session.commit()
-        log.error("chunk_pdf_failed", ingestion_id=ingestion_id, error=str(exc))
+        log.error("chunk_pdf_failed", ingestion_id=ingestion_id, error=_exc_str(exc))
         raise
 
 
@@ -425,6 +425,15 @@ async def _call_llm(
     return content
 
 
+def _exc_str(exc: BaseException) -> str:
+    """Return a non-empty string describing an exception.
+
+    Some httpx exceptions (e.g. RemoteProtocolError) have an empty str(); fall
+    back to repr() so error_detail is never stored as an empty string.
+    """
+    return str(exc) or repr(exc)
+
+
 def _parse_llm_json(raw: str, context: str) -> dict[str, Any]:
     """Parse LLM output as JSON, falling back to json_repair on malformed output."""
     from json_repair import repair_json
@@ -439,7 +448,7 @@ def _parse_llm_json(raw: str, context: str) -> dict[str, Any]:
             log.info("llm_json_repaired", context=context)
             return repaired
     except Exception as exc:
-        log.warning("llm_json_repair_failed", context=context, exc=str(exc))
+        log.warning("llm_json_repair_failed", context=context, exc=_exc_str(exc))
     log.error("llm_json_unparseable", context=context, raw_preview=raw[:500])
     raise ValueError(f"LLM returned unparseable JSON for {context!r}")
 
@@ -557,9 +566,9 @@ async def _triage_chunk(
             ch = await session.get(IngestionChunk, chunk_id)
             if ch is not None:
                 ch.chunk_status = "error"
-                ch.error_detail = str(exc)
+                ch.error_detail = _exc_str(exc)
             await session.commit()
-        log.error("chunk_triage_failed", chunk_id=str(chunk_id), error=str(exc))
+        log.error("chunk_triage_failed", chunk_id=str(chunk_id), error=_exc_str(exc))
 
 
 async def _extract_from_estimate(
@@ -708,7 +717,7 @@ async def extract_chunk(ctx: dict, chunk_id: str) -> None:  # type: ignore[type-
                 candidates.append(candidate)
         except Exception as exc:
             errors.append(f"estimate {estimate.id}: {exc}")
-            log.error("extract_estimate_failed", estimate_id=str(estimate.id), error=str(exc))
+            log.error("extract_estimate_failed", estimate_id=str(estimate.id), error=_exc_str(exc))
 
     if errors and not candidates:
         async with AsyncSession(engine) as session:
@@ -1069,7 +1078,7 @@ async def crawl_html(
                 await browser.close()
 
     except Exception as exc:
-        error_msg = str(exc)
+        error_msg = _exc_str(exc)
         log.error("crawl_html_failed", ingestion_id=ingestion_id, error=error_msg)
         async with AsyncSession(engine) as session:
             failed_row = (
@@ -1208,7 +1217,7 @@ async def render_nav_pages(
                 await browser.close()
 
     except Exception as exc:
-        log.error("render_nav_pages_failed", ingestion_id=ingestion_id, error=str(exc))
+        log.error("render_nav_pages_failed", ingestion_id=ingestion_id, error=_exc_str(exc))
         raise
 
 

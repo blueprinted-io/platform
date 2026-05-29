@@ -33,6 +33,15 @@ no frontend implementation. The API is complete. Implement in the next app-side 
 
 ---
 
+## 6. ~~`str(exc)` returns empty string for some httpx exceptions~~ — RESOLVED
+
+Some httpx exceptions (e.g. transient `RemoteProtocolError`) have an empty `str()`.
+`error_detail` was stored as `""` and log fields were blank, making failures
+invisible in logs. Fixed by adding `_exc_str(exc)` helper (`str(exc) or repr(exc)`)
+used at all error-capture sites in `workers/main.py`.
+
+---
+
 ## 5. Startup hook requires `ctx['redis']` — verify ARQ sets this
 
 The startup hook uses `ctx.get('redis')` to re-enqueue `extraction_queued` chunks after
