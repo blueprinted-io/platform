@@ -26,6 +26,7 @@ from api.schemas.workflow import (
     ReturnRequest,
     ReviseRequest,
     WorkflowCreate,
+    WorkflowDiffResponse,
     WorkflowPrincipleRefCreate,
     WorkflowPrincipleRefResponse,
     WorkflowResponse,
@@ -116,6 +117,27 @@ async def get_workflow(
     workflow_id: uuid.UUID, session: DBSession, user: CurrentUser
 ) -> WorkflowResponse:
     return WorkflowResponse.model_validate(await _get_workflow_with_refs(session, workflow_id))
+
+
+@router.get("/{workflow_id}/diff", response_model=WorkflowDiffResponse)
+async def get_workflow_diff(
+    workflow_id: uuid.UUID, session: DBSession, user: _Writer
+) -> WorkflowDiffResponse:
+    current = await _get_workflow_with_refs(session, workflow_id)
+    if current.version < 2:
+        raise HTTPException(status_code=404, detail="No previous version to diff against.")
+    result = await session.execute(
+        select(Workflow)
+        .where(Workflow.record_id == current.record_id, Workflow.version == current.version - 1)
+        .options(selectinload(Workflow.task_refs), selectinload(Workflow.principle_refs))
+    )
+    previous = result.scalar_one_or_none()
+    if previous is None:
+        raise HTTPException(status_code=404, detail="Previous version not found.")
+    return WorkflowDiffResponse(
+        current=WorkflowResponse.model_validate(current),
+        previous=WorkflowResponse.model_validate(previous),
+    )
 
 
 @router.patch("/{workflow_id}", response_model=WorkflowResponse)

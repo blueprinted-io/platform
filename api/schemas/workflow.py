@@ -70,3 +70,10 @@ class WorkflowResponse(LifecycleResponse):
     has_pending_task_confirm: bool
     task_refs: list[WorkflowTaskRefResponse]
     principle_refs: list[WorkflowPrincipleRefResponse]
+
+
+class WorkflowDiffResponse(BaseModel):
+    current: WorkflowResponse
+    previous: WorkflowResponse
+
+    model_config = ConfigDict(from_attributes=True)
