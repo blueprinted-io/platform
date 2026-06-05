@@ -27,7 +27,7 @@ dependencies = [
     # Security headers
     "secure==1.0.1",
     # JWT verification (RS256 via OIDC)
-    "PyJWT[crypto]==2.12.1",
+    "PyJWT[crypto]==2.13.0",
     # Async HTTP (ingestion pipeline uses the versioned API)
     "httpx==0.28.1",
     # Vector storage and semantic search
