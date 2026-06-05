@@ -25,7 +25,8 @@ async def test_list_relationships_viewer_returns_empty_list(
     client: AsyncClient, make_token: Callable[..., str]
 ) -> None:
     token = make_token(roles=["viewer"])
-    response = await client.get("/api/v1/relationships", headers={"Authorization": f"Bearer {token}"})
+    headers = {"Authorization": f"Bearer {token}"}
+    response = await client.get("/api/v1/relationships", headers=headers)
     assert response.status_code == 200
     assert response.json() == []
 
@@ -34,7 +35,8 @@ async def test_list_relationships_contributor_returns_empty_list(
     client: AsyncClient, make_token: Callable[..., str]
 ) -> None:
     token = make_token(roles=["contributor"])
-    response = await client.get("/api/v1/relationships", headers={"Authorization": f"Bearer {token}"})
+    headers = {"Authorization": f"Bearer {token}"}
+    response = await client.get("/api/v1/relationships", headers=headers)
     assert response.status_code == 200
     assert response.json() == []
 
