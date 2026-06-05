@@ -66,6 +66,16 @@ The MVP was a web app with a database behind it. This platform inverts that: the
 
 ---
 
+## Testing
+
+Tests run against a real PostgreSQL instance (`blueprinted_test`) — no database mocking. The schema is created fresh each session via SQLAlchemy, so tests are always running against the actual ORM models and migrations path.
+
+The FastAPI app is exercised end-to-end through `httpx.AsyncClient` against the live ASGI app (via `asgi-lifespan`), so route logic, dependency injection, and auth middleware all execute. JWT auth is replaced with a `StubTokenVerifier` that accepts test-issued tokens, and ARQ job enqueueing is replaced with a `StubArqPool` that records calls without touching Redis.
+
+The goal is high confidence at the integration level rather than extensive unit testing of isolated functions.
+
+---
+
 ## Running locally
 
 ```bash
