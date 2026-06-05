@@ -44,4 +44,4 @@ jobs:
             - **pip-audit** — dependency vulnerability scan; if this fails, update the affected package in pyproject.toml
 
             Once you have fixed the issue, open a pull request targeting the `${{ github.event.workflow_run.head_branch }}` branch.
-          claude_args: --max-turns 20 --model zai-org/GLM-5.1
+          claude_args: --max-turns 20 --model syn:large:text
