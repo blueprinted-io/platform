@@ -1,0 +1,45 @@
+name: Auto-fix CI failures
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+
+jobs:
+  auto-fix:
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: read
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          base_branch: ${{ github.event.workflow_run.head_branch }}
+          prompt: |
+            The CI workflow just failed.
+
+            Run ID : ${{ github.event.workflow_run.id }}
+            Branch : ${{ github.event.workflow_run.head_branch }}
+            Commit : ${{ github.event.workflow_run.head_sha }}
+
+            Start by fetching the failure logs:
+              gh run view ${{ github.event.workflow_run.id }} --log-failed --repo ${{ github.repository }}
+
+            Then diagnose and fix whatever is failing. The CI steps are:
+
+            - **pytest** — runs against real PostgreSQL 16 + pgvector and Redis 7, no database mocks
+            - **ruff** — linting (ruff check .)
+            - **mypy strict** — type checking on api/, cli/, workers/
+            - **pip-audit** — dependency vulnerability scan; if this fails, update the affected package in pyproject.toml
+
+            Once you have fixed the issue, open a pull request targeting the `${{ github.event.workflow_run.head_branch }}` branch.
+          claude_args: --max-turns 20
