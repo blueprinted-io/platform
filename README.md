@@ -50,19 +50,19 @@ The MVP was a web app with a database behind it. This platform inverts that: the
 
 ## Stack
 
-| Layer | Technology |
-|---|---|
-| API | FastAPI 0.136, Python 3.12, SQLAlchemy async |
-| Database | PostgreSQL 16 + pgvector |
-| Migrations | Alembic |
-| Background jobs | ARQ + Redis |
-| Auth | Authentik 2025.4 (OIDC/RS256) |
-| Ingestion | PyMuPDF (PDF), Playwright (HTML) |
-| Storage | MinIO / S3-compatible (optional) |
-| Logging | structlog (JSON, secret redaction) |
-| Linting / types | Ruff, mypy strict |
-| Tests | pytest-asyncio, 250+ tests |
-| CI | GitHub Actions (pytest, ruff, mypy, pip-audit) |
+| Layer | Technology | Why? |
+|---|---|---|
+| API | FastAPI 0.136, Python 3.12, SQLAlchemy async | Async-native end-to-end; Python is the natural fit given LLM tooling |
+| Database | PostgreSQL 16 + pgvector | pgvector adds semantic search and relationship traversal in-engine — no separate vector store |
+| Migrations | Alembic | Standard SQLAlchemy migration tool; version-controlled schema history |
+| Background jobs | ARQ + Redis | ARQ is async-native (matches FastAPI/asyncio stack); Redis doubles as queue and cache |
+| Auth | Authentik 2025.4 (OIDC/RS256) | Self-hosted — no third-party data dependency; RS256 JWTs verify locally without a network round-trip |
+| Ingestion | PyMuPDF (PDF), Playwright (HTML) | PyMuPDF is outline-aware (not naive page splits); Playwright renders JS-heavy sites that BeautifulSoup can't handle |
+| Storage | MinIO / S3-compatible (optional) | S3-compatible API means a trivial swap to cloud storage (S3, R2) when needed |
+| Logging | structlog (JSON, secret redaction) | JSON logs are machine-parseable; built-in processor pipeline makes secret redaction reliable |
+| Linting / types | Ruff, mypy strict | Ruff replaces flake8 + isort + black in one fast pass; mypy strict surfaces async/typing bugs early |
+| Tests | pytest-asyncio, 250+ tests | pytest-asyncio is required for testing async FastAPI routes and SQLAlchemy sessions |
+| CI | GitHub Actions (pytest, ruff, mypy, pip-audit) | Native GitHub integration; pip-audit in CI catches vulnerable dependencies before merge |
 
 ---
 
