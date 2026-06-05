@@ -1,16 +1,24 @@
 name: Auto-fix CI failures
 
 on:
-  workflow_dispatch:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
 
 jobs:
   auto-fix:
-    if: false  # Disabled — auto-fix runs via scheduled remote agent (claude.ai/code/routines/trig_01KypEnupAHdSj8xtFJ1WHCZ)
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
       pull-requests: write
       actions: read
+
+    env:
+      ANTHROPIC_BASE_URL: ${{ secrets.ANTHROPIC_BASE_URL }}
+      ANTHROPIC_DEFAULT_SONNET_MODEL: hf:zai-org/GLM-4.7-Flash
+      ANTHROPIC_DEFAULT_HAIKU_MODEL: hf:zai-org/GLM-4.7-Flash
+      ANTHROPIC_DEFAULT_OPUS_MODEL: hf:zai-org/GLM-4.7-Flash
 
     steps:
       - uses: actions/checkout@v6
@@ -18,8 +26,6 @@ jobs:
           ref: ${{ github.event.workflow_run.head_sha }}
 
       - uses: anthropics/claude-code-action@v1
-        env:
-          ANTHROPIC_BASE_URL: ${{ secrets.ANTHROPIC_BASE_URL }}
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -42,4 +48,4 @@ jobs:
             - **pip-audit** — dependency vulnerability scan; if this fails, update the affected package in pyproject.toml
 
             Once you have fixed the issue, open a pull request targeting the `${{ github.event.workflow_run.head_branch }}` branch.
-          claude_args: --max-turns 20 --model syn:large:text
+          claude_args: --max-turns 20
