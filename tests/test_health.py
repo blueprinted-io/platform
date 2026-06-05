@@ -1,4 +1,3 @@
-import os
 """Tests for GET /healthz."""
 
 import pytest

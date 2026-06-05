@@ -1,13 +1,11 @@
 name: Auto-fix CI failures
 
 on:
-  workflow_run:
-    workflows: ["CI"]
-    types: [completed]
+  workflow_dispatch:
 
 jobs:
   auto-fix:
-    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    if: false  # Disabled — auto-fix runs via scheduled remote agent (claude.ai/code/routines/trig_01KypEnupAHdSj8xtFJ1WHCZ)
     runs-on: ubuntu-latest
     permissions:
       contents: write
