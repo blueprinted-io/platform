@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 """
 CI auto-fix using synthetic.new GLM-5.1.
-Usage: python fix_ci.py <run_id> <repo>
+Usage: python fix_ci.py <run_id> <repo> <head_sha>
 
 Fetches CI failure logs, asks the model to fix them, applies the changes.
 Branch creation and PR opening are handled by the calling workflow.
+
+Note: the workflow always checks out the default branch (not the failing commit)
+to prevent untrusted code from running with secrets. The head_sha is used only
+to check out the failing commit's source files via git for context.
 """
 
 import json
@@ -184,11 +188,19 @@ Rules:
 # ---------------------------------------------------------------------------
 
 def main() -> int:
-    if len(sys.argv) < 3:
-        print("Usage: fix_ci.py <run_id> <repo>", file=sys.stderr)
+    if len(sys.argv) < 4:
+        print("Usage: fix_ci.py <run_id> <repo> <head_sha>", file=sys.stderr)
         return 1
 
-    run_id, repo = sys.argv[1], sys.argv[2]
+    run_id, repo, head_sha = sys.argv[1], sys.argv[2], sys.argv[3]
+
+    # Check out the failing commit's files so the model has the right context.
+    # The workflow checked out main (trusted), but we need the broken source.
+    print(f"Checking out failing commit {head_sha[:8]}...")
+    subprocess.run(["git", "fetch", "origin", head_sha], check=True, capture_output=True)
+    subprocess.run(["git", "checkout", head_sha, "--", "api/", "tests/", "cli/", "workers/", "pyproject.toml"],
+                   check=False, capture_output=True)  # best-effort; files may not all exist
+
     print(f"Fetching logs for run {run_id} in {repo}...")
 
     logs = get_logs(run_id, repo)
