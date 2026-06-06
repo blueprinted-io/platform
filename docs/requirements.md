@@ -534,6 +534,55 @@ changelog_runs         -- stub
 changelog_impacts      -- stub
 ```
 
+## 9.9 Authoring Model and the Knowledge Hierarchy
+
+### The hierarchy
+
+```
+Domain
+└── Workflows        (the consumable product — expresses "how" the domain works)
+    ├── Tasks        (atomic procedural units that compose the workflow)
+    └── Principles   (governing knowledge that informs the workflow)
+```
+
+Principles are attached to Workflows, never to Tasks. A Principle captures foundational knowledge that gives a workflow its context and rationale — it is not a step-level annotation.
+
+Tasks are the atomic unit of knowledge. They are independently governed, independently versioned, and reusable across multiple workflows. A task exists in its own right; a workflow composes tasks into a coherent procedure.
+
+### Two-directional authoring and governance
+
+The platform operates with two directions of travel that run in opposition to each other. This opposition is intentional — it is the primary quality mechanism.
+
+**Top-down authoring (human mental model):**
+The operator starts from intent and works downward.
+
+1. Establish the domain ("Veeam Backup & Replication")
+2. Express the workflows that characterise the domain ("Back up a vSphere Virtual Machine")
+3. For each workflow, identify the tasks that compose it and the principles that inform it
+4. Author each task and principle
+
+This is the natural human authoring journey. It follows the same path a subject-matter expert would take when documenting a system: start with what the system does, then explain how.
+
+**Bottom-up governance (machine/audit model):**
+The governance lifecycle runs upward through the same hierarchy.
+
+- Tasks and Principles are confirmed independently through the review queue
+- A Workflow can only reference confirmed Task and Principle records
+- A Workflow cannot be confirmed until its constituent records are confirmed
+- Domains contain the confirmed Workflows that represent its knowledge
+
+**The friction between directions is the quality gate.** An operator cannot ship a workflow that references unconfirmed tasks. That friction forces each atomic unit of knowledge to be reviewed and confirmed on its own terms, not just "good enough in context." The independence of the review is what gives machine consumers and audit confidence that every record in the system has been explicitly validated.
+
+### Mapping
+
+The activity of authoring a domain's content top-down is called **mapping** the domain. It is not a separate governed entity or a distinct pipeline stage — it is simply the authoring journey described above. "Map" is the operator-facing term for the work of populating a domain with workflows, tasks, and principles. The term captures the exploratory, top-down nature of the activity without implying a rigid process.
+
+### UI implication
+
+The platform's authoring UI should support workflow-first authoring: create or select a workflow, stub the tasks it needs from within that workflow context, fill each task in from there. This mirrors the human mental model. The governance layer enforces quality bottom-up regardless of which direction the author travelled to create the records.
+
+This is a Sprint 10+ frontend concern. The data model already supports it — workflows reference tasks by `record_id`, and tasks are independently governed. The current UI requires tasks to exist before a workflow can reference them; a workflow-first authoring mode removes that friction without changing any backend behaviour.
+
 ---
 
 # 10. Key Design Principles
