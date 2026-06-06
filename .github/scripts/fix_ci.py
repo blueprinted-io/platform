@@ -118,11 +118,17 @@ def parse_json_fix(response: str) -> list[dict]:
         return []
 
 
+SAFE_PREFIXES = ("api/", "tests/", "cli/", "workers/", "pyproject.toml")
+
+
 def apply_files(files: list[dict]) -> list[str]:
     changed = []
     for f in files:
         path, content = f.get("path", ""), f.get("content", "")
         if not path or not content or "..." in path:
+            continue
+        if not any(path.startswith(p) for p in SAFE_PREFIXES):
+            log(f"  SKIPPED (unsafe path): {path}")
             continue
         Path(path).parent.mkdir(parents=True, exist_ok=True)
         Path(path).write_text(content)
