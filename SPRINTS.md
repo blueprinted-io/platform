@@ -4,11 +4,57 @@ Updated at the end of each sprint.
 
 ---
 
+## Sprint 9 — Frontend Admin and Supporting
+
+**Goal:** Admin write screens, write/lifecycle actions for governed records, ingestion estimate review
+**Status:** Complete (delivered within Sprint 8 sessions — scope expanded in practice)
+**Spec at start:** v4.5 → **at end:** v4.6
+
+**Completed:**
+- Admin: domain create/enable/disable, user domain assignment, system settings + LLM config + test-connection
+- Governed records: task/workflow/principle create, edit, revise, lifecycle actions (submit/confirm/return) inline on detail pages
+- Ingestion: estimate review page (type toggle, reject, merge, approve) wired to triage estimates API
+- Notifications: mark read, mark all read
+- Relationships list view (§23.9)
+- CI auto-fix pipeline: event-driven GitHub Actions workflow using synthetic.new GLM-5.1
+
+**Decisions:**
+- Dashboard (§23.2) stubbed — customisable layout model needs speccing before implementation; see §24
+- Profile PATCH deferred — Authentik owns identity; platform-specific preferences deferred to v1.1; profile photo reads `picture` JWT claim
+- Admin user POST not implemented — users created via Authentik JIT upsert, no platform-side user creation needed
+
+---
+
 ## Sprint 8 — Core Read Screens (frontend)
 
 **Goal:** Build core read screens in `blueprinted-io/app` — tasks, workflows, principles, search, review queue
-**Status:** In progress
+**Status:** Complete
 **Spec at start:** v4.3 → **at end:** v4.5 (spec amendments made mid-sprint)
+
+**Completed:**
+- Task list, detail, create, edit, revise, diff view
+- Workflow list, detail, create, edit, diff view
+- Principle list, detail, create, edit
+- Review queue with claim/confirm/return inline actions
+- Search page with full-text and semantic results
+- Ingestion: list, create (PDF/HTML/JSON), detail/status, section selection, nav selection, candidate review, estimate review
+- Notifications page with mark-read and mark-all-read
+- Admin: settings (LLM config, test-connection), domains, users (domain assignment), health
+- Relationships list view (§23.9)
+- Dashboard stubbed (§23.2) — pending component model spec
+- Profile page (read-only, §23.1) — PATCH deferred pending preference model spec
+
+**Decisions:**
+- Facts and Concepts dissolved (v4.4) — authored inline on tasks as `TEXT[]`; no standalone screens
+- PyJWT upgraded 2.12.1 → 2.13.0 via auto-fix pipeline (PYSEC-2026-175/177/178/179)
+
+**Spec changes:**
+- v4.4: Facts and Concepts dissolved (§9.5, §23.5)
+- v4.5: Various frontend clarifications
+
+**Carried forward:**
+- Dashboard analytics endpoint and component model — needs design before implementation (§23.2, §24)
+- Profile PATCH — deferred pending platform-owned preference model (§23.1, §24)
 
 ---
 

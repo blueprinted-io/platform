@@ -1466,13 +1466,17 @@ A flat inventory of all views. Role column shows minimum role required. Primary 
 | Screen | Role | Primary API Calls |
 | --- | --- | --- |
 | Login | Public | OIDC PKCE flow via Authentik |
-| Profile | All roles | GET /api/v1/users/me, PATCH /api/v1/users/me |
+| Profile | All roles | GET /api/v1/users/me |
+
+**Profile ownership:** Authentik owns identity — name, email, password, and profile photo (`picture` JWT claim). The platform profile page is read-only in v1, displaying what the JWT provides. Platform-specific preferences (notification preferences, UI preferences) are deferred to v1.1. `PATCH /api/v1/users/me` is deferred until platform-owned fields are specified. Profile photo upload to platform storage is a v1.1 item; v1 reads the `picture` claim from the JWT if present.
 
 ## 23.2 Dashboard
 
 | Screen | Role | Primary API Calls |
 | --- | --- | --- |
-| Home dashboard (role-aware) | All roles | GET /api/v1/analytics/dashboard |
+| Home dashboard (role-aware) | All roles | GET /api/v1/analytics/dashboard (deferred) |
+
+**Dashboard stub:** The dashboard is a placeholder in v0.x. The MVP had fixed role-specific layouts (Admin: throughput/cycle time/review velocity/intervention rates; Contributor: work completed and outstanding). The v1 production version will support customisable layouts with standard role-default configurations. `GET /api/v1/analytics/dashboard` and the analytics subsystem are not implemented until the component inventory and layout model are fully specified. See §24.
 
 ## 23.3 Tasks
 
@@ -1556,7 +1560,7 @@ Facts and Concepts no longer exist as independently governed records. They are a
 | Audit log | Audit role | GET /api/v1/audit |
 | Notifications | All roles | GET /api/v1/notifications |
 
-*Note: Achievements screen exists in the screen inventory but behaviour is unspecified in v1 — stub only. Export screens exist in the MVP but are absent from v1.*
+*Note: Achievements screen exists in the screen inventory but behaviour is unspecified in v1 — stub only. Export screens exist in the MVP but are absent from v1. Tenant management and API key management are Sprint 10. Audit log is Sprint 10 (table does not exist yet). Dashboard analytics endpoint is deferred pending component specification (§23.2).*
 
 ---
 
@@ -1577,6 +1581,9 @@ Facts and Concepts no longer exist as independently governed records. They are a
 - *Relationship kind specification — v1.1 workstream informed by real usage patterns*
 - *High-volume ingestion patterns — v1.1. v1 is optimised for quality over throughput.*
 - *LLM-assisted image-to-step association during ingestion — v1.1. In v1, images are attached to steps manually post-ingestion. The MVP demonstrated this is reliably achievable via LLM; complexity deferred until core ingestion is stable.*
+- *Dashboard analytics subsystem — deferred pending component inventory and layout model specification. The MVP had fixed role-specific layouts; the production version will support customisable layouts with role-default configurations. No implementation until the component model is specified.*
+- *Profile PATCH and platform-owned preferences — deferred to v1.1. Authentik owns identity (name, email, photo). Platform-specific preferences (notification prefs, UI prefs, display name override) await preference model specification.*
+- *Profile photo upload to platform storage — v1.1. v1 reads the `picture` JWT claim from Authentik if present.*
 - *Seeded documentation tenant — post-v1 demonstration project. v1 ships with markdown docs.*
 - *agent:relationship_suggester role — v1.1, alongside first relationship kind definition*
 
