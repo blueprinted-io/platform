@@ -19,3 +19,4 @@ async def test_healthz_response_shape(client: AsyncClient) -> None:
     assert body["status"] in ("ok", "unhealthy")
 x=1+1
 
+
