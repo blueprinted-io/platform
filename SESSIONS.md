@@ -3,25 +3,25 @@ One entry only. On closeout: move this entry to the top of SESSIONS_ARCHIVE.md (
 Archive: SESSIONS_ARCHIVE.md (do not load unless explicitly asked).
 Format and rules: docs/session_protocol.md
 
-## Session — 2026-06-05 (relationships screen — §23.9)
+## Session — 2026-06-06 (CI auto-fix pipeline)
 
 ### Decisions
-- Audit log (§23.11) is Sprint 10 — `audit_log` table does not exist yet; deferred explicitly in spec.
-- Relationships write endpoint returns `HTTP_422_UNPROCESSABLE_CONTENT` (not the deprecated `_ENTITY` alias).
-- No ORM model existed for `Relationship` despite the table being in the Sprint 4 migration; added now.
+- `claude-code-action` is incompatible with non-Anthropic model providers — model name validation is in the CLI binary, not the action wrapper. Custom script is the only viable path with synthetic.new.
+- GLM-5.1 (`hf:zai-org/GLM-5.1`) chosen as the fix model — only synthetic.new model returning standard `content` at scale; GLM-4.7-Flash also works but is weaker.
+- Scheduled remote agent (claude.ai routines) replaced by event-driven GitHub Actions — Anthropic imposes a 5 runs/day limit on timed automations.
+- Auto-fix script restricted to writing only `api/`, `tests/`, `cli/`, `workers/`, `pyproject.toml` — prevents model from overwriting workflow scripts or other sensitive paths.
+- Workflow gates on `head_repository.full_name == github.repository` and checks out main (not the failing SHA) — prevents pwn-request / untrusted code execution with secrets.
+- `SYNTHETIC_API_KEY` stored as GitHub Actions secret; never committed.
 
 ### Done
-- `api/models/relationship.py`: ORM model for the `relationships` table.
-- `api/schemas/relationship.py`: `RelationshipResponse` Pydantic schema.
-- `api/routes/relationships.py`: `GET /api/v1/relationships` (all authenticated roles); `POST` returns 422.
-- `api/routes/v1.py`: relationships router registered.
-- `tests/test_relationships.py`: 4 tests — unauthenticated 401, viewer/contributor 200 empty list, write 422.
-- `app/src/pages/RelationshipsPage.tsx`: read-only list with empty state explaining v1 limitation.
-- `app/src/App.tsx`: `/relationships` route wired.
-- `platform/README.md`: Testing principles section added; committed after being overlooked earlier.
+- `.github/workflows/auto-fix.yml`: event-driven workflow triggering on CI failure; security hardened (fork gate, branch name validation, safe checkout).
+- `.github/scripts/fix_ci.py`: custom fix script calling synthetic.new OpenAI endpoint with GLM-5.1; strips GHA log prefix; path-traversal-safe allowlist; pip-audit and general (ruff/mypy/pytest) strategies.
+- `platform/README.md`: Why? column added to stack table; Testing principles section added.
+- 19 community skills installed globally from antigravity-awesome-skills (stack coverage + architecture/research skills).
+- End-to-end verified: CI failure → auto-fix PR opened and merged successfully.
 
 ### Next
-Sprint 8 is complete — all §23 screens built except audit log (Sprint 10). Close out Sprint 8 in SPRINTS.md and start Sprint 9 planning. Sprint 9 is the ingestion triage/extraction human review gate (spec v4.6, §11.5a) or whatever the next sprint item is per the spec.
+Sprint 8 complete. Close out Sprint 8 in SPRINTS.md, then plan Sprint 9. The candidate is the ingestion triage/extraction human review gate (spec §11.5a, noted in memory as planned sprint work). Run `/plan` to confirm scope against the current spec before writing any code.
 
 ## Session — 2026-05-29 (task diff view — §23.3)
 

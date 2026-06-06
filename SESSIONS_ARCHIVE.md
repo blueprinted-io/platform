@@ -4,6 +4,28 @@ Active session: SESSIONS.md
 
 ---
 
+## Session — 2026-06-05 (relationships screen — §23.9)
+
+### Decisions
+- Audit log (§23.11) is Sprint 10 — `audit_log` table does not exist yet; deferred explicitly in spec.
+- Relationships write endpoint returns `HTTP_422_UNPROCESSABLE_CONTENT` (not the deprecated `_ENTITY` alias).
+- No ORM model existed for `Relationship` despite the table being in the Sprint 4 migration; added now.
+
+### Done
+- `api/models/relationship.py`: ORM model for the `relationships` table.
+- `api/schemas/relationship.py`: `RelationshipResponse` Pydantic schema.
+- `api/routes/relationships.py`: `GET /api/v1/relationships` (all authenticated roles); `POST` returns 422.
+- `api/routes/v1.py`: relationships router registered.
+- `tests/test_relationships.py`: 4 tests — unauthenticated 401, viewer/contributor 200 empty list, write 422.
+- `app/src/pages/RelationshipsPage.tsx`: read-only list with empty state explaining v1 limitation.
+- `app/src/App.tsx`: `/relationships` route wired.
+- `platform/README.md`: Testing principles section added; committed after being overlooked earlier.
+
+### Next
+Sprint 8 complete. Sprint 9 planning next — ingestion triage/extraction human review gate (§11.5a) is the candidate.
+
+---
+
 ## Session — 2026-05-29 (startup hook, embedding, HTML worker tests + two bug fixes)
 
 ### Decisions
