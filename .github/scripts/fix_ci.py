@@ -118,7 +118,21 @@ def parse_json_fix(response: str) -> list[dict]:
         return []
 
 
-SAFE_PREFIXES = ("api/", "tests/", "cli/", "workers/", "pyproject.toml")
+REPO_ROOT = Path(".").resolve()
+ALLOWED_DIRS = [REPO_ROOT / d for d in ("api", "tests", "cli", "workers")]
+ALLOWED_FILES = {REPO_ROOT / "pyproject.toml"}
+
+
+def _safe_target(path: str) -> Path | None:
+    """Resolve path and verify it stays within an allowed directory or is an allowed file."""
+    if ".." in Path(path).parts:
+        return None
+    target = (REPO_ROOT / path).resolve()
+    if target in ALLOWED_FILES:
+        return target
+    if any(allowed in target.parents for allowed in ALLOWED_DIRS):
+        return target
+    return None
 
 
 def apply_files(files: list[dict]) -> list[str]:
@@ -127,11 +141,12 @@ def apply_files(files: list[dict]) -> list[str]:
         path, content = f.get("path", ""), f.get("content", "")
         if not path or not content or "..." in path:
             continue
-        if not any(path.startswith(p) for p in SAFE_PREFIXES):
+        target = _safe_target(path)
+        if target is None:
             log(f"  SKIPPED (unsafe path): {path}")
             continue
-        Path(path).parent.mkdir(parents=True, exist_ok=True)
-        Path(path).write_text(content)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(content)
         log(f"  fixed: {path}")
         changed.append(path)
     return changed
