@@ -8,7 +8,7 @@ Branch creation and PR opening are handled by the calling workflow.
 
 Note: the workflow always checks out the default branch (not the failing commit)
 to prevent untrusted code from running with secrets. The head_sha is used only
-to check out the failing commit's source files via git for context.
+to restore the failing commit's source files via git for context.
 """
 
 import json
@@ -25,6 +25,10 @@ MODEL = "hf:zai-org/GLM-5.1"
 API_URL = "https://api.synthetic.new/openai/v1/chat/completions"
 MAX_LOG_CHARS = 8_000
 MAX_FILE_CHARS = 4_000
+
+
+def log(msg: str) -> None:
+    print(msg, flush=True)
 
 
 # ---------------------------------------------------------------------------
@@ -67,15 +71,22 @@ def sh(cmd: list[str]) -> str:
 
 def get_logs(run_id: str, repo: str) -> str:
     logs = sh(["gh", "run", "view", run_id, "--repo", repo, "--log-failed"])
-    if len(logs) > MAX_LOG_CHARS:
-        logs = logs[:MAX_LOG_CHARS] + "\n...[truncated]"
-    return logs
+    # Strip the GHA log prefix: "<job>\t<step>\t<timestamp>Z " on each line
+    lines = []
+    for line in logs.splitlines():
+        # Format: "jobname\tstepname\t2026-...Z actual content"
+        parts = line.split("\t", 2)
+        lines.append(parts[-1].split("Z ", 1)[-1] if len(parts) >= 3 else line)
+    cleaned = "\n".join(lines)
+    if len(cleaned) > MAX_LOG_CHARS:
+        cleaned = cleaned[:MAX_LOG_CHARS] + "\n...[truncated]"
+    return cleaned
 
 
 def extract_paths(logs: str) -> list[str]:
-    """Pull source file paths out of failure log lines."""
+    """Pull source file paths from failure log lines."""
     hits = re.findall(
-        r'\b((?:api|tests|cli|workers|migrations)/[\w/.-]+\.py)\b',
+        r'((?:api|tests|cli|workers|migrations)/[\w/.-]+\.py)',
         logs,
     )
     return list(dict.fromkeys(p for p in hits if Path(p).exists()))
@@ -90,17 +101,20 @@ def read_file(path: str) -> str:
 
 def parse_json_fix(response: str) -> list[dict]:
     """Extract the JSON fix object from model response."""
-    match = re.search(r'\{[^{}]*"files"\s*:\s*\[.*?\]\s*\}', response, re.DOTALL)
+    # The model sometimes returns {{ and }} (double braces) — normalise first
+    response = response.replace("{{", "{").replace("}}", "}")
+
+    # Extract the JSON block (may be wrapped in markdown code fence)
+    match = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', response, re.DOTALL)
     if not match:
-        # Try broader match
-        match = re.search(r'\{.*"files".*\}', response, re.DOTALL)
+        match = re.search(r'(\{.*"files".*\})', response, re.DOTALL)
     if not match:
-        print(f"WARNING: no JSON found in response. Raw output:\n{response[:600]}", file=sys.stderr)
+        log(f"WARNING: no JSON found in response. Raw output:\n{response[:600]}")
         return []
     try:
-        return json.loads(match.group()).get("files", [])
+        return json.loads(match.group(1)).get("files", [])
     except json.JSONDecodeError as e:
-        print(f"WARNING: JSON parse error: {e}\nRaw: {match.group()[:400]}", file=sys.stderr)
+        log(f"WARNING: JSON parse error: {e}\nRaw: {match.group(1)[:400]}")
         return []
 
 
@@ -108,11 +122,11 @@ def apply_files(files: list[dict]) -> list[str]:
     changed = []
     for f in files:
         path, content = f.get("path", ""), f.get("content", "")
-        if not path or not content:
+        if not path or not content or "..." in path:
             continue
         Path(path).parent.mkdir(parents=True, exist_ok=True)
         Path(path).write_text(content)
-        print(f"  fixed: {path}")
+        log(f"  fixed: {path}")
         changed.append(path)
     return changed
 
@@ -123,29 +137,22 @@ def apply_files(files: list[dict]) -> list[str]:
 
 def fix_pip_audit(logs: str) -> list[str]:
     pyproject = Path("pyproject.toml").read_text()
-    prompt = f"""The pip-audit CI check failed:
-
-{logs}
-
-Current pyproject.toml:
-```toml
-{pyproject}
-```
-
-Update the vulnerable package(s) to the patched version shown in the audit output.
-
-Return ONLY valid JSON, no other text:
-{{
-  "files": [
-    {{"path": "pyproject.toml", "content": "<full updated content>"}}
-  ],
-  "explanation": "one line summary"
-}}"""
-
+    prompt = (
+        "The pip-audit CI check failed with the following output:\n\n"
+        f"{logs}\n\n"
+        "Here is the current pyproject.toml:\n"
+        f"```toml\n{pyproject}\n```\n\n"
+        "Update the vulnerable package(s) to the patched version shown above.\n\n"
+        "Respond with ONLY a JSON object like this (no other text, no markdown outside the block):\n"
+        '```json\n'
+        '{"files": [{"path": "pyproject.toml", "content": "<full updated file content>"}], '
+        '"explanation": "one line summary"}\n'
+        '```'
+    )
     response = call_model(prompt)
     changed = apply_files(parse_json_fix(response))
     if "pyproject.toml" in changed:
-        print("  running uv lock...")
+        log("  running uv lock...")
         subprocess.run(["uv", "lock"], check=True)
         changed.append("uv.lock")
     return changed
@@ -155,30 +162,25 @@ def fix_general(logs: str, paths: list[str]) -> list[str]:
     file_context = "\n\n".join(
         f"### {p}\n```python\n{read_file(p)}\n```"
         for p in paths
-    ) or "(no source files identified — use the error context to determine what to fix)"
+    )
+    if not file_context:
+        file_context = "(no source files identified from error output)"
 
-    prompt = f"""The CI workflow failed:
-
-{logs}
-
-Relevant source files:
-{file_context}
-
-Fix the failures. Return ONLY valid JSON, no other text:
-{{
-  "files": [
-    {{"path": "relative/path/to/file.py", "content": "<full corrected file content>"}}
-  ],
-  "explanation": "one line summary"
-}}
-
-Rules:
-- Return complete file contents, not diffs
-- Only include files that need changing
-- ruff: fix linting errors (unused imports, line length, formatting)
-- mypy: fix type errors in source files directly
-- pytest: fix the test or the source — never mock the database layer"""
-
+    prompt = (
+        "The CI workflow failed with these errors:\n\n"
+        f"{logs}\n\n"
+        f"Relevant source files:\n\n{file_context}\n\n"
+        "Fix the failures. Rules:\n"
+        "- ruff: fix linting errors (remove unused imports, fix line length, etc)\n"
+        "- mypy: fix type errors directly in the source\n"
+        "- pytest: fix the test or the source — never mock the database layer\n\n"
+        "Respond with ONLY a JSON object like this (no other text, no markdown outside the block):\n"
+        '```json\n'
+        '{"files": [{"path": "relative/path/to/file.py", "content": "<full corrected file content>"}], '
+        '"explanation": "one line summary"}\n'
+        '```\n\n'
+        "Return complete file contents (not diffs). Only include files that need changes."
+    )
     response = call_model(prompt)
     return apply_files(parse_json_fix(response))
 
@@ -194,35 +196,37 @@ def main() -> int:
 
     run_id, repo, head_sha = sys.argv[1], sys.argv[2], sys.argv[3]
 
-    # Check out the failing commit's files so the model has the right context.
-    # The workflow checked out main (trusted), but we need the broken source.
-    print(f"Checking out failing commit {head_sha[:8]}...")
+    # Restore the failing commit's source files for context.
+    # The workflow checked out main (trusted), so we selectively restore only
+    # source/test files from the failing commit — never pyproject or scripts.
+    log(f"Restoring source files from failing commit {head_sha[:8]}...")
     subprocess.run(["git", "fetch", "origin", head_sha], check=True, capture_output=True)
-    subprocess.run(["git", "checkout", head_sha, "--", "api/", "tests/", "cli/", "workers/", "pyproject.toml"],
-                   check=False, capture_output=True)  # best-effort; files may not all exist
+    subprocess.run(
+        ["git", "checkout", head_sha, "--", "api/", "tests/", "cli/", "workers/"],
+        check=False, capture_output=True,
+    )
 
-    print(f"Fetching logs for run {run_id} in {repo}...")
-
+    log(f"Fetching logs for run {run_id}...")
     logs = get_logs(run_id, repo)
     if not logs.strip():
-        print("No failure logs found — nothing to fix.")
+        log("No failure logs found — nothing to fix.")
         return 0
 
-    print(f"Log size: {len(logs)} chars")
+    log(f"Log size: {len(logs)} chars")
 
     if "pip-audit" in logs and ("known vulnerabilit" in logs or "PYSEC-" in logs):
-        print("Strategy: pip-audit")
+        log("Strategy: pip-audit")
         changed = fix_pip_audit(logs)
     else:
         paths = extract_paths(logs)
-        print(f"Strategy: general | files: {paths or '(none identified)'}")
+        log(f"Strategy: general | files: {paths or '(none identified)'}")
         changed = fix_general(logs, paths)
 
     if not changed:
-        print("No changes produced.", file=sys.stderr)
+        log("No changes produced.")
         return 1
 
-    print(f"Done. Changed: {changed}")
+    log(f"Done. Changed: {changed}")
     return 0
 
 
