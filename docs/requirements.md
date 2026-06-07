@@ -1633,6 +1633,8 @@ Facts and Concepts no longer exist as independently governed records. They are a
 - *Dashboard analytics subsystem — deferred pending component inventory and layout model specification. The MVP had fixed role-specific layouts; the production version will support customisable layouts with role-default configurations. No implementation until the component model is specified.*
 - *Profile PATCH and platform-owned preferences — deferred to v1.1. Authentik owns identity (name, email, photo). Platform-specific preferences (notification prefs, UI prefs, display name override) await preference model specification.*
 - *Profile photo upload to platform storage — v1.1. v1 reads the `picture` JWT claim from Authentik if present.*
+- *IdP role configuration operator docs — a generic "configuring Blueprinted roles at your identity provider" guide covering Authentik (default), Entra ID, Okta, and Keycloak. The five roles and their meanings, plus how to express them as app roles / groups and emit them as a JWT claim. Blocks enterprise deployment self-service.*
+- *Workflow-first authoring mode — UI to support creating a workflow, stubbing tasks from within it, and filling them in from there. Data model already supports it; frontend change only. See §9.9.*
 - *Seeded documentation tenant — post-v1 demonstration project. v1 ships with markdown docs.*
 - *agent:relationship_suggester role — v1.1, alongside first relationship kind definition*
 
