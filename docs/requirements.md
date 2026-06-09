@@ -2,11 +2,13 @@
 
 ## Platform Rebuild — Requirements Specification
 
-**Version 4.6 · May 2026**
+**Version 4.7 · June 2026**
 
 *Confidential. Internal Use Only*
 
 github.com/blueprinted-io/platform
+
+v4.7 changes from v4.6: Machine auth schemas specified (Sprint 10). `api_keys` table added to §9.6 — scoped API keys for agent access, SHA-256 hash storage, `bp_` prefix format, `last_used_at` async update, no-machine-can-confirm enforcement via `agent:` role prefix check. `audit_log` table added to §9.6 — append-only, generic `detail JSONB` column, v1 event types: `break_glass_confirm`, `api_key_created`, `api_key_revoked`. §5.3 extended with credential distinction mechanism (human roles vs `agent:` prefix), HTTP 403 response text for machine-on-confirm attempts, and Authentik OIDC client credentials setup flow.
 
 v4.6 changes from v4.5: Triage and extraction separated by a human review gate (§11.3, §11.5, §11.5a, §11.8a). Triage is now a two-output stage: chunk classification (task_candidate | principle_candidate | reference_material | skip) and a candidate estimate list (one entry per expected candidate, each with an estimated title and type). The operator reviews the estimate list before extraction runs — correcting types (principle → task and vice versa), discarding unwanted candidates, and merging multiple estimates into a single targeted extraction. The extraction LLM receives the approved estimate list as input and performs targeted extraction per approved candidate rather than open-ended extraction of all content. This decoupling means the cheap triage model runs speculatively on every chunk, but the expensive extraction model runs only on human-approved candidates with precise intent. chunk_status gains two new values: triage_complete (triage done, awaiting estimate review) and extraction_queued (estimates approved, awaiting extraction). New table: ingestion_triage_estimates (§11.8a). Operator workflow description updated. §11.5 updated. §11.6 updated. §11.7 updated.
 
@@ -206,10 +208,14 @@ Machine auth is implemented in Sprint 10 alongside the CLI and admin tooling it 
 
 | Method | Description |
 | --- | --- |
-| OIDC client credentials | For long-running agent processes. Client ID and secret registered in Authentik. |
-| Scoped API keys | For short-lived integrations and operator scripts. Managed via Admin UI and CLI. |
+| OIDC client credentials | For long-running agent processes. Client ID and secret registered in Authentik. JWT contains `roles` claim with one or more `agent:*` values. Token validation is identical to human tokens — same JWKS endpoint, same RS256 verification. |
+| Scoped API keys | For short-lived integrations and operator scripts. Managed via Admin UI and CLI. See `api_keys` table in §9.6. |
 
-**No-machine-can-confirm enforcement approach (decided Sprint 3):** The rule is absolute and permanent, but the *mechanical enforcement* is phased. In Sprints 4–9, confirm endpoints require a valid human OIDC JWT. Since machine credentials do not exist before Sprint 10, this is sufficient — there is nothing else to reject. In Sprint 10, when machine credentials are introduced, the confirm endpoints gain an explicit check that rejects them. The rule is not weakened between sprints; the threat model simply does not yet have the credential type that the check guards against.
+**Distinguishing machine from human credentials:** Human role names are plain strings (`admin`, `contributor`, `viewer`, etc.). All agent roles are prefixed `agent:`. Any token or API key whose role starts with `agent:` is treated as a machine credential throughout the platform.
+
+**No-machine-can-confirm enforcement approach (decided Sprint 3):** The rule is absolute and permanent, but the *mechanical enforcement* is phased. In Sprints 4–9, confirm endpoints require a valid human OIDC JWT. Since machine credentials do not exist before Sprint 10, this is sufficient — there is nothing else to reject. In Sprint 10, when machine credentials are introduced, the confirm endpoints gain an explicit check: if the authenticated credential's role begins with `agent:`, the confirm endpoint returns HTTP 403 with `{"detail": "Machine credentials cannot confirm governed records."}`. The rule is not weakened between sprints; the threat model simply does not yet have the credential type that the check guards against.
+
+**Authentik setup for OIDC client credentials:** A machine agent registers as an OAuth2 application in Authentik with client credentials grant type. The operator assigns the appropriate agent role group. The resulting `client_id` and `client_secret` are stored by the agent process and used to obtain a short-lived JWT via `POST /application/o/token/` with `grant_type=client_credentials`. The JWT is validated by the platform identically to human tokens.
 
 ---
 
@@ -509,10 +515,61 @@ Assessments are not included in v1. No table, no API endpoints, no UI, no system
 users, sessions, user_domains, domains
 achievements, user_achievements   -- stub: tables exist, no specified behaviour in v1
 system_settings
+api_keys
 audit_log
 notifications
 review_claims
 ```
+
+### api_keys Table
+
+Stores scoped API keys for machine access (agent processes and short-lived integrations). The raw key is generated once and shown once on creation — only a SHA-256 hash is stored. The first eight characters of the raw key are stored as `key_prefix` for display in listings.
+
+```
+api_keys
+  id           UUID PRIMARY KEY
+  name         TEXT NOT NULL           -- operator-assigned label for display
+  key_prefix   TEXT NOT NULL           -- first 8 chars of raw key, for identification in listings
+  key_hash     TEXT NOT NULL           -- SHA-256 hex digest of the full raw key
+  role         TEXT NOT NULL           -- agent:workflow_consumer | agent:staleness_monitor | agent:orphan_detector
+  created_by   UUID NOT NULL FK → users.id
+  created_at   TIMESTAMPTZ NOT NULL
+  last_used_at TIMESTAMPTZ             -- updated on each authenticated request, nullable
+  revoked_at   TIMESTAMPTZ             -- null = active
+  revoked_by   UUID FK → users.id      -- null = not yet revoked
+```
+
+**Key format:** `bp_` prefix followed by 48 random URL-safe base64 characters (288 bits of entropy). Example: `bp_aB3xZ9qRmK...`. The prefix `bp_` allows secrets scanners to detect accidental leaks.
+
+**Authentication flow:** The API accepts `Authorization: Bearer <key>` where the value matches the `bp_` prefix. The middleware computes SHA-256 of the presented key, looks up the hash in `api_keys`, and rejects if `revoked_at IS NOT NULL`. On match, the request proceeds with the role from `api_keys.role` as the credential identity. `last_used_at` is updated asynchronously (fire-and-forget) to avoid adding latency to every authenticated request.
+
+**No-machine-can-confirm enforcement:** Any credential whose role starts with `agent:` is a machine credential. Confirm endpoints check the role prefix and return HTTP 403 if it begins with `agent:`. This applies to both OIDC client credential JWTs (where the `roles` claim contains only `agent:*` values) and scoped API keys.
+
+### audit_log Table
+
+Append-only audit trail. No updates or deletes. Written by the platform on significant privileged operations.
+
+```
+audit_log
+  id           UUID PRIMARY KEY
+  event_type   TEXT NOT NULL           -- see event types below
+  actor_id     UUID NOT NULL FK → users.id
+  actor_type   TEXT NOT NULL           -- 'user' | 'agent'
+  target_id    UUID                    -- entity affected; null for non-entity events
+  target_type  TEXT                    -- 'task' | 'workflow' | 'principle' | 'api_key' | null
+  detail       JSONB NOT NULL DEFAULT '{}'  -- event-specific structured data
+  created_at   TIMESTAMPTZ NOT NULL
+```
+
+**Event types in v1:**
+
+| event_type | Written when | detail fields |
+| --- | --- | --- |
+| `break_glass_confirm` | Admin confirms their own content | `record_id`, `record_type`, `version`, `justification` |
+| `api_key_created` | Admin creates an API key | `api_key_id`, `name`, `role` |
+| `api_key_revoked` | Admin revokes an API key | `api_key_id`, `name`, `role` |
+
+Additional event types will be added in future sprints. The schema is intentionally generic — `detail` carries event-specific structure without requiring schema migrations for new event types.
 
 ## 9.7 Ingestion Pipeline Tables
 
