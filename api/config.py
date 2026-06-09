@@ -50,6 +50,14 @@ class Settings(BaseSettings):
     oidc_roles_claim: str = "roles"
 
     # -----------------------------------------------------------------------
+    # CORS
+    # -----------------------------------------------------------------------
+    # Origins allowed to make cross-origin requests to the API.
+    # JSON array in env: CORS_ALLOWED_ORIGINS=["https://app.blueprinted.io"]
+    # Multiple origins: ["https://app.blueprinted.io","http://localhost:5173"]
+    cors_allowed_origins: list[str] = ["http://localhost:5173"]
+
+    # -----------------------------------------------------------------------
     # Storage
     # -----------------------------------------------------------------------
     storage_backend: str = "local"  # "local" | "s3"

@@ -9,6 +9,7 @@ from arq import create_pool
 from arq.connections import ArqRedis
 from arq.connections import RedisSettings as ArqRedisSettings
 from fastapi import FastAPI, Request, Response
+from fastapi.middleware.cors import CORSMiddleware
 
 from api.auth import TokenVerifier
 from api.config import Settings, get_settings
@@ -78,6 +79,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.settings = settings
 
     # Middleware — order matters: outermost wraps innermost
+    if settings.cors_allowed_origins:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=settings.cors_allowed_origins,
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+
     app.add_middleware(RequestIDMiddleware)
 
     # Security headers on every response
