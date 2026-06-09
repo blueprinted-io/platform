@@ -4,6 +4,39 @@ Updated at the end of each sprint.
 
 ---
 
+## Sprint 10 — Machine Auth, CLI, Observability
+
+**Goal:** Machine credentials for agent access, audit log, CLI operational commands
+**Status:** Complete
+**Spec at start:** v4.6 → **at end:** v4.7
+
+**Completed:**
+- Spec v4.7: `api_keys` and `audit_log` table schemas defined (spec gap closed before implementation)
+- `AgentRole` enum (workflow_consumer, staleness_monitor, orphan_detector) added to `auth.py`
+- `is_machine_credential()` helper — `agent:` role prefix as human/machine distinction
+- `assert_can_confirm` rejects machine credentials with HTTP 403 (no-machine-can-confirm, §5.3)
+- `api_keys` table + ORM model + migration — SHA-256 hash storage, `bp_` prefix format, 288-bit entropy
+- `GET/POST/DELETE /api/v1/admin/api-keys` — Admin-only; raw key returned once on creation
+- `bp_` Bearer token auth in `get_current_user` — synthetic User record per key, role forwarded
+- `audit_log` table + ORM model + migration — append-only, JSONB detail column
+- `write_audit_event()` service helper — used on api_key_created and api_key_revoked
+- `GET /api/v1/audit` — Audit and Admin roles, newest-first, paginated
+- CLI: `blueprinted tenants list|create|delete` (stubs), `backup` (pg_dump wrapper), `upgrade` (pre-flight + migrate + restart), `api-keys create|revoke`
+- `cli/**/*.py` added to ruff per-file-ignores (subprocess/print intentional in CLI)
+- 21 new tests: test_api_keys.py (13), test_audit_log.py (8)
+
+**Decisions:**
+- Machine/human distinction is role-prefix based (`agent:`) — same OIDC JWT validation path, no separate token type
+- Synthetic User record per API key (`sub = "apikey:<id>"`) — allows `CurrentUser` dependency to work unchanged across all routes
+- `last_used_at` updated inline (not fire-and-forget) — simpler, v1 latency acceptable
+- `audit_log` event for break_glass_confirm not yet wired — confirm endpoint refactor deferred to Sprint 11 hardening
+- `blueprinted tenants` commands are stubs — multi-tenant provisioning is post-v1 work
+
+**Spec changes:**
+- v4.7: `api_keys` table defined (§9.6), `audit_log` table defined (§9.6), §5.3 extended with credential distinction mechanism and HTTP 403 response text
+
+---
+
 ## Sprint 9 — Frontend Admin and Supporting
 
 **Goal:** Admin write screens, write/lifecycle actions for governed records, ingestion estimate review

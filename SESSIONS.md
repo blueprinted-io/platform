@@ -3,6 +3,30 @@ One entry only. On closeout: move this entry to the top of SESSIONS_ARCHIVE.md (
 Archive: SESSIONS_ARCHIVE.md (do not load unless explicitly asked).
 Format and rules: docs/session_protocol.md
 
+## Session — 2026-06-09 (Sprint 10 — machine auth, audit log, CLI)
+
+### Decisions
+- Spec gaps in Sprint 10 (missing `api_keys` and `audit_log` schemas) were filled before implementation — v4.7 spec amendment committed first.
+- Machine/human credential distinction is `agent:` role prefix — same OIDC JWT path, no separate credential type needed. `is_machine_credential()` helper in `auth.py`.
+- Synthetic `User` record per API key (`sub = "apikey:<id>"`) lets all existing `CurrentUser` route dependencies work without changes.
+- `last_used_at` updated synchronously inline — acceptable for v1, avoids background task complexity.
+- `break_glass_confirm` audit log entry deferred to Sprint 11 — requires confirm endpoint refactor to thread the session into `assert_can_confirm`.
+- `blueprinted tenants` commands are stubs — multi-tenant provisioning is post-v1.
+- `cli/**/*.py` added to ruff per-file-ignores (S, T20, E501) — CLI subprocess/print calls are all intentional.
+
+### Done
+- Spec v4.7: `api_keys` and `audit_log` table schemas defined; §5.3 extended with enforcement mechanism.
+- `api_keys` migration + ORM model + `GET/POST/DELETE /api/v1/admin/api-keys` routes.
+- `bp_` API key auth wired into `get_current_user` — SHA-256 hash lookup, synthetic user.
+- `assert_can_confirm` rejects `agent:` credentials with HTTP 403.
+- `audit_log` migration + ORM model + `write_audit_event()` service + `GET /api/v1/audit` endpoint.
+- CLI: `tenants`, `backup`, `upgrade`, `api-keys create|revoke` commands.
+- 21 new tests (test_api_keys.py, test_audit_log.py).
+- SPRINTS.md Sprint 10 closed out.
+
+### Next
+Sprint 11 is Hardening. Candidates: break_glass_confirm audit log wiring, rate limiting review, dependency audit, frontend-to-backend integration smoke tests. Run `/plan` at the start of the next session.
+
 ## Session — 2026-06-06 (CI auto-fix pipeline)
 
 ### Decisions
