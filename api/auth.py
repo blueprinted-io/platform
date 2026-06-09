@@ -29,6 +29,19 @@ class Role(str, Enum):
     AUDIT = "audit"
 
 
+class AgentRole(str, Enum):
+    """Machine credential roles as defined in §5.2. Available from Sprint 10."""
+
+    WORKFLOW_CONSUMER = "agent:workflow_consumer"
+    STALENESS_MONITOR = "agent:staleness_monitor"
+    ORPHAN_DETECTOR = "agent:orphan_detector"
+
+
+def is_machine_credential(roles: list[str]) -> bool:
+    """Return True if all roles in the list are agent-prefixed (§5.3)."""
+    return bool(roles) and all(r.startswith("agent:") for r in roles)
+
+
 class TokenVerificationError(Exception):
     """Raised when a JWT cannot be verified."""
 

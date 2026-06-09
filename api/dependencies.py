@@ -1,6 +1,8 @@
 """FastAPI dependency providers."""
 
+import hashlib
 from collections.abc import AsyncGenerator
+from datetime import UTC, datetime
 from typing import Annotated
 
 import structlog
@@ -12,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.auth import Role, TokenVerificationError, TokenVerifier
 from api.config import Settings
+from api.models.api_key import ApiKey
 from api.models.user import User
 
 log = structlog.get_logger(__name__)
@@ -65,12 +68,55 @@ def get_token_verifier(request: Request) -> TokenVerifier:
     return request.app.state.token_verifier  # type: ignore[no-any-return]
 
 
+async def _authenticate_api_key(token: str, session: AsyncSession) -> User:
+    """Validate a bp_ scoped API key and return (or upsert) a synthetic User.
+
+    The synthetic user has sub = "apikey:<api_key_id>" and carries the key's
+    agent role. last_used_at is updated on each successful authentication.
+    """
+    key_hash = hashlib.sha256(token.encode()).hexdigest()
+    result = await session.execute(
+        select(ApiKey).where(ApiKey.key_hash == key_hash)
+    )
+    api_key = result.scalar_one_or_none()
+
+    if api_key is None or api_key.revoked_at is not None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or revoked API key",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # Update last_used_at inline — acceptable latency for v1
+    api_key.last_used_at = datetime.now(UTC)
+
+    synthetic_sub = f"apikey:{api_key.id}"
+    user_result = await session.execute(select(User).where(User.sub == synthetic_sub))
+    user = user_result.scalar_one_or_none()
+
+    if user is None:
+        user = User(
+            sub=synthetic_sub,
+            email="",
+            display_name=api_key.name,
+            roles=[api_key.role],
+        )
+        session.add(user)
+    else:
+        user.display_name = api_key.name
+        user.roles = [api_key.role]
+
+    await session.commit()
+    await session.refresh(user)
+    return user
+
+
 async def get_current_user(
     session: DBSession,
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
     verifier: Annotated[TokenVerifier, Depends(get_token_verifier)],
 ) -> User:
-    """Validate Bearer token and return (or upsert) the authenticated user.
+    """Validate Bearer token (JWT or bp_ API key) and return the authenticated user.
 
     Raises HTTP 401 for missing or invalid tokens.
     Raises HTTP 403 for inactive users.
@@ -82,8 +128,15 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    token = credentials.credentials
+
+    # API key path — bp_ prefix identifies scoped machine credentials (§5.3)
+    if token.startswith("bp_"):
+        return await _authenticate_api_key(token, session)
+
+    # JWT path — OIDC token from Authentik (human or OIDC client_credentials)
     try:
-        claims = verifier.decode(credentials.credentials)
+        claims = verifier.decode(token)
     except TokenVerificationError as exc:
         log.warning("token_verification_failed", reason=str(exc))
         raise HTTPException(

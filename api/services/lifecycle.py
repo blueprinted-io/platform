@@ -10,9 +10,9 @@ State machine (§9.3):
   confirmed → retired  (admin only, permanent)
 
 No-machine-can-confirm (§10.2, §5.3):
-  Sprint 4-9: confirm endpoints require a valid human OIDC JWT. Machine
-  credentials don't exist before Sprint 10, so requiring a JWT is sufficient.
-  Sprint 10 adds an explicit machine-credential rejection check.
+  assert_can_confirm rejects any credential whose roles list is entirely
+  agent:-prefixed. Machine credentials (API keys and OIDC client_credentials
+  flows) carry only agent: roles by spec — this check is unconditional.
 
 Self-review prohibition (§5.1):
   Contributors cannot confirm or return content they created.
@@ -31,7 +31,7 @@ import sqlalchemy as sa
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.auth import Role
+from api.auth import Role, is_machine_credential
 from api.models.review_claim import ReviewClaim
 from api.models.user import User
 
@@ -86,9 +86,15 @@ def assert_can_confirm(
 ) -> bool:
     """submitted → confirmed. Returns True if self_confirmed_by_admin should be set.
 
+    Machine credentials are unconditionally rejected (§5.3).
     Self-review prohibition applies to contributors; admins are exempt but must
     supply a non-empty justification when confirming their own content (§5.1).
     """
+    if is_machine_credential(user.roles):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Machine credentials cannot confirm governed records.",
+        )
     if record_status != "submitted":
         raise HTTPException(
             status_code=422,

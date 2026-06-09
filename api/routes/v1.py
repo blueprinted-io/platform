@@ -4,6 +4,8 @@ from fastapi import APIRouter
 
 from api.routes import (
     admin,
+    api_keys,
+    audit_log,
     ingestions,
     notifications,
     principles,
@@ -28,3 +30,5 @@ router.include_router(ingestions.router)
 router.include_router(triage_estimates.router)
 router.include_router(notifications.router)
 router.include_router(admin.router)
+router.include_router(api_keys.router)
+router.include_router(audit_log.router)

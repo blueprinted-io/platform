@@ -100,6 +100,8 @@ ignore = [
 "api/services/search.py" = ["S608"]
 # Dev-only CLI tool: print output, subprocess/urllib to localhost, and inline SQL are all intentional.
 "seed/**/*.py" = ["T20", "S", "E501"]
+# Operational CLI: subprocess calls to alembic/docker/pg_dump and print output are all intentional.
+"cli/**/*.py" = ["T20", "S", "E501"]
 # CI tooling scripts — not application code; subprocess, urllib, and print are all intentional.
 ".github/**/*.py" = ["T20", "S", "ANN", "E501"]
 
