@@ -3,28 +3,18 @@ One entry only. On closeout: move this entry to the top of SESSIONS_ARCHIVE.md (
 Archive: SESSIONS_ARCHIVE.md (do not load unless explicitly asked).
 Format and rules: docs/session_protocol.md
 
-## Session — 2026-06-10 (Sprint 11 Hardening — complete)
+## Session — 2026-06-10 (Sprint 11 CI hardening + dependency audit)
 
 ### Decisions
-- Route dedup via shared service layer (not router factory) — keeps route handlers readable, tracebacks clean.
-- `assert_can_return()` and status assertions moved inside `lifecycle_actions`; domain/foreign-claim checks stay in route handlers (need session, entity-specific).
-- Auth failure rate limiting (5/min) deferred — counting only failures requires custom Redis middleware; blanket 30/min on search and 10/min on ingestion covers the main attack surface.
-- `expires_at_days` on key creation (relative) rather than absolute timestamp — simpler for CLI callers.
-- Break-glass confirm requires non-empty justification (§5.1); admin self-confirms always produce `break_glass_confirm` audit event.
+- Auto-fix PR #3 partially rejected: applied its two mypy fixes (dict[str, Any] return type, type: ignore on slowapi handler) but discarded its `prefix="/api/v1"` change — v1.router already declares that prefix, adding it again would double routes.
+- Weekly pip-audit without `--strict` — `--strict` fails on any unauditable package (including the local editable install); CVE detection works fine without it.
 
 ### Done
-- `api/services/lifecycle_actions.py` — shared confirm/return/deprecate/retire with audit events
-- Thinned tasks.py, workflows.py, principles.py route handlers
-- `domain_created` + `user_domains_updated` audit events wired in admin.py
-- `test_audit_log.py` extended with 7 new event-type tests
-- `api/services/linting.py` + `TaskResponse.lint_warnings` computed field (§9.10)
-- 5 new linting tests in test_tasks.py
-- `api_key.expires_at` model + migration `4c5d6e7f8a9b` + schema + auth enforcement + tests
-- `(record_id, version)` unique constraint migration `5d6e7f8a9b0c`
-- slowapi rate limiting: `api/limiter.py`, 30/min search, 10/min ingestion upload; LIMITER_STORAGE_URI env var for Redis backend
-- `return_severity` migration `3b4c5d6e7f8a` (from previous session)
-- Spec updated to v4.10; SPRINTS.md Sprint 11 entry added
-- 323 tests collected (no regressions in collection)
+- Fixed 14 Ruff lint errors from CI: E501 wrapping in lifecycle_actions.py, linting.py, principles.py, workflows.py, test_audit_log.py, test_tasks.py; ANN401 noqa on `record: Any` params; I001 import sort in migration.
+- Fixed 2 mypy errors: `dict` → `dict[str, Any]` in lifecycle_actions._base_detail; `# type: ignore[arg-type]` on slowapi exception handler in main.py.
+- Weekly dependency audit workflow: `.github/workflows/dependency-audit.yml`, runs Mondays 09:00 UTC, `pip-audit --skip-editable`, manually triggerable.
+- `pip-audit==2.9.0` added as dev dependency.
+- CI is green on main.
 
 ### Broken / Incomplete
 - .env and app/.env.local are gitignored and exist only on the VM.
