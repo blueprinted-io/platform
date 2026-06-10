@@ -254,6 +254,7 @@ async def return_task(
     task.status = "returned"
     if body.note:
         task.change_note = body.note
+    task.return_severity = body.severity
     task.reviewed_by = user.id
     task.updated_by = user.id
     await session.commit()

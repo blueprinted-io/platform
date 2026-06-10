@@ -34,6 +34,7 @@ class LifecycleMixin:
     )
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     change_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    return_severity: Mapped[str | None] = mapped_column(Text, nullable=True)
     needs_review_flag: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False, server_default="false"
     )

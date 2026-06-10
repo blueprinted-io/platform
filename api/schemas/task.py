@@ -82,6 +82,7 @@ class TaskUpdate(BaseModel):
 
 class ReturnRequest(BaseModel):
     note: str | None = None
+    severity: str | None = None  # "info" | "warning" | "critical"
 
 
 class ReviseRequest(BaseModel):

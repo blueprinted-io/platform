@@ -188,6 +188,7 @@ async def return_principle(
     principle.status = "returned"
     if body.note:
         principle.change_note = body.note
+    principle.return_severity = body.severity
     principle.reviewed_by = user.id
     principle.updated_by = user.id
     await session.commit()

@@ -223,6 +223,7 @@ async def return_workflow(
     workflow.status = "returned"
     if body.note:
         workflow.change_note = body.note
+    workflow.return_severity = body.severity
     workflow.reviewed_by = user.id
     workflow.updated_by = user.id
     await session.commit()

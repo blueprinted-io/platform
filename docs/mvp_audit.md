@@ -4,6 +4,10 @@ Conducted by Fable 5, 2026-06-10. Comparison of the original SQLite MVP against 
 current FastAPI/PostgreSQL platform. Documents what survived, what regressed, what was
 deliberately deferred, and where the spec has gaps.
 
+**Status as of 2026-06-10:** Spec gaps 1 (return severity) and 2 (step linting) resolved
+in spec v4.8. Items 3 (force_submit) and 4 (hard delete) closed as explicit non-features
+with rationale in §25 key decisions.
+
 ---
 
 ## What survived faithfully
@@ -17,28 +21,17 @@ deliberately deferred, and where the spec has gaps.
 
 ## Spec gaps — not tracked anywhere currently
 
-### Return note severity
+### ~~Return note severity~~ — Resolved in v4.8
 
-The MVP attaches a `note` to every audit action, and `return_for_changes` notes carry a
-`[severity]` prefix: `[info]`, `[warning]`, `[critical]`. The platform's `ReturnRequest`
-has a `note` field but no severity classification in the schema or spec. Minor, but useful
-for review queue triage.
+`return_severity TEXT` added to §9.2 shared lifecycle fields and to `ReturnRequest` in all
+three record schemas. Migration `20260610_3b4c5d6e7f8a_return_severity.py` adds the column
+to `tasks`, `workflows`, `principles`. Values: `"info" | "warning" | "critical"` | NULL.
 
-**Recommended action:** Add `severity: Literal["info", "warning", "critical"] | None`
-to `ReturnRequest` and thread it into the audit event detail. One migration, one schema
-field, one spec line.
+### ~~Step linting / quality hints~~ — Resolved in v4.8 (spec entry; implementation Sprint 11)
 
-### Step linting / quality hints
-
-The MVP has a 221-line `linting.py` that validates task steps on create, edit, and
-display: flags abstract verbs ("ensure", "handle", "manage"), checks completion criteria
-are present, validates step structure. Returns warnings — not a hard block. Provides
-disproportionate quality signal for ~2 hours of work.
-
-Not mentioned anywhere in the platform spec. Almost certainly dropped during the
-governance-infrastructure rewrite focus.
-
-**Recommended action:** Add `§9.x Step quality linting` to the spec before v1.
+§9.10 added to spec: non-blocking lint warnings on abstract verbs, missing completion
+criterion, empty action list. Computed on write/GET for authored records; not stored; not
+surfaced on confirmed records.
 
 ### Export artifacts + SHA256 fingerprints
 
@@ -51,36 +44,19 @@ deferred, add an explicit stub comment so it isn't re-discovered as a surprise.
 
 ---
 
-## Product decisions needed
+## Product decisions — Closed
 
-### `force_submit` admin override
+### ~~`force_submit` admin override~~ — Not needed (§25 key decisions)
 
-The MVP has `force_submit` as an explicit admin-only endpoint, audited with
-`note="admin forced submission"`, with a visible "scar" flag on the record detail page.
-The platform has no equivalent — there is no way for an admin to push a draft directly
-to submitted state, bypassing the contributor workflow.
+Decision: `force_submit` is not being added. The MVP needed it to paper over missing
+domain-at-create; that gap no longer exists. Break-glass confirm covers the genuine admin
+override case on the review side. Documented in §25.
 
-**Origin note:** In the MVP, `force_submit` partly existed to paper over the absence of
-domain-assignment at create time (tasks could be created without a domain). The
-platform's domain-required-at-create model eliminates that original use case. Whether a
-genuine admin override is needed is a product call, not an inherited requirement.
+### ~~Hard delete~~ — Explicitly out of scope (§25 key decisions)
 
-**Recommended action:** Make an explicit decision — add `force_submit` or document why
-it's out of scope.
-
-### Hard delete
-
-The MVP allows hard delete of tasks and primers (admin always; contributors on own
-draft/submitted records), with referential integrity checks against workflows before
-deletion, and an audit entry at `version=0`. The platform has no `DELETE /tasks/{id}`
-endpoint — only step-level delete. This is probably intentional (immutable audit trail),
-but it means there's no way to remove test data or fix ingestion errors in production
-without direct DB access.
-
-**Recommended action:** Add a spec entry making the decision explicit: either a
-soft-delete or admin-only hard-delete endpoint with the same referential integrity check,
-or a documented statement that hard delete is out of scope and DB access is the
-intentional escape hatch.
+Decision: No hard delete on governed records. The append-only lifecycle is an audit trail
+integrity guarantee. Test data and ingestion errors are handled by retire/deprecate. Direct
+DB access is the intentional escape hatch for exceptional cases. Documented in §25.
 
 ---
 

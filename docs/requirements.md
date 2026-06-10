@@ -2,11 +2,13 @@
 
 ## Platform Rebuild — Requirements Specification
 
-**Version 4.7 · June 2026**
+**Version 4.8 · June 2026**
 
 *Confidential. Internal Use Only*
 
 github.com/blueprinted-io/platform
+
+v4.8 changes from v4.7: MVP continuity audit (Fable 5, 2026-06-10). `return_severity` field added to §9.2 shared lifecycle fields and `ReturnRequest` schema — values `"info" | "warning" | "critical"`, nullable; threaded through all three record-type return endpoints. §9.10 Step quality linting added — non-blocking warnings on abstract verbs, missing completion criterion, empty action list; computed on write/read, not stored. §25 key decisions: No hard delete on governed records (audit trail integrity; DB access is intentional escape hatch). No `force_submit` (MVP workaround for missing domain-at-create; that gap no longer exists; break-glass covers genuine admin override). See `docs/mvp_audit.md` for full comparison.
 
 v4.7 changes from v4.6: Machine auth schemas specified (Sprint 10). `api_keys` table added to §9.6 — scoped API keys for agent access, SHA-256 hash storage, `bp_` prefix format, `last_used_at` async update, no-machine-can-confirm enforcement via `agent:` role prefix check. `audit_log` table added to §9.6 — append-only, generic `detail JSONB` column, v1 event types: `break_glass_confirm`, `api_key_created`, `api_key_revoked`. §5.3 extended with credential distinction mechanism (human roles vs `agent:` prefix), HTTP 403 response text for machine-on-confirm attempts, and Authentik OIDC client credentials setup flow.
 
@@ -361,6 +363,7 @@ updated_by                UUID FK → users.id
 reviewed_at               TIMESTAMPTZ  -- drives staleness calculation
 reviewed_by               UUID FK → users.id
 change_note               TEXT
+return_severity           TEXT         -- "info" | "warning" | "critical" — reviewer's assessment of urgency; NULL if no severity set
 needs_review_flag         BOOL NOT NULL DEFAULT FALSE
 needs_review_note         TEXT
 self_confirmed_by_admin   BOOL NOT NULL DEFAULT FALSE  -- set when admin confirms own content (§5.1 break-glass)
@@ -639,6 +642,22 @@ The activity of authoring a domain's content top-down is called **mapping** the 
 The platform's authoring UI should support workflow-first authoring: create or select a workflow, stub the tasks it needs from within that workflow context, fill each task in from there. This mirrors the human mental model. The governance layer enforces quality bottom-up regardless of which direction the author travelled to create the records.
 
 This is a Sprint 10+ frontend concern. The data model already supports it — workflows reference tasks by `record_id`, and tasks are independently governed. The current UI requires tasks to exist before a workflow can reference them; a workflow-first authoring mode removes that friction without changing any backend behaviour.
+
+## 9.10 Step Quality Linting
+
+The platform validates task steps on create and update and returns warnings (not hard errors). Linting does not block submission or confirmation — it surfaces quality signals to the author before a record enters the review queue.
+
+**Rules (all non-blocking — warnings only):**
+
+- **Abstract verb flag** — step text beginning with abstract verbs ("ensure", "handle", "manage", "maintain", "support", "address") is flagged. These verbs describe intent without describing action.
+- **Missing completion criterion** — a step with no `completion` value set is flagged.
+- **Empty action list** — a step with no actions is flagged.
+
+**API behaviour:**
+
+Steps that fail lint rules are accepted and saved. The response includes a `lint_warnings` array at the task level listing `{step_index, rule, message}` objects. A task with lint warnings may still be submitted and confirmed; the warnings are advisory.
+
+Warnings are not stored — they are computed on every write response and on GET for the authored record. The lint result is not surfaced on confirmed records (reviewers see the record as-authored).
 
 ---
 
@@ -1734,6 +1753,8 @@ Facts and Concepts no longer exist as independently governed records. They are a
 | TEST_REVISED process over immutable tests | Immutable tests cause legitimate spec gaps to become permanent bugs. TEST_REVISED commits preserve the protection against silent weakening while allowing honest corrections. |
 | Seeded documentation tenant deferred | Requires stable platform and second reviewer for self-review prohibition. Post-v1 demonstration project. |
 | Domain as soft-deletable slug registry | Replicates MVP pattern. Hard delete orphans existing records. Domain name stored as free-text slug on records, not a DB FK — application-enforced at write time. Disabled domains remain on historical records for audit integrity. |
+| No hard delete on governed records | The governed record lifecycle is append-only by design. Hard delete would break audit trail integrity. Test data and ingestion errors are corrected by retiring or deprecating records, not deleting them. Direct DB access is the intentional escape hatch for exceptional cases. |
+| No `force_submit` admin override | MVP had `force_submit` to paper over missing domain assignment at create time. Platform requires domain at create — the original use case no longer exists. Genuine admin override is covered by break-glass confirm. `force_submit` would bypass the contributor governance step with no compensating check. |
 | Admin break-glass requires justification + scar flag | `self_confirmed_by_admin` flag added to shared lifecycle fields. Confirm endpoint requires non-empty justification when admin confirms own content. Audit log entry deferred until `audit_log` table exists in Sprint 10. |
 | `record_id` ref columns are application-enforced not DB FK | `record_id` is not unique across versions. DB-level FK cannot reference it. Application validates existence of a confirmed record with that `record_id` before inserting into ref tables. |
 | PKCE frontend flow deferred to Sprint 8 | blueprinted-io/app repository did not exist during Sprint 2. Backend JWT validation tested with mock JWTs. PKCE implemented when React frontend exists. |

@@ -23,6 +23,7 @@ class LifecycleResponse(BaseModel):
     created_by: uuid.UUID
     self_confirmed_by_admin: bool
     change_note: str | None = None
+    return_severity: str | None = None  # "info" | "warning" | "critical"
 
     model_config = ConfigDict(from_attributes=True)
 
