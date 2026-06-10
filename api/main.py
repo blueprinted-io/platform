@@ -97,7 +97,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # Production: set LIMITER_STORAGE_URI=redis://localhost:6379/2 (same host as ARQ).
     # Tests: defaults to memory:// (in-process, not shared across workers).
     app.state.limiter = limiter
-    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
 
     # Security headers on every response
     secure_headers = secure.Secure.with_default_headers()
@@ -110,6 +110,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     # Routes
     app.include_router(health.router)
-    app.include_router(v1.router)
+    app.include_router(v1.router, prefix="/api/v1")
 
     return app

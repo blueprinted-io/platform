@@ -27,7 +27,7 @@ from api.services.audit import write_audit_event
 log = structlog.get_logger(__name__)
 
 
-def _base_detail(record: Any, record_type: str) -> dict:  # noqa: ANN401
+def _base_detail(record: Any, record_type: str) -> dict[str, Any]:  # noqa: ANN401
     return {
         "record_type": record_type,
         "record_id": str(record.record_id),
