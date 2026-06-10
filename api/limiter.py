@@ -15,4 +15,8 @@ from slowapi.util import get_remote_address
 
 _storage_uri = os.environ.get("LIMITER_STORAGE_URI", "memory://")
 
-limiter = Limiter(key_func=get_remote_address, storage_uri=_storage_uri)
+# Disable rate limiting when no real backend is configured (tests, local dev).
+# Production must set LIMITER_STORAGE_URI=redis://... to activate limits.
+_enabled = not _storage_uri.startswith("memory://")
+
+limiter = Limiter(key_func=get_remote_address, storage_uri=_storage_uri, enabled=_enabled)

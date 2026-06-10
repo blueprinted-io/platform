@@ -269,6 +269,8 @@ async def replace_user_domains(
             status_code=422, detail="One or more domain names are invalid."
         ) from exc
 
+    for row in new_rows:
+        await session.refresh(row)
     return new_rows
 
 
