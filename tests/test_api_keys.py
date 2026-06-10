@@ -215,3 +215,38 @@ async def test_machine_credential_cannot_call_confirm_endpoint(
     # Machine check happens in assert_can_confirm which runs after record lookup,
     # so 404 from no record is fine. But if we test with a submitted record it must 403.
     assert response.status_code in (403, 404)
+
+
+# ---------------------------------------------------------------------------
+# expires_at
+# ---------------------------------------------------------------------------
+
+async def test_create_api_key_with_expiry(
+    client: AsyncClient, make_token: Callable[..., str]
+) -> None:
+    admin_token = make_token(roles=["admin"])
+    headers = {"Authorization": f"Bearer {admin_token}"}
+
+    resp = await client.post(
+        _BASE,
+        json={"name": "Expiring Key", "role": "agent:orphan_detector", "expires_at_days": 30},
+        headers=headers,
+    )
+    assert resp.status_code == 201
+    data = resp.json()
+    assert data["expires_at"] is not None
+
+
+async def test_create_api_key_without_expiry_has_null_expires_at(
+    client: AsyncClient, make_token: Callable[..., str]
+) -> None:
+    admin_token = make_token(roles=["admin"])
+    headers = {"Authorization": f"Bearer {admin_token}"}
+
+    resp = await client.post(
+        _BASE,
+        json={"name": "No-Expiry Key", "role": "agent:staleness_monitor"},
+        headers=headers,
+    )
+    assert resp.status_code == 201
+    assert resp.json()["expires_at"] is None

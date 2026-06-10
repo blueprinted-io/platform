@@ -35,7 +35,7 @@ from api.schemas.workflow import (
     WorkflowUpdate,
     WorkflowVersionSummary,
 )
-from api.services import lifecycle
+from api.services import lifecycle, lifecycle_actions
 from api.services.notifications import create_notification, notify_domain_users
 
 log = structlog.get_logger(__name__)
@@ -191,15 +191,9 @@ async def confirm_workflow(
     workflow = await _get_workflow_with_refs(session, workflow_id)
     await lifecycle.assert_domain_access(workflow.domain, user, session)
     await lifecycle.assert_no_foreign_claim("workflow", workflow.id, user, session)
-    is_break_glass = lifecycle.assert_can_confirm(
-        workflow.status, workflow.created_by, user, body.justification if body else None
+    await lifecycle_actions.confirm_record(
+        workflow, session, user, body.justification if body else None, "workflow"
     )
-    workflow.status = "confirmed"
-    workflow.self_confirmed_by_admin = is_break_glass
-    workflow.reviewed_by = user.id
-    workflow.updated_by = user.id
-    await session.commit()
-    log.info("workflow_confirmed", workflow_id=str(workflow.id), user_id=str(user.id))
     await create_notification(
         session, workflow.created_by, "record_confirmed", "workflow", workflow.id,
         f'Your workflow "{workflow.title}" has been confirmed.',
@@ -217,16 +211,9 @@ async def return_workflow(
     workflow_id: uuid.UUID, body: ReturnRequest, session: DBSession, user: _Writer
 ) -> WorkflowResponse:
     workflow = await _get_workflow_with_refs(session, workflow_id)
-    lifecycle.assert_can_return(workflow.status, user)
     await lifecycle.assert_domain_access(workflow.domain, user, session)
     await lifecycle.assert_no_foreign_claim("workflow", workflow.id, user, session)
-    workflow.status = "returned"
-    if body.note:
-        workflow.change_note = body.note
-    workflow.return_severity = body.severity
-    workflow.reviewed_by = user.id
-    workflow.updated_by = user.id
-    await session.commit()
+    await lifecycle_actions.return_record(workflow, session, user, body.note, body.severity, "workflow")
     await create_notification(
         session, workflow.created_by, "record_returned", "workflow", workflow.id,
         f'Your workflow "{workflow.title}" has been returned for changes.',
@@ -240,10 +227,7 @@ async def deprecate_workflow(
     workflow_id: uuid.UUID, session: DBSession, user: _Admin
 ) -> WorkflowResponse:
     workflow = await _get_workflow_with_refs(session, workflow_id)
-    lifecycle.assert_can_deprecate(workflow.status, user)
-    workflow.status = "deprecated"
-    workflow.updated_by = user.id
-    await session.commit()
+    await lifecycle_actions.deprecate_record(workflow, session, user, "workflow")
     return WorkflowResponse.model_validate(await _get_workflow_with_refs(session, workflow.id))
 
 
@@ -252,10 +236,7 @@ async def retire_workflow(
     workflow_id: uuid.UUID, session: DBSession, user: _Admin
 ) -> WorkflowResponse:
     workflow = await _get_workflow_with_refs(session, workflow_id)
-    lifecycle.assert_can_retire(workflow.status, user)
-    workflow.status = "retired"
-    workflow.updated_by = user.id
-    await session.commit()
+    await lifecycle_actions.retire_record(workflow, session, user, "workflow")
     return WorkflowResponse.model_validate(await _get_workflow_with_refs(session, workflow.id))
 
 

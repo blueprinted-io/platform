@@ -3,20 +3,34 @@ One entry only. On closeout: move this entry to the top of SESSIONS_ARCHIVE.md (
 Archive: SESSIONS_ARCHIVE.md (do not load unless explicitly asked).
 Format and rules: docs/session_protocol.md
 
-## Session — 2026-06-09 (HTTPS tunnel setup — Cloudflare + Authentik)
+## Session — 2026-06-10 (Sprint 11 Hardening — complete)
 
 ### Decisions
-- Authentik derives OIDC issuer from the incoming request's Host + X-Forwarded-Proto headers — no static issuer config needed; Cloudflare tunnel supplies both automatically.
-- JWKS URI kept on internal IP (http://192.168.1.82:9000/...) — API fetches it server-to-server; no reason to hairpin through the tunnel.
-- AUTHENTIK_URL passed through docker-compose as belt-and-suspenders; not load-bearing given Cloudflare header behaviour.
-- Vite dev server must be started with --host 0.0.0.0 to be reachable through the tunnel; orphaned instances from prior sessions were killed and replaced.
+- Route dedup via shared service layer (not router factory) — keeps route handlers readable, tracebacks clean.
+- `assert_can_return()` and status assertions moved inside `lifecycle_actions`; domain/foreign-claim checks stay in route handlers (need session, entity-specific).
+- Auth failure rate limiting (5/min) deferred — counting only failures requires custom Redis middleware; blanket 30/min on search and 10/min on ingestion covers the main attack surface.
+- `expires_at_days` on key creation (relative) rather than absolute timestamp — simpler for CLI callers.
+- Break-glass confirm requires non-empty justification (§5.1); admin self-confirms always produce `break_glass_confirm` audit event.
 
 ### Done
-- deploy/docker-compose.yml: Authentik 2025.4.1 → 2025.6.2; AUTHENTIK_URL env passthrough added.
+- `api/services/lifecycle_actions.py` — shared confirm/return/deprecate/retire with audit events
+- Thinned tasks.py, workflows.py, principles.py route handlers
+- `domain_created` + `user_domains_updated` audit events wired in admin.py
+- `test_audit_log.py` extended with 7 new event-type tests
+- `api/services/linting.py` + `TaskResponse.lint_warnings` computed field (§9.10)
+- 5 new linting tests in test_tasks.py
+- `api_key.expires_at` model + migration `4c5d6e7f8a9b` + schema + auth enforcement + tests
+- `(record_id, version)` unique constraint migration `5d6e7f8a9b0c`
+- slowapi rate limiting: `api/limiter.py`, 30/min search, 10/min ingestion upload; LIMITER_STORAGE_URI env var for Redis backend
+- `return_severity` migration `3b4c5d6e7f8a` (from previous session)
+- Spec updated to v4.10; SPRINTS.md Sprint 11 entry added
+- 323 tests collected (no regressions in collection)
 
 ### Broken / Incomplete
-- .env changes (OIDC_ISSUER, CORS_ALLOWED_ORIGINS, AUTHENTIK_URL) and app/.env.local (VITE_OIDC_AUTHORITY) are gitignored and exist only on the VM — must be re-applied manually if the stack is rebuilt on a new machine.
-- Authentik theme logos broken after tunnel setup — cosmetic, deferred.
+- .env and app/.env.local are gitignored and exist only on the VM.
+- Authentik theme logos broken — cosmetic, deferred.
+- Auth failure rate limiting (5 failures/min per IP) not implemented — needs custom Redis counter middleware.
+- Production deployment requires `LIMITER_STORAGE_URI=redis://localhost:6379/2` in environment.
 
 ### Next
-Sprint 11 Hardening. Start with audit log wiring via the confirm-endpoint refactor — dedup the three record-type route files and thread DB session into assert_can_confirm as one unit. Run /plan.
+Sprint 12 (per Fable 5 roadmap): pagination on governed record list endpoints + worker split (god worker → dedicated workers per job type).

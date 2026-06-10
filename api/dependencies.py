@@ -87,6 +87,13 @@ async def _authenticate_api_key(token: str, session: AsyncSession) -> User:
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    if api_key.expires_at is not None and datetime.now(UTC) >= api_key.expires_at:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="API key has expired",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
     # Update last_used_at inline — acceptable latency for v1
     api_key.last_used_at = datetime.now(UTC)
 

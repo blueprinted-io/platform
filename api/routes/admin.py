@@ -42,6 +42,7 @@ from api.schemas.admin import (
     UserDomainsReplace,
     UserListResponse,
 )
+from api.services.audit import write_audit_event
 from api.services.settings_service import get_setting, set_setting
 
 log = structlog.get_logger(__name__)
@@ -176,6 +177,9 @@ async def create_domain(body: DomainCreate, session: DBSession, user: _Admin) ->
     domain = Domain(name=body.name, created_by=user.id)
     session.add(domain)
     try:
+        await write_audit_event(
+            session, event_type="domain_created", actor=user, detail={"domain": body.name}
+        )
         await session.commit()
     except IntegrityError as exc:
         await session.rollback()
@@ -245,6 +249,18 @@ async def replace_user_domains(
         session.add(row)
         new_rows.append(row)
 
+    existing_names = {r.domain for r in existing}
+    new_names = set(body.domains)
+    await write_audit_event(
+        session,
+        event_type="user_domains_updated",
+        actor=user,
+        detail={
+            "user_id": str(user_id),
+            "added": sorted(new_names - existing_names),
+            "removed": sorted(existing_names - new_names),
+        },
+    )
     try:
         await session.commit()
     except IntegrityError as exc:

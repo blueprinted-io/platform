@@ -21,7 +21,7 @@ from api.schemas.principle import (
     ReturnRequest,
     ReviseRequest,
 )
-from api.services import lifecycle
+from api.services import lifecycle, lifecycle_actions
 from api.services.notifications import create_notification, notify_domain_users
 
 log = structlog.get_logger(__name__)
@@ -156,14 +156,9 @@ async def confirm_principle(
     principle = await _get_or_404(session, principle_id)
     await lifecycle.assert_domain_access(principle.domain, user, session)
     await lifecycle.assert_no_foreign_claim("principle", principle.id, user, session)
-    is_break_glass = lifecycle.assert_can_confirm(
-        principle.status, principle.created_by, user, body.justification if body else None
+    await lifecycle_actions.confirm_record(
+        principle, session, user, body.justification if body else None, "principle"
     )
-    principle.status = "confirmed"
-    principle.self_confirmed_by_admin = is_break_glass
-    principle.reviewed_by = user.id
-    principle.updated_by = user.id
-    await session.commit()
     await create_notification(
         session, principle.created_by, "record_confirmed", "principle", principle.id,
         f'Your principle "{principle.title}" has been confirmed.',
@@ -182,16 +177,9 @@ async def return_principle(
     principle_id: uuid.UUID, body: ReturnRequest, session: DBSession, user: _Writer
 ) -> Principle:
     principle = await _get_or_404(session, principle_id)
-    lifecycle.assert_can_return(principle.status, user)
     await lifecycle.assert_domain_access(principle.domain, user, session)
     await lifecycle.assert_no_foreign_claim("principle", principle.id, user, session)
-    principle.status = "returned"
-    if body.note:
-        principle.change_note = body.note
-    principle.return_severity = body.severity
-    principle.reviewed_by = user.id
-    principle.updated_by = user.id
-    await session.commit()
+    await lifecycle_actions.return_record(principle, session, user, body.note, body.severity, "principle")
     await create_notification(
         session, principle.created_by, "record_returned", "principle", principle.id,
         f'Your principle "{principle.title}" has been returned for changes.',
@@ -206,10 +194,7 @@ async def deprecate_principle(
     principle_id: uuid.UUID, session: DBSession, user: _Admin
 ) -> Principle:
     principle = await _get_or_404(session, principle_id)
-    lifecycle.assert_can_deprecate(principle.status, user)
-    principle.status = "deprecated"
-    principle.updated_by = user.id
-    await session.commit()
+    await lifecycle_actions.deprecate_record(principle, session, user, "principle")
     await session.refresh(principle)
     return principle
 
@@ -219,10 +204,7 @@ async def retire_principle(
     principle_id: uuid.UUID, session: DBSession, user: _Admin
 ) -> Principle:
     principle = await _get_or_404(session, principle_id)
-    lifecycle.assert_can_retire(principle.status, user)
-    principle.status = "retired"
-    principle.updated_by = user.id
-    await session.commit()
+    await lifecycle_actions.retire_record(principle, session, user, "principle")
     await session.refresh(principle)
     return principle
 

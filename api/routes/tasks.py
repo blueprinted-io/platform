@@ -32,7 +32,7 @@ from api.schemas.task import (
     TaskUpdate,
     TaskVersionSummary,
 )
-from api.services import lifecycle
+from api.services import lifecycle, lifecycle_actions
 from api.services.notifications import create_notification, notify_domain_users
 
 log = structlog.get_logger(__name__)
@@ -224,15 +224,9 @@ async def confirm_task(
     task = await _get_task(session, task_id)
     await lifecycle.assert_domain_access(task.domain, user, session)
     await lifecycle.assert_no_foreign_claim("task", task.id, user, session)
-    is_break_glass = lifecycle.assert_can_confirm(
-        task.status, task.created_by, user, body.justification if body else None
+    await lifecycle_actions.confirm_record(
+        task, session, user, body.justification if body else None, "task"
     )
-    task.status = "confirmed"
-    task.self_confirmed_by_admin = is_break_glass
-    task.reviewed_by = user.id
-    task.updated_by = user.id
-    await session.commit()
-    log.info("task_confirmed", task_id=str(task.id), user_id=str(user.id))
     await create_notification(
         session, task.created_by, "record_confirmed", "task", task.id,
         f'Your task "{task.title}" has been confirmed.',
@@ -248,16 +242,9 @@ async def return_task(
     task_id: uuid.UUID, body: ReturnRequest, session: DBSession, user: _Writer
 ) -> TaskResponse:
     task = await _get_task(session, task_id)
-    lifecycle.assert_can_return(task.status, user)
     await lifecycle.assert_domain_access(task.domain, user, session)
     await lifecycle.assert_no_foreign_claim("task", task.id, user, session)
-    task.status = "returned"
-    if body.note:
-        task.change_note = body.note
-    task.return_severity = body.severity
-    task.reviewed_by = user.id
-    task.updated_by = user.id
-    await session.commit()
+    await lifecycle_actions.return_record(task, session, user, body.note, body.severity, "task")
     await create_notification(
         session, task.created_by, "record_returned", "task", task.id,
         f'Your task "{task.title}" has been returned for changes.',
@@ -269,20 +256,14 @@ async def return_task(
 @router.post("/{task_id}/deprecate", response_model=TaskResponse)
 async def deprecate_task(task_id: uuid.UUID, session: DBSession, user: _Admin) -> TaskResponse:
     task = await _get_task(session, task_id)
-    lifecycle.assert_can_deprecate(task.status, user)
-    task.status = "deprecated"
-    task.updated_by = user.id
-    await session.commit()
+    await lifecycle_actions.deprecate_record(task, session, user, "task")
     return TaskResponse.model_validate(await _get_task(session, task.id))
 
 
 @router.post("/{task_id}/retire", response_model=TaskResponse)
 async def retire_task(task_id: uuid.UUID, session: DBSession, user: _Admin) -> TaskResponse:
     task = await _get_task(session, task_id)
-    lifecycle.assert_can_retire(task.status, user)
-    task.status = "retired"
-    task.updated_by = user.id
-    await session.commit()
+    await lifecycle_actions.retire_record(task, session, user, "task")
     return TaskResponse.model_validate(await _get_task(session, task.id))
 
 

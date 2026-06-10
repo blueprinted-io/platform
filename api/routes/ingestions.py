@@ -12,12 +12,13 @@ from typing import Annotated, Any
 from urllib.parse import urlparse, urlunparse
 
 import structlog
-from fastapi import APIRouter, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, HTTPException, Query, Request, UploadFile, status
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from api.auth import Role
 from api.dependencies import AppSettings, ArqPool, CurrentUser, DBSession, require_role
+from api.limiter import limiter
 from api.models.ingestion import (
     Ingestion,
     IngestionCandidate,
@@ -66,7 +67,9 @@ def _sanitise_filename(name: str) -> str:
 
 
 @router.post("", response_model=IngestionResponse, status_code=status.HTTP_201_CREATED)
+@limiter.limit("10/minute")
 async def create_ingestion(
+    request: Request,
     file: UploadFile,
     session: DBSession,
     user: _Writer,

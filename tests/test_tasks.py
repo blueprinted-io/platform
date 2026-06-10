@@ -470,3 +470,134 @@ async def test_deprecate_task_admin_only(
     )
     assert deprecate_resp.status_code == 200
     assert deprecate_resp.json()["status"] == "deprecated"
+
+
+# ---------------------------------------------------------------------------
+# Step quality linting (§9.10)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_lint_warnings_absent_on_clean_step(
+    client: AsyncClient, make_token: Callable[..., str]
+) -> None:
+    token = make_token(sub="test-sub-001", roles=["contributor"])
+    headers = {"Authorization": f"Bearer {token}"}
+
+    create_resp = await client.post("/api/v1/tasks", json=task_payload(), headers=headers)
+    task_id = create_resp.json()["id"]
+
+    step_resp = await client.post(
+        f"/api/v1/tasks/{task_id}/steps",
+        json={
+            "step": "Connect to the database as the current superuser",
+            "completion": "You are connected and can run queries.",
+            "actions": [{"instruction": "Run: psql -U postgres"}],
+        },
+        headers=headers,
+    )
+    assert step_resp.status_code == 201
+
+    get_resp = await client.get(f"/api/v1/tasks/{task_id}", headers=headers)
+    assert get_resp.json()["lint_warnings"] == []
+
+
+@pytest.mark.asyncio
+async def test_lint_warns_abstract_verb(
+    client: AsyncClient, make_token: Callable[..., str]
+) -> None:
+    token = make_token(sub="test-sub-001", roles=["contributor"])
+    headers = {"Authorization": f"Bearer {token}"}
+
+    create_resp = await client.post("/api/v1/tasks", json=task_payload(), headers=headers)
+    task_id = create_resp.json()["id"]
+
+    await client.post(
+        f"/api/v1/tasks/{task_id}/steps",
+        json={
+            "step": "Ensure the backup exists before proceeding",
+            "completion": "Backup confirmed present.",
+            "actions": [{"instruction": "Check backup directory"}],
+        },
+        headers=headers,
+    )
+
+    get_resp = await client.get(f"/api/v1/tasks/{task_id}", headers=headers)
+    warnings = get_resp.json()["lint_warnings"]
+    assert any(w["rule"] == "abstract_verb" for w in warnings)
+
+
+@pytest.mark.asyncio
+async def test_lint_warns_missing_completion(
+    client: AsyncClient, make_token: Callable[..., str]
+) -> None:
+    token = make_token(sub="test-sub-001", roles=["contributor"])
+    headers = {"Authorization": f"Bearer {token}"}
+
+    create_resp = await client.post("/api/v1/tasks", json=task_payload(), headers=headers)
+    task_id = create_resp.json()["id"]
+
+    await client.post(
+        f"/api/v1/tasks/{task_id}/steps",
+        json={
+            "step": "Back up the database",
+            "completion": "",
+            "actions": [{"instruction": "Run: pg_dump"}],
+        },
+        headers=headers,
+    )
+
+    get_resp = await client.get(f"/api/v1/tasks/{task_id}", headers=headers)
+    warnings = get_resp.json()["lint_warnings"]
+    assert any(w["rule"] == "missing_completion" for w in warnings)
+
+
+@pytest.mark.asyncio
+async def test_lint_warns_empty_actions(
+    client: AsyncClient, make_token: Callable[..., str]
+) -> None:
+    token = make_token(sub="test-sub-001", roles=["contributor"])
+    headers = {"Authorization": f"Bearer {token}"}
+
+    create_resp = await client.post("/api/v1/tasks", json=task_payload(), headers=headers)
+    task_id = create_resp.json()["id"]
+
+    await client.post(
+        f"/api/v1/tasks/{task_id}/steps",
+        json={
+            "step": "Back up the database",
+            "completion": "Backup file is present in /tmp.",
+            "actions": [],
+        },
+        headers=headers,
+    )
+
+    get_resp = await client.get(f"/api/v1/tasks/{task_id}", headers=headers)
+    warnings = get_resp.json()["lint_warnings"]
+    assert any(w["rule"] == "empty_actions" for w in warnings)
+
+
+@pytest.mark.asyncio
+async def test_lint_warnings_suppressed_on_confirmed_task(
+    client: AsyncClient, make_token: Callable[..., str]
+) -> None:
+    """Confirmed records do not surface lint warnings (§9.10)."""
+    author_token = make_token(sub="author-task-001", roles=["contributor"])
+    reviewer_token = make_token(sub="reviewer-task-001", roles=["contributor"])
+
+    create_resp = await client.post(
+        "/api/v1/tasks", json=task_payload(),
+        headers={"Authorization": f"Bearer {author_token}"},
+    )
+    task_id = create_resp.json()["id"]
+
+    # Add a step with no actions (would normally produce a warning)
+    await client.post(
+        f"/api/v1/tasks/{task_id}/steps",
+        json={"step": "Back up", "completion": "Done.", "actions": []},
+        headers={"Authorization": f"Bearer {author_token}"},
+    )
+    await client.post(f"/api/v1/tasks/{task_id}/submit", headers={"Authorization": f"Bearer {author_token}"})
+    await client.post(f"/api/v1/tasks/{task_id}/confirm", headers={"Authorization": f"Bearer {reviewer_token}"})
+
+    get_resp = await client.get(f"/api/v1/tasks/{task_id}", headers={"Authorization": f"Bearer {reviewer_token}"})
+    assert get_resp.json()["lint_warnings"] == []

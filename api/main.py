@@ -10,10 +10,13 @@ from arq.connections import ArqRedis
 from arq.connections import RedisSettings as ArqRedisSettings
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 from api.auth import TokenVerifier
 from api.config import Settings, get_settings
 from api.database import create_engine, create_session_factory
+from api.limiter import limiter
 from api.logging import configure_logging
 from api.middleware import RequestIDMiddleware
 from api.routes import health, v1
@@ -89,6 +92,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         )
 
     app.add_middleware(RequestIDMiddleware)
+
+    # Rate limiting — storage backend set via LIMITER_STORAGE_URI env var.
+    # Production: set LIMITER_STORAGE_URI=redis://localhost:6379/2 (same host as ARQ).
+    # Tests: defaults to memory:// (in-process, not shared across workers).
+    app.state.limiter = limiter
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
     # Security headers on every response
     secure_headers = secure.Secure.with_default_headers()

@@ -4,6 +4,37 @@ Updated at the end of each sprint.
 
 ---
 
+## Sprint 11 — Backend Hardening
+
+**Goal:** Audit log completeness, route deduplication, rate limiting, API key expiry, step linting
+**Status:** Complete
+**Spec at start:** v4.9 → **at end:** v4.10
+
+**Completed:**
+- `api/services/lifecycle_actions.py` — shared confirm/return/deprecate/retire ops with audit events wired
+- Thinned tasks.py, workflows.py, principles.py route handlers to call shared service layer
+- `domain_created` and `user_domains_updated` audit events wired in `admin.py`
+- `test_audit_log.py` extended: record_confirmed, break_glass_confirm, record_returned, record_deprecated, record_retired, domain_created, user_domains_updated — 7 new tests
+- `api/services/linting.py` — non-blocking step quality warnings (abstract verb, missing completion, empty actions)
+- `TaskResponse.lint_warnings` computed field — populated on draft/returned/submitted; suppressed on confirmed
+- 5 new linting tests in `test_tasks.py`
+- `api_keys.expires_at` — model, migration `4c5d6e7f8a9b`, schema (`expires_at_days` on create), auth enforcement (401 on expired), 2 new tests
+- `(record_id, version)` unique constraint migration `5d6e7f8a9b0c` — tasks, workflows, principles
+- Rate limiting via slowapi: 30/min on `GET /search`, 10/min on `POST /ingestions`; Redis backend via `LIMITER_STORAGE_URI` env var
+- `api/limiter.py` singleton — memory:// default for tests, Redis in production
+- `return_severity` field from §9.2 threaded to DB (`return_severity TEXT NULL`), schemas, and route responses (migration `3b4c5d6e7f8a`)
+
+**Decisions:**
+- Route dedup via shared service layer (not router factory) — keeps route handlers readable and tracebacks clean; factory would black-box route definitions
+- `assert_can_return()` and other status assertions moved inside `lifecycle_actions` alongside mutation logic — route handlers retain domain access and foreign-claim checks since those require session and are entity-specific
+- Auth failure rate limiting (5/min per IP) deferred — counting only failures requires custom Redis middleware beyond slowapi's default capabilities; blanket IP limiting on search/ingestion covers the principal attack surface
+- `expires_at_days` on key creation (days from now) rather than absolute timestamp — simpler for CLI callers and avoids timezone confusion in payloads
+
+**Spec changes:**
+- v4.10: §9.6 audit event types table extended (7 new event types). `api_keys` gains `expires_at`. §9.10 `lint_warnings` wired. Unique constraint noted.
+
+---
+
 ## Sprint 10 — Machine Auth, CLI, Observability
 
 **Goal:** Machine credentials for agent access, audit log, CLI operational commands

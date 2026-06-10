@@ -11,6 +11,7 @@ from api.auth import AgentRole
 class ApiKeyCreate(BaseModel):
     name: str
     role: AgentRole
+    expires_at_days: int | None = None  # days from now; None = no expiry
 
 
 class ApiKeyResponse(BaseModel):
@@ -22,6 +23,7 @@ class ApiKeyResponse(BaseModel):
     created_at: datetime
     last_used_at: datetime | None
     revoked_at: datetime | None
+    expires_at: datetime | None
 
     model_config = {"from_attributes": True}
 

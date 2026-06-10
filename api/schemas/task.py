@@ -5,6 +5,17 @@ import uuid
 from pydantic import BaseModel, ConfigDict, computed_field, field_validator
 
 from api.schemas.base import LifecycleResponse
+from api.services.linting import LintWarning, lint_steps
+
+
+class LintWarningResponse(BaseModel):
+    step_index: int
+    rule: str
+    message: str
+
+    @classmethod
+    def from_lint(cls, w: LintWarning) -> "LintWarningResponse":
+        return cls(step_index=w.step_index, rule=w.rule, message=w.message)
 
 
 class TaskStepActionCreate(BaseModel):
@@ -119,6 +130,14 @@ class TaskResponse(LifecycleResponse):
     def irreversible(self) -> bool:
         """Derived from steps: True if any step has irreversible=True (§9.5)."""
         return any(s.irreversible for s in self.steps)
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def lint_warnings(self) -> list[LintWarningResponse]:
+        """Advisory step quality warnings (§9.10). Empty on confirmed records."""
+        if self.status == "confirmed":
+            return []
+        return [LintWarningResponse.from_lint(w) for w in lint_steps(self.steps)]
 
 
 class TaskDiffResponse(BaseModel):

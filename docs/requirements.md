@@ -2,11 +2,13 @@
 
 ## Platform Rebuild — Requirements Specification
 
-**Version 4.9 · June 2026**
+**Version 4.10 · June 2026**
 
 *Confidential. Internal Use Only*
 
 github.com/blueprinted-io/platform
+
+v4.10 changes from v4.9: Sprint 11 hardening complete. §9.6 audit event types table extended — `record_confirmed`, `break_glass_confirm`, `record_returned`, `record_deprecated`, `record_retired`, `domain_created`, `user_domains_updated` all now wired and tested. `api_keys` table gains `expires_at TIMESTAMPTZ NULL` — set via `expires_at_days` on key creation; expired keys return 401. Unique constraint `(record_id, version)` added to `tasks`, `workflows`, `principles` tables. Rate limiting added (slowapi, Redis backend): 30/min on `GET /search`, 10/min on `POST /ingestions`. `api/services/linting.py` implemented and wired into `TaskResponse.lint_warnings` computed field — advisory warnings on abstract verbs, missing completion, empty actions; suppressed on confirmed records.
 
 v4.9 changes from v4.8: §9.8 export_artifacts stub described — workflow bundle export with SHA256 fingerprint, explicit v1.1. §24 parked decisions updated. §25 key decision: export fingerprinting is a governance audit feature, not deferred arbitrarily. docs/mvp_audit.md export artifacts item closed.
 
@@ -570,11 +572,17 @@ audit_log
 
 | event_type | Written when | detail fields |
 | --- | --- | --- |
-| `break_glass_confirm` | Admin confirms their own content | `record_id`, `record_type`, `version`, `justification` |
-| `api_key_created` | Admin creates an API key | `api_key_id`, `name`, `role` |
-| `api_key_revoked` | Admin revokes an API key | `api_key_id`, `name`, `role` |
+| `record_confirmed` | A governed record transitions submitted → confirmed | `record_type`, `record_id`, `version` |
+| `break_glass_confirm` | Admin self-confirms their own record (§5.1) | `record_type`, `record_id`, `version`, `justification` |
+| `record_returned` | A governed record transitions submitted → returned | `record_type`, `record_id`, `version`, `note?`, `severity?` |
+| `record_deprecated` | A confirmed record transitions → deprecated | `record_type`, `record_id`, `version` |
+| `record_retired` | A confirmed record transitions → retired | `record_type`, `record_id`, `version` |
+| `domain_created` | Admin creates a domain | `domain` |
+| `user_domains_updated` | Admin replaces a user's domain assignments | `user_id`, `added[]`, `removed[]` |
+| `api_key_created` | Admin creates an API key | `name`, `role` |
+| `api_key_revoked` | Admin revokes an API key | `name`, `role` |
 
-Additional event types will be added in future sprints. The schema is intentionally generic — `detail` carries event-specific structure without requiring schema migrations for new event types.
+The schema is intentionally generic — `detail` carries event-specific structure without requiring schema migrations for new event types.
 
 ## 9.7 Ingestion Pipeline Tables
 

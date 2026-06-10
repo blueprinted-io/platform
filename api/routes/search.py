@@ -7,9 +7,10 @@ GET /api/v1/search  — full-text and optional semantic search across all confir
 from typing import Annotated
 
 import structlog
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Request
 
 from api.dependencies import AppSettings, CurrentUser, DBSession
+from api.limiter import limiter
 from api.schemas.search import SearchResponse
 from api.services.search import _VALID_TYPES, run_search
 
@@ -22,7 +23,9 @@ _DEFAULT_LIMIT = 20
 
 
 @router.get("", response_model=SearchResponse)
+@limiter.limit("30/minute")
 async def search_records(
+    request: Request,
     q: Annotated[str, Query(min_length=1, description="Search query")],
     session: DBSession,
     user: CurrentUser,

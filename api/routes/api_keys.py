@@ -8,7 +8,7 @@ DELETE /admin/api-keys/{id}         Revoke a key
 import hashlib
 import secrets
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
 import structlog
@@ -65,12 +65,18 @@ async def create_api_key(
 
     raw_key, prefix, key_hash = _generate_key()
 
+    expires_at = (
+        datetime.now(UTC) + timedelta(days=body.expires_at_days)
+        if body.expires_at_days is not None
+        else None
+    )
     api_key = ApiKey(
         name=body.name,
         key_prefix=prefix,
         key_hash=key_hash,
         role=body.role.value,
         created_by=user.id,
+        expires_at=expires_at,
     )
     session.add(api_key)
 
