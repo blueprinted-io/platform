@@ -125,7 +125,7 @@ services:
       - auth_redis_data:/data
 
   auth:
-    image: ghcr.io/goauthentik/server:2025.4.1
+    image: ghcr.io/goauthentik/server:2025.6.2
     restart: unless-stopped
     command: server
     environment:
@@ -136,6 +136,7 @@ services:
       AUTHENTIK_POSTGRESQL__PASSWORD: ${AUTHENTIK_DB_PASSWORD}
       AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY:?AUTHENTIK_SECRET_KEY is required}
       AUTHENTIK_ERROR_REPORTING__ENABLED: "false"
+      AUTHENTIK_URL: ${AUTHENTIK_URL:-}
     volumes:
       - ./authentik/media:/media
       - ./authentik/custom-templates:/templates
@@ -149,7 +150,7 @@ services:
         condition: service_started
 
   auth-worker:
-    image: ghcr.io/goauthentik/server:2025.4.1
+    image: ghcr.io/goauthentik/server:2025.6.2
     restart: unless-stopped
     command: worker
     environment:

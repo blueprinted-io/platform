@@ -3,18 +3,20 @@ One entry only. On closeout: move this entry to the top of SESSIONS_ARCHIVE.md (
 Archive: SESSIONS_ARCHIVE.md (do not load unless explicitly asked).
 Format and rules: docs/session_protocol.md
 
-## Session — 2026-06-09 (Fable 5 review documentation + graphify wiring)
+## Session — 2026-06-09 (HTTPS tunnel setup — Cloudflare + Authentik)
 
 ### Decisions
-- graphify-out/ removed from .gitignore — committed graph gives remote/expensive model sessions access without regeneration cost; local sessions regenerate at closeout.
-- /closeout updated to run /graphify before committing — graph kept current at session end.
-- Fable 5 platform review documented as memory with Sprint 11–13 hardening roadmap and sequencing rationale (route-dedup + audit wiring as one sprint, confirm-endpoint as forcing function for both).
+- Authentik derives OIDC issuer from the incoming request's Host + X-Forwarded-Proto headers — no static issuer config needed; Cloudflare tunnel supplies both automatically.
+- JWKS URI kept on internal IP (http://192.168.1.82:9000/...) — API fetches it server-to-server; no reason to hairpin through the tunnel.
+- AUTHENTIK_URL passed through docker-compose as belt-and-suspenders; not load-bearing given Cloudflare header behaviour.
+- Vite dev server must be started with --host 0.0.0.0 to be reachable through the tunnel; orphaned instances from prior sessions were killed and replaced.
 
 ### Done
-- memory/project_fable5_review.md: full Fable 5 review — 6 weaknesses, sprint roadmap, sequencing notes.
-- memory/MEMORY.md: index updated.
-- .gitignore: graphify-out/ removed.
-- .claude/commands/closeout.md: /graphify step added before commit.
+- deploy/docker-compose.yml: Authentik 2025.4.1 → 2025.6.2; AUTHENTIK_URL env passthrough added.
+
+### Broken / Incomplete
+- .env changes (OIDC_ISSUER, CORS_ALLOWED_ORIGINS, AUTHENTIK_URL) and app/.env.local (VITE_OIDC_AUTHORITY) are gitignored and exist only on the VM — must be re-applied manually if the stack is rebuilt on a new machine.
+- Authentik theme logos broken after tunnel setup — cosmetic, deferred.
 
 ### Next
-Sprint 11 Hardening. Start with audit log wiring via the confirm-endpoint refactor — dedup the three record-type route files and thread session into assert_can_confirm as one unit, retiring two debts at once. Run /plan.
+Sprint 11 Hardening. Start with audit log wiring via the confirm-endpoint refactor — dedup the three record-type route files and thread DB session into assert_can_confirm as one unit. Run /plan.
