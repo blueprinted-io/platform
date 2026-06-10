@@ -5,8 +5,8 @@ Revises: 3b4c5d6e7f8a
 Create Date: 2026-06-10
 """
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 revision: str = "4c5d6e7f8a9b"
 down_revision: str | None = "3b4c5d6e7f8a"

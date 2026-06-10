@@ -179,7 +179,9 @@ async def return_principle(
     principle = await _get_or_404(session, principle_id)
     await lifecycle.assert_domain_access(principle.domain, user, session)
     await lifecycle.assert_no_foreign_claim("principle", principle.id, user, session)
-    await lifecycle_actions.return_record(principle, session, user, body.note, body.severity, "principle")
+    await lifecycle_actions.return_record(
+        principle, session, user, body.note, body.severity, "principle"
+    )
     await create_notification(
         session, principle.created_by, "record_returned", "principle", principle.id,
         f'Your principle "{principle.title}" has been returned for changes.',

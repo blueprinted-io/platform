@@ -596,8 +596,14 @@ async def test_lint_warnings_suppressed_on_confirmed_task(
         json={"step": "Back up", "completion": "Done.", "actions": []},
         headers={"Authorization": f"Bearer {author_token}"},
     )
-    await client.post(f"/api/v1/tasks/{task_id}/submit", headers={"Authorization": f"Bearer {author_token}"})
-    await client.post(f"/api/v1/tasks/{task_id}/confirm", headers={"Authorization": f"Bearer {reviewer_token}"})
+    await client.post(
+        f"/api/v1/tasks/{task_id}/submit", headers={"Authorization": f"Bearer {author_token}"}
+    )
+    await client.post(
+        f"/api/v1/tasks/{task_id}/confirm", headers={"Authorization": f"Bearer {reviewer_token}"}
+    )
 
-    get_resp = await client.get(f"/api/v1/tasks/{task_id}", headers={"Authorization": f"Bearer {reviewer_token}"})
+    get_resp = await client.get(
+        f"/api/v1/tasks/{task_id}", headers={"Authorization": f"Bearer {reviewer_token}"}
+    )
     assert get_resp.json()["lint_warnings"] == []

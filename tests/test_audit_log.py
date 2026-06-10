@@ -207,7 +207,9 @@ async def test_record_returned_writes_audit_event(
 # Lifecycle audit events — record_deprecated / record_retired
 # ---------------------------------------------------------------------------
 
-async def _confirmed_task_id(client: AsyncClient, author_headers: dict, reviewer_headers: dict) -> str:
+async def _confirmed_task_id(
+    client: AsyncClient, author_headers: dict, reviewer_headers: dict
+) -> str:
     """Helper: create, submit, and confirm a task; return its id."""
     task_id = (
         await client.post("/api/v1/tasks", json=task_payload(), headers=author_headers)

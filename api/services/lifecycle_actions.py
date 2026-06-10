@@ -27,7 +27,7 @@ from api.services.audit import write_audit_event
 log = structlog.get_logger(__name__)
 
 
-def _base_detail(record: Any, record_type: str) -> dict:
+def _base_detail(record: Any, record_type: str) -> dict:  # noqa: ANN401
     return {
         "record_type": record_type,
         "record_id": str(record.record_id),
@@ -36,7 +36,7 @@ def _base_detail(record: Any, record_type: str) -> dict:
 
 
 async def confirm_record(
-    record: Any,
+    record: Any,  # noqa: ANN401
     session: AsyncSession,
     user: User,
     justification: str | None,
@@ -66,13 +66,19 @@ async def confirm_record(
         target_type=record_type,
         detail=detail,
     )
-    log.info("record_confirmed", record_type=record_type, record_id=str(record.id), user_id=str(user.id), break_glass=is_break_glass)
+    log.info(
+        "record_confirmed",
+        record_type=record_type,
+        record_id=str(record.id),
+        user_id=str(user.id),
+        break_glass=is_break_glass,
+    )
     await session.commit()
     return is_break_glass
 
 
 async def return_record(
-    record: Any,
+    record: Any,  # noqa: ANN401
     session: AsyncSession,
     user: User,
     note: str | None,
@@ -106,7 +112,7 @@ async def return_record(
 
 
 async def deprecate_record(
-    record: Any,
+    record: Any,  # noqa: ANN401
     session: AsyncSession,
     user: User,
     record_type: str,
@@ -128,7 +134,7 @@ async def deprecate_record(
 
 
 async def retire_record(
-    record: Any,
+    record: Any,  # noqa: ANN401
     session: AsyncSession,
     user: User,
     record_type: str,

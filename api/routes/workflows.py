@@ -213,7 +213,9 @@ async def return_workflow(
     workflow = await _get_workflow_with_refs(session, workflow_id)
     await lifecycle.assert_domain_access(workflow.domain, user, session)
     await lifecycle.assert_no_foreign_claim("workflow", workflow.id, user, session)
-    await lifecycle_actions.return_record(workflow, session, user, body.note, body.severity, "workflow")
+    await lifecycle_actions.return_record(
+        workflow, session, user, body.note, body.severity, "workflow"
+    )
     await create_notification(
         session, workflow.created_by, "record_returned", "workflow", workflow.id,
         f'Your workflow "{workflow.title}" has been returned for changes.',

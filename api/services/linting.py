@@ -29,7 +29,7 @@ def lint_steps(steps: list[Any]) -> list[LintWarning]:
             warnings.append(LintWarning(
                 step_index=i,
                 rule="abstract_verb",
-                message=f'Step begins with abstract verb "{first_word}". Use a concrete action instead.',
+                message=f'Step begins with abstract verb "{first_word}". Use a concrete action instead.',  # noqa: E501
             ))
         if not step.completion or not step.completion.strip():
             warnings.append(LintWarning(
