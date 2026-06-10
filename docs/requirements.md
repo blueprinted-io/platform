@@ -2,11 +2,13 @@
 
 ## Platform Rebuild — Requirements Specification
 
-**Version 4.8 · June 2026**
+**Version 4.9 · June 2026**
 
 *Confidential. Internal Use Only*
 
 github.com/blueprinted-io/platform
+
+v4.9 changes from v4.8: §9.8 export_artifacts stub described — workflow bundle export with SHA256 fingerprint, explicit v1.1. §24 parked decisions updated. §25 key decision: export fingerprinting is a governance audit feature, not deferred arbitrarily. docs/mvp_audit.md export artifacts item closed.
 
 v4.8 changes from v4.7: MVP continuity audit (Fable 5, 2026-06-10). `return_severity` field added to §9.2 shared lifecycle fields and `ReturnRequest` schema — values `"info" | "warning" | "critical"`, nullable; threaded through all three record-type return endpoints. §9.10 Step quality linting added — non-blocking warnings on abstract verbs, missing completion criterion, empty action list; computed on write/read, not stored. §25 key decisions: No hard delete on governed records (audit trail integrity; DB access is intentional escape hatch). No `force_submit` (MVP workaround for missing domain-at-create; that gap no longer exists; break-glass covers genuine admin override). See `docs/mvp_audit.md` for full comparison.
 
@@ -588,7 +590,10 @@ ingestion_nav_pages
 These tables exist in the migration schema but have no API endpoints, no UI, and no behaviour in v1.
 
 ```
-export_artifacts       -- stub
+export_artifacts       -- v1.1. Records each workflow bundle export: workflow record_id,
+                          version, exported_at, exported_by, sha256 fingerprint of the
+                          bundle payload. Enables recipients to verify they hold an
+                          unmodified export and operators to audit what was shared and when.
 presentation_tokens    -- stub
 changelog_runs         -- stub
 changelog_impacts      -- stub
@@ -1713,6 +1718,7 @@ Facts and Concepts no longer exist as independently governed records. They are a
 - *Workflow-first authoring mode — UI to support creating a workflow, stubbing tasks from within it, and filling them in from there. Data model already supports it; frontend change only. See §9.9.*
 - *Seeded documentation tenant — post-v1 demonstration project. v1 ships with markdown docs.*
 - *agent:relationship_suggester role — v1.1, alongside first relationship kind definition*
+- *Export artifacts and SHA256 fingerprinting — v1.1. Workflow bundle export with per-export SHA256 fingerprint stored in export_artifacts table. Enables audit of what was shared and verification of bundle integrity by recipients. Table exists as stub; no endpoints or UI in v1.*
 
 ---
 
@@ -1755,6 +1761,7 @@ Facts and Concepts no longer exist as independently governed records. They are a
 | Domain as soft-deletable slug registry | Replicates MVP pattern. Hard delete orphans existing records. Domain name stored as free-text slug on records, not a DB FK — application-enforced at write time. Disabled domains remain on historical records for audit integrity. |
 | No hard delete on governed records | The governed record lifecycle is append-only by design. Hard delete would break audit trail integrity. Test data and ingestion errors are corrected by retiring or deprecating records, not deleting them. Direct DB access is the intentional escape hatch for exceptional cases. |
 | No `force_submit` admin override | MVP had `force_submit` to paper over missing domain assignment at create time. Platform requires domain at create — the original use case no longer exists. Genuine admin override is covered by break-glass confirm. `force_submit` would bypass the contributor governance step with no compensating check. |
+| Export fingerprinting deferred to v1.1 | SHA256 fingerprinting of exported workflow bundles is a governance audit feature, not cosmetic. Deferred because the export endpoint itself is v1.1 — fingerprinting without an export surface has no value. Both ship together. |
 | Admin break-glass requires justification + scar flag | `self_confirmed_by_admin` flag added to shared lifecycle fields. Confirm endpoint requires non-empty justification when admin confirms own content. Audit log entry deferred until `audit_log` table exists in Sprint 10. |
 | `record_id` ref columns are application-enforced not DB FK | `record_id` is not unique across versions. DB-level FK cannot reference it. Application validates existence of a confirmed record with that `record_id` before inserting into ref tables. |
 | PKCE frontend flow deferred to Sprint 8 | blueprinted-io/app repository did not exist during Sprint 2. Backend JWT validation tested with mock JWTs. PKCE implemented when React frontend exists. |

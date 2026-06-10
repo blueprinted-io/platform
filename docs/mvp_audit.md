@@ -33,14 +33,12 @@ to `tasks`, `workflows`, `principles`. Values: `"info" | "warning" | "critical"`
 criterion, empty action list. Computed on write/GET for authored records; not stored; not
 surfaced on confirmed records.
 
-### Export artifacts + SHA256 fingerprints
+### ~~Export artifacts + SHA256 fingerprints~~ — Resolved in v4.9 (explicit v1.1)
 
-The MVP has an `export_artifacts` table with SHA256 fingerprints of exported workflow
-bundles. Not in the platform spec at all — not mentioned, not stubbed. The platform
-currently has no export endpoint or fingerprinting.
-
-**Recommended action:** Decide whether this is v1 or v1.1 and add a spec entry. If
-deferred, add an explicit stub comment so it isn't re-discovered as a surprise.
+Decision: v1.1, alongside the export endpoint. SHA256 fingerprinting without an export
+surface has no value — both ship together. §9.8 stub updated with description. §24 parked
+decisions entry added. §25 key decision: fingerprinting is a governance audit feature, not
+cosmetic.
 
 ---
 
