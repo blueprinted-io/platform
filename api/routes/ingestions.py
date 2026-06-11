@@ -47,6 +47,7 @@ from api.schemas.ingestion import (
 )
 from api.services import lifecycle
 from api.services.storage import delete_ingestion_dir, save_ingestion_file
+from workers.queues import INGESTION_QUEUE
 
 log = structlog.get_logger(__name__)
 
@@ -125,7 +126,9 @@ async def create_ingestion(
     await session.refresh(ingestion)
 
     if arq_pool is not None:
-        await arq_pool.enqueue_job("chunk_pdf", ingestion_id=str(ingestion.id))
+        await arq_pool.enqueue_job(
+            "chunk_pdf", ingestion_id=str(ingestion.id), _queue_name=INGESTION_QUEUE
+        )
     else:
         log.warning("ingestion_arq_unavailable", ingestion_id=str(ingestion.id))
 
@@ -242,7 +245,9 @@ async def select_chunks(
     queued_count = len(chunks_to_queue)
 
     if queued_count > 0 and arq_pool is not None:
-        await arq_pool.enqueue_job("process_chunks", ingestion_id=str(ingestion_id))
+        await arq_pool.enqueue_job(
+            "process_chunks", ingestion_id=str(ingestion_id), _queue_name=INGESTION_QUEUE
+        )
     elif queued_count > 0:
         log.warning("ingestion_select_arq_unavailable", ingestion_id=str(ingestion_id))
 
@@ -548,6 +553,7 @@ async def create_html_ingestion(
             "crawl_html",
             ingestion_id=str(ingestion.id),
             mode=body.mode,
+            _queue_name=INGESTION_QUEUE,
         )
     else:
         log.warning("html_ingestion_arq_unavailable", ingestion_id=str(ingestion.id))
@@ -641,6 +647,7 @@ async def select_nav_pages(
         await arq_pool.enqueue_job(
             "render_nav_pages",
             ingestion_id=str(ingestion_id),
+            _queue_name=INGESTION_QUEUE,
         )
     elif queued_count > 0:
         log.warning("nav_select_arq_unavailable", ingestion_id=str(ingestion_id))

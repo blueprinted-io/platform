@@ -35,7 +35,7 @@ from api.database import create_engine
 from api.models.ingestion import IngestionCandidate, IngestionChunk, IngestionTriageEstimate
 from api.prompts import Prompt
 from api.services.settings_service import LLMSettings
-from workers.main import (
+from workers.extraction import (
     _triage_chunk,
     _validate_principle,
     _validate_task,

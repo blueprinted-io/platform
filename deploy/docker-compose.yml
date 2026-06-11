@@ -2,9 +2,10 @@
 # Blueprinted platform — Docker Compose stack
 #
 # Services:
-#   api      FastAPI application
-#   worker   ARQ background job worker
-#   db       PostgreSQL 16 + pgvector
+#   api               FastAPI application
+#   worker            ARQ worker — embeddings + review-claim-expiry cron (default queue)
+#   worker-ingestion  ARQ worker — PDF/HTML ingestion + LLM triage/extraction ("ingestion" queue)
+#   db                PostgreSQL 16 + pgvector
 #   redis    ARQ broker + rate limit backend
 #   auth     Authentik OIDC identity provider
 #   storage  MinIO S3-compatible object storage (optional, disabled by default)
@@ -82,6 +83,29 @@ services:
       dockerfile: deploy/Dockerfile
     restart: unless-stopped
     command: arq workers.main.WorkerSettings
+    environment:
+      APP_ENV: ${APP_ENV:-production}
+      APP_SECRET_KEY: ${APP_SECRET_KEY:?APP_SECRET_KEY is required}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-blueprinted}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-blueprinted}
+      DATABASE_URL_SYNC: postgresql+psycopg2://${POSTGRES_USER:-blueprinted}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-blueprinted}
+      REDIS_URL: redis://redis:6379/0
+      STORAGE_BACKEND: ${STORAGE_BACKEND:-local}
+      STORAGE_LOCAL_ROOT: /app/uploads
+    volumes:
+      - uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker-ingestion:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    restart: unless-stopped
+    command: arq workers.ingestion.WorkerSettings
     environment:
       APP_ENV: ${APP_ENV:-production}
       APP_SECRET_KEY: ${APP_SECRET_KEY:?APP_SECRET_KEY is required}

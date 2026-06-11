@@ -10,7 +10,7 @@ import uuid
 from typing import Annotated
 
 import structlog
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Query, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -20,6 +20,7 @@ from api.dependencies import ArqPool, CurrentUser, DBSession, require_role
 from api.models.task import Task, TaskStep, TaskStepAction
 from api.models.user import User
 from api.schemas.base import ConfirmRequest
+from api.schemas.pagination import Page
 from api.schemas.task import (
     ReturnRequest,
     ReviseRequest,
@@ -101,14 +102,22 @@ async def create_task(body: TaskCreate, session: DBSession, user: _Writer) -> Ta
     return TaskResponse.model_validate(await _get_task(session, task.id))
 
 
-@router.get("", response_model=list[TaskResponse])
-async def list_tasks(session: DBSession, user: CurrentUser) -> list[TaskResponse]:
+@router.get("", response_model=Page[TaskResponse])
+async def list_tasks(
+    session: DBSession,
+    user: CurrentUser,
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+) -> Page[TaskResponse]:
     # Only return the latest version of each record.
     latest = (
         select(Task.record_id, func.max(Task.version).label("max_version"))
         .group_by(Task.record_id)
         .subquery()
     )
+    total = (
+        await session.execute(select(func.count(func.distinct(Task.record_id))))
+    ).scalar_one()
     result = await session.execute(
         select(Task)
         .join(
@@ -119,9 +128,16 @@ async def list_tasks(session: DBSession, user: CurrentUser) -> list[TaskResponse
             selectinload(Task.steps).selectinload(TaskStep.actions),
             selectinload(Task.steps).selectinload(TaskStep.images),
         )
-        .order_by(Task.created_at.desc())
+        .order_by(Task.created_at.desc(), Task.id.desc())
+        .limit(limit)
+        .offset(offset)
     )
-    return [TaskResponse.model_validate(t) for t in result.scalars().all()]
+    return Page[TaskResponse](
+        items=[TaskResponse.model_validate(t) for t in result.scalars().all()],
+        total=total,
+        limit=limit,
+        offset=offset,
+    )
 
 
 @router.get("/{record_id}/versions", response_model=list[TaskVersionSummary])

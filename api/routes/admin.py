@@ -293,7 +293,9 @@ async def admin_health(session: DBSession, _user: _Admin) -> HealthResponse:
         )).fetchone()
         migration_head = row[0] if row else None
     except ProgrammingError:
-        pass
+        # Table missing (pre-migration database) — the failed statement aborts
+        # the transaction, so roll back before the next query.
+        await session.rollback()
 
     error_count = (
         await session.execute(

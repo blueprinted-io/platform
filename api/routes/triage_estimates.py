@@ -21,6 +21,7 @@ from api.schemas.triage_estimate import (
     TriageEstimatePatchRequest,
     TriageEstimateResponse,
 )
+from workers.queues import INGESTION_QUEUE
 
 log = structlog.get_logger(__name__)
 
@@ -245,7 +246,9 @@ async def approve_estimates(
         chunk.chunk_status = "extraction_queued"
         await session.commit()
         if arq_pool is not None:
-            await arq_pool.enqueue_job("extract_chunk", chunk_id=str(chunk_id))
+            await arq_pool.enqueue_job(
+                "extract_chunk", chunk_id=str(chunk_id), _queue_name=INGESTION_QUEUE
+            )
         else:
             log.warning("triage_approve_arq_unavailable", chunk_id=str(chunk_id))
     else:

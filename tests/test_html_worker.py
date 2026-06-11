@@ -37,7 +37,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 from api.config import Settings
 from api.database import create_engine
 from api.models.ingestion import IngestionChunk, IngestionNavPage
-from workers.main import (
+from workers.ingestion_html import (
     _is_robots_allowed,
     _make_chunks_from_sections,
     crawl_html,
@@ -241,21 +241,21 @@ def test_make_chunks_preview_truncated() -> None:
 def test_is_robots_allowed_permits() -> None:
     mock_rp = MagicMock()
     mock_rp.can_fetch.return_value = True
-    with patch("workers.main.RobotFileParser", return_value=mock_rp):
+    with patch("workers.ingestion_html.RobotFileParser", return_value=mock_rp):
         assert _is_robots_allowed("http://example.com/page") is True
 
 
 def test_is_robots_allowed_blocks() -> None:
     mock_rp = MagicMock()
     mock_rp.can_fetch.return_value = False
-    with patch("workers.main.RobotFileParser", return_value=mock_rp):
+    with patch("workers.ingestion_html.RobotFileParser", return_value=mock_rp):
         assert _is_robots_allowed("http://example.com/page") is False
 
 
 def test_is_robots_allowed_unreachable_defaults_to_true() -> None:
     mock_rp = MagicMock()
     mock_rp.read.side_effect = OSError("connection refused")
-    with patch("workers.main.RobotFileParser", return_value=mock_rp):
+    with patch("workers.ingestion_html.RobotFileParser", return_value=mock_rp):
         assert _is_robots_allowed("http://example.com/page") is True
 
 
@@ -269,8 +269,8 @@ async def test_crawl_html_single_writes_chunks(test_settings: Settings) -> None:
     ctx = _make_ctx(test_settings)
 
     pw_mock = _make_pw_mock(sections=_TEST_SECTIONS)
-    with patch("workers.main.async_playwright", return_value=pw_mock):
-        with patch("workers.main._is_robots_allowed", return_value=True):
+    with patch("workers.ingestion_html.async_playwright", return_value=pw_mock):
+        with patch("workers.ingestion_html._is_robots_allowed", return_value=True):
             await crawl_html(ctx, str(iid), mode="single")
 
     ing = await _get_ingestion_status(test_settings, iid)
@@ -286,8 +286,8 @@ async def test_crawl_html_single_http_error_fails_ingestion(test_settings: Setti
     ctx = _make_ctx(test_settings)
 
     pw_mock = _make_pw_mock(page_ok=False, page_status=403)
-    with patch("workers.main.async_playwright", return_value=pw_mock):
-        with patch("workers.main._is_robots_allowed", return_value=True):
+    with patch("workers.ingestion_html.async_playwright", return_value=pw_mock):
+        with patch("workers.ingestion_html._is_robots_allowed", return_value=True):
             with pytest.raises(ValueError):
                 await crawl_html(ctx, str(iid), mode="single")
 
@@ -303,8 +303,8 @@ async def test_crawl_html_single_robots_blocked_fails_ingestion(test_settings: S
     ctx = _make_ctx(test_settings)
 
     pw_mock = _make_pw_mock(sections=_TEST_SECTIONS)
-    with patch("workers.main.async_playwright", return_value=pw_mock):
-        with patch("workers.main._is_robots_allowed", return_value=False):
+    with patch("workers.ingestion_html.async_playwright", return_value=pw_mock):
+        with patch("workers.ingestion_html._is_robots_allowed", return_value=False):
             with pytest.raises(ValueError):
                 await crawl_html(ctx, str(iid), mode="single")
 
@@ -323,8 +323,8 @@ async def test_crawl_html_sitenav_writes_nav_pages(test_settings: Settings) -> N
     ctx = _make_ctx(test_settings)
 
     pw_mock = _make_pw_mock(evaluate_side_effect=[_TEST_NAV_LINKS])
-    with patch("workers.main.async_playwright", return_value=pw_mock):
-        with patch("workers.main._is_robots_allowed", return_value=True):
+    with patch("workers.ingestion_html.async_playwright", return_value=pw_mock):
+        with patch("workers.ingestion_html._is_robots_allowed", return_value=True):
             await crawl_html(ctx, str(iid), mode="site-nav")
 
     ing = await _get_ingestion_status(test_settings, iid)
@@ -340,8 +340,8 @@ async def test_crawl_html_sitenav_root_http_error_fails(test_settings: Settings)
     ctx = _make_ctx(test_settings)
 
     pw_mock = _make_pw_mock(page_ok=False, page_status=503)
-    with patch("workers.main.async_playwright", return_value=pw_mock):
-        with patch("workers.main._is_robots_allowed", return_value=True):
+    with patch("workers.ingestion_html.async_playwright", return_value=pw_mock):
+        with patch("workers.ingestion_html._is_robots_allowed", return_value=True):
             with pytest.raises(ValueError):
                 await crawl_html(ctx, str(iid), mode="site-nav")
 
@@ -361,8 +361,8 @@ async def test_render_nav_pages_writes_chunks(test_settings: Settings) -> None:
     ctx = _make_ctx(test_settings)
 
     pw_mock = _make_pw_mock(sections=_TEST_SECTIONS)
-    with patch("workers.main.async_playwright", return_value=pw_mock):
-        with patch("workers.main._is_robots_allowed", return_value=True):
+    with patch("workers.ingestion_html.async_playwright", return_value=pw_mock):
+        with patch("workers.ingestion_html._is_robots_allowed", return_value=True):
             await render_nav_pages(ctx, str(iid))
 
     chunk_count = await _count_chunks(ctx["db_engine"], iid)
@@ -379,7 +379,7 @@ async def test_render_nav_pages_no_selected_pages_exits_cleanly(test_settings: S
     ctx = _make_ctx(test_settings)
 
     pw_mock = _make_pw_mock(sections=_TEST_SECTIONS)
-    with patch("workers.main.async_playwright", return_value=pw_mock):
+    with patch("workers.ingestion_html.async_playwright", return_value=pw_mock):
         await render_nav_pages(ctx, str(iid))  # must not raise
 
     chunk_count = await _count_chunks(ctx["db_engine"], iid)
@@ -421,8 +421,8 @@ async def test_render_nav_pages_partial_failure(test_settings: Settings) -> None
     mock_ctx.__aenter__.return_value = mock_pw
     mock_ctx.__aexit__.return_value = None
 
-    with patch("workers.main.async_playwright", return_value=mock_ctx):
-        with patch("workers.main._is_robots_allowed", return_value=True):
+    with patch("workers.ingestion_html.async_playwright", return_value=mock_ctx):
+        with patch("workers.ingestion_html._is_robots_allowed", return_value=True):
             await render_nav_pages(ctx, str(iid))
 
     # Good page got chunks; bad page recorded as failed

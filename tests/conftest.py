@@ -11,6 +11,7 @@ installs a StubTokenVerifier on app.state so no live Authentik is needed.
 """
 
 import asyncio
+import os
 import time
 import uuid
 from collections.abc import AsyncGenerator, Callable, Generator
@@ -59,8 +60,16 @@ def test_settings() -> Settings:
     return Settings(
         _env_file=None,  # type: ignore[call-arg]
         app_env="test",
-        database_url="postgresql+asyncpg://blueprinted:blueprinted@localhost:5432/blueprinted_test",
-        database_url_sync="postgresql+psycopg2://blueprinted:blueprinted@localhost:5432/blueprinted_test",
+        # TEST_DATABASE_URL/_SYNC let local runs point at a non-default port when
+        # 5432 is occupied by the deploy stack; CI uses the defaults.
+        database_url=os.environ.get(
+            "TEST_DATABASE_URL",
+            "postgresql+asyncpg://blueprinted:blueprinted@localhost:5432/blueprinted_test",
+        ),
+        database_url_sync=os.environ.get(
+            "TEST_DATABASE_URL_SYNC",
+            "postgresql+psycopg2://blueprinted:blueprinted@localhost:5432/blueprinted_test",
+        ),
         redis_url="redis://localhost:6379/1",
         log_level="WARNING",
         app_secret_key="ci-test-secret-not-for-production",  # type: ignore[arg-type]

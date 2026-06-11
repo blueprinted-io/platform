@@ -26,7 +26,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 from api.config import Settings
 from api.database import create_engine
 from api.services.settings_service import LLMSettings
-from workers.main import generate_embedding
+from workers.embeddings import generate_embedding
 
 pytestmark = pytest.mark.asyncio
 
@@ -97,7 +97,8 @@ async def _get_embedding(
 async def test_no_embedding_config_exits_cleanly(test_settings: Settings) -> None:
     ctx = _make_ctx(test_settings)
     try:
-        with patch("workers.main.load_llm_settings", new=AsyncMock(return_value=_NO_EMBEDDING_LLM)):
+        no_embed = AsyncMock(return_value=_NO_EMBEDDING_LLM)
+        with patch("workers.embeddings.load_llm_settings", new=no_embed):
             await generate_embedding(ctx, "principle", str(uuid.uuid4()))
     finally:
         await ctx["db_engine"].dispose()
@@ -111,7 +112,8 @@ async def test_no_embedding_config_exits_cleanly(test_settings: Settings) -> Non
 async def test_record_not_found_exits_cleanly(test_settings: Settings) -> None:
     ctx = _make_ctx(test_settings)
     try:
-        with patch("workers.main.load_llm_settings", new=AsyncMock(return_value=_CONFIGURED_LLM)):
+        configured = AsyncMock(return_value=_CONFIGURED_LLM)
+        with patch("workers.embeddings.load_llm_settings", new=configured):
             await generate_embedding(ctx, "principle", str(uuid.uuid4()))
     finally:
         await ctx["db_engine"].dispose()
@@ -144,7 +146,8 @@ async def test_principle_embedding_stored(
 
     ctx = _make_ctx(test_settings)
     try:
-        with patch("workers.main.load_llm_settings", new=AsyncMock(return_value=_CONFIGURED_LLM)):
+        configured = AsyncMock(return_value=_CONFIGURED_LLM)
+        with patch("workers.embeddings.load_llm_settings", new=configured):
             await generate_embedding(ctx, "principle", str(principle_id))
 
         stored = await _get_embedding(ctx["db_engine"], "principles", principle_id)
@@ -181,7 +184,8 @@ async def test_workflow_embedding_stored(
 
     ctx = _make_ctx(test_settings)
     try:
-        with patch("workers.main.load_llm_settings", new=AsyncMock(return_value=_CONFIGURED_LLM)):
+        configured = AsyncMock(return_value=_CONFIGURED_LLM)
+        with patch("workers.embeddings.load_llm_settings", new=configured):
             await generate_embedding(ctx, "workflow", str(workflow_id))
 
         stored = await _get_embedding(ctx["db_engine"], "workflows", workflow_id)
@@ -224,7 +228,8 @@ async def test_task_embedding_stored(
 
     ctx = _make_ctx(test_settings)
     try:
-        with patch("workers.main.load_llm_settings", new=AsyncMock(return_value=_CONFIGURED_LLM)):
+        configured = AsyncMock(return_value=_CONFIGURED_LLM)
+        with patch("workers.embeddings.load_llm_settings", new=configured):
             await generate_embedding(ctx, "task", str(task_id))
 
         stored = await _get_embedding(ctx["db_engine"], "tasks", task_id)
@@ -261,7 +266,8 @@ async def test_embedding_api_error_raises(
 
     ctx = _make_ctx(test_settings)
     try:
-        with patch("workers.main.load_llm_settings", new=AsyncMock(return_value=_CONFIGURED_LLM)):
+        configured = AsyncMock(return_value=_CONFIGURED_LLM)
+        with patch("workers.embeddings.load_llm_settings", new=configured):
             with pytest.raises(HTTPStatusError):
                 await generate_embedding(ctx, "principle", principle_id)
     finally:

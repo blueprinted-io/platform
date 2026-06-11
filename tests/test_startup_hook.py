@@ -18,7 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.config import Settings
 from api.database import create_engine
-from workers.main import startup
+from workers.ingestion import startup
 
 pytestmark = pytest.mark.asyncio
 
@@ -76,7 +76,7 @@ async def _get_chunk_status(test_settings: Settings, chunk_id: uuid.UUID) -> str
 async def test_startup_resets_processing_to_queued(test_settings: Settings) -> None:
     _, chunk_id = await _insert_ingestion_and_chunk(test_settings, "processing")
 
-    with patch("workers.main.get_settings", return_value=test_settings):
+    with patch("workers.common.get_settings", return_value=test_settings):
         ctx: dict[str, Any] = {}
         await startup(ctx)
         await ctx["db_engine"].dispose()
@@ -92,7 +92,7 @@ async def test_startup_resets_processing_to_queued(test_settings: Settings) -> N
 async def test_startup_resets_extracting_to_extraction_queued(test_settings: Settings) -> None:
     _, chunk_id = await _insert_ingestion_and_chunk(test_settings, "extracting")
 
-    with patch("workers.main.get_settings", return_value=test_settings):
+    with patch("workers.common.get_settings", return_value=test_settings):
         ctx: dict[str, Any] = {}
         await startup(ctx)
         await ctx["db_engine"].dispose()
@@ -111,7 +111,7 @@ async def test_startup_reenqueues_extraction_queued_chunks(test_settings: Settin
     mock_arq = AsyncMock()
     mock_arq.enqueue_job = AsyncMock()
 
-    with patch("workers.main.get_settings", return_value=test_settings):
+    with patch("workers.common.get_settings", return_value=test_settings):
         ctx: dict[str, Any] = {"redis": mock_arq}
         await startup(ctx)
         await ctx["db_engine"].dispose()
@@ -132,7 +132,7 @@ async def test_startup_reenqueues_extraction_queued_chunks(test_settings: Settin
 async def test_startup_skips_reenqueue_without_redis(test_settings: Settings) -> None:
     _, chunk_id = await _insert_ingestion_and_chunk(test_settings, "extraction_queued")
 
-    with patch("workers.main.get_settings", return_value=test_settings):
+    with patch("workers.common.get_settings", return_value=test_settings):
         ctx: dict[str, Any] = {}
         await startup(ctx)  # must not raise
         await ctx["db_engine"].dispose()
@@ -147,7 +147,7 @@ async def test_startup_skips_reenqueue_without_redis(test_settings: Settings) ->
 
 @pytest.mark.asyncio
 async def test_startup_populates_ctx(test_settings: Settings) -> None:
-    with patch("workers.main.get_settings", return_value=test_settings):
+    with patch("workers.common.get_settings", return_value=test_settings):
         ctx: dict[str, Any] = {}
         await startup(ctx)
         await ctx["db_engine"].dispose()

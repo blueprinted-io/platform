@@ -10,7 +10,7 @@ from datetime import UTC, datetime
 from typing import Annotated
 
 import structlog
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Query, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -22,6 +22,7 @@ from api.models.task import Task
 from api.models.user import User
 from api.models.workflow import Workflow, WorkflowPrincipleRef, WorkflowTaskRef
 from api.schemas.base import ConfirmRequest
+from api.schemas.pagination import Page
 from api.schemas.workflow import (
     ReturnRequest,
     ReviseRequest,
@@ -80,23 +81,39 @@ async def create_workflow(
     return WorkflowResponse.model_validate(await _get_workflow_with_refs(session, workflow.id))
 
 
-@router.get("", response_model=list[WorkflowResponse])
-async def list_workflows(session: DBSession, user: CurrentUser) -> list[WorkflowResponse]:
+@router.get("", response_model=Page[WorkflowResponse])
+async def list_workflows(
+    session: DBSession,
+    user: CurrentUser,
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+) -> Page[WorkflowResponse]:
     latest = (
         select(Workflow.record_id, func.max(Workflow.version).label("max_version"))
         .group_by(Workflow.record_id)
         .subquery()
     )
+    total = (
+        await session.execute(select(func.count(func.distinct(Workflow.record_id))))
+    ).scalar_one()
     result = await session.execute(
         select(Workflow)
         .join(
             latest,
-            (Workflow.record_id == latest.c.record_id) & (Workflow.version == latest.c.max_version),
+            (Workflow.record_id == latest.c.record_id)
+            & (Workflow.version == latest.c.max_version),
         )
         .options(selectinload(Workflow.task_refs), selectinload(Workflow.principle_refs))
-        .order_by(Workflow.created_at.desc())
+        .order_by(Workflow.created_at.desc(), Workflow.id.desc())
+        .limit(limit)
+        .offset(offset)
     )
-    return [WorkflowResponse.model_validate(w) for w in result.scalars().all()]
+    return Page[WorkflowResponse](
+        items=[WorkflowResponse.model_validate(w) for w in result.scalars().all()],
+        total=total,
+        limit=limit,
+        offset=offset,
+    )
 
 
 @router.get("/{record_id}/versions", response_model=list[WorkflowVersionSummary])

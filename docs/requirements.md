@@ -2,11 +2,13 @@
 
 ## Platform Rebuild — Requirements Specification
 
-**Version 4.10 · June 2026**
+**Version 4.11 · June 2026**
 
 *Confidential. Internal Use Only*
 
 github.com/blueprinted-io/platform
+
+v4.11 changes from v4.10: Sprint 12. §6 pagination convention added — `Page` envelope `{items, total, limit, offset}`, `limit` default 20 / max 100, applied to `/tasks`, `/workflows`, `/principles` list endpoints. Response shape change within `/api/v1` accepted as a pre-GA exception to the breaking-changes rule (no external consumers yet; the app frontend adopts the envelope in Sprint 8 work). §14 worker split: ingestion jobs (`chunk_pdf`, `process_chunks`, `extract_chunk`, `crawl_html`, `render_nav_pages`) move to a dedicated ARQ worker on queue `ingestion`; embeddings and review-claim expiry remain on the default worker. Chunk-recovery startup logic lives with the ingestion worker only.
 
 v4.10 changes from v4.9: Sprint 11 hardening complete. §9.6 audit event types table extended — `record_confirmed`, `break_glass_confirm`, `record_returned`, `record_deprecated`, `record_retired`, `domain_created`, `user_domains_updated` all now wired and tested. `api_keys` table gains `expires_at TIMESTAMPTZ NULL` — set via `expires_at_days` on key creation; expired keys return 401. Unique constraint `(record_id, version)` added to `tasks`, `workflows`, `principles` tables. Rate limiting added (slowapi, Redis backend): 30/min on `GET /search`, 10/min on `POST /ingestions`. `api/services/linting.py` implemented and wired into `TaskResponse.lint_warnings` computed field — advisory warnings on abstract verbs, missing completion, empty actions; suppressed on confirmed records.
 
@@ -234,6 +236,8 @@ Machine auth is implemented in Sprint 10 alongside the CLI and admin tooling it 
 **Consumers:** Human UI, AI agents, third-party integrations — all equal, no privileged path
 
 **Documentation:** OpenAPI generated from FastAPI route definitions, source of truth, not separately maintained
+
+**Pagination:** List endpoints return a `Page` envelope: `{items, total, limit, offset}`. Query parameters `limit` (default 20, min 1, max 100) and `offset` (default 0, min 0). `total` is the count of distinct records — for governed records, latest version only. Ordering is `created_at` descending with `id` descending as tiebreaker, so pages are stable under concurrent inserts. Applies to the governed record lists (`/tasks`, `/workflows`, `/principles`); remaining list endpoints adopt the envelope as they are next touched.
 
 The API version contract is the formal boundary between core and all consumers including the future delivery product. This principle is documented in contributor docs from day one.
 
@@ -1392,7 +1396,7 @@ ingestion_failed       -- an ingestion job the user started has failed
 
 **Framework:** ARQ + Redis
 
-**Worker:** Separate process, same codebase, different entrypoint
+**Workers (v4.11):** Two worker processes, same codebase, different entrypoints. The default worker (`workers.main.WorkerSettings`, default queue) owns embedding generation and the review-claim-expiry cron. The ingestion worker (`workers.ingestion.WorkerSettings`, queue `ingestion`) owns `chunk_pdf`, `process_chunks`, `extract_chunk`, `crawl_html`, `render_nav_pages` — isolating long-running LLM work from fast jobs. Every enqueue of an ingestion job must pass `_queue_name="ingestion"`; an ARQ worker fails jobs whose function it does not have registered, so queue routing is part of the job contract.
 
 **Durability:** Jobs are persisted in Redis before execution. If the worker process dies before a job begins executing, the job remains in the Redis queue and will be picked up when the worker restarts. Jobs that were mid-execution when the worker died are a different case — see Resumability below.
 
@@ -1405,7 +1409,7 @@ This is implemented as follows:
 - This means a worker restart may re-process a chunk whose LLM call completed but whose result was never written — acceptable, as extraction is idempotent from the operator's perspective
 - Chunks in `done`, `error`, or `skipped` state are never re-processed
 
-**The startup hook is not optional.** Without it, chunks left in `processing` state after a worker crash are silently skipped on resume, producing an ingestion job that appears complete but is missing candidates. This is a data loss scenario. Mark the startup hook clearly in code — it is load-bearing and must not be removed during refactoring.
+**The startup hook is not optional.** Without it, chunks left in `processing` state after a worker crash are silently skipped on resume, producing an ingestion job that appears complete but is missing candidates. This is a data loss scenario. Mark the startup hook clearly in code — it is load-bearing and must not be removed during refactoring. As of v4.11 it runs on the ingestion worker only (the recovery targets ingestion chunks; running it twice would double-enqueue orphaned extraction jobs).
 
 New system_settings keys introduced by §11: `ingestion_pdf_chunk_size_chars` (default 4000, fallback chunk size when no PDF structure detected), `ingestion_html_respect_robots_txt` (default true, controls whether HTML ingestion observes robots.txt).
 

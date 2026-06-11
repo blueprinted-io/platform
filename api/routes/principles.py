@@ -4,7 +4,7 @@ import uuid
 from typing import Annotated
 
 import structlog
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Query, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,6 +13,7 @@ from api.dependencies import ArqPool, CurrentUser, DBSession, require_role
 from api.models.principle import Principle
 from api.models.user import User
 from api.schemas.base import ConfirmRequest
+from api.schemas.pagination import Page
 from api.schemas.principle import (
     PrincipleCreate,
     PrincipleResponse,
@@ -60,13 +61,21 @@ async def create_principle(body: PrincipleCreate, session: DBSession, user: _Wri
     return principle
 
 
-@router.get("", response_model=list[PrincipleResponse])
-async def list_principles(session: DBSession, user: CurrentUser) -> list[Principle]:
+@router.get("", response_model=Page[PrincipleResponse])
+async def list_principles(
+    session: DBSession,
+    user: CurrentUser,
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+) -> Page[PrincipleResponse]:
     latest = (
         select(Principle.record_id, func.max(Principle.version).label("max_version"))
         .group_by(Principle.record_id)
         .subquery()
     )
+    total = (
+        await session.execute(select(func.count(func.distinct(Principle.record_id))))
+    ).scalar_one()
     result = await session.execute(
         select(Principle)
         .join(
@@ -74,9 +83,16 @@ async def list_principles(session: DBSession, user: CurrentUser) -> list[Princip
             (Principle.record_id == latest.c.record_id)
             & (Principle.version == latest.c.max_version),
         )
-        .order_by(Principle.created_at.desc())
+        .order_by(Principle.created_at.desc(), Principle.id.desc())
+        .limit(limit)
+        .offset(offset)
     )
-    return list(result.scalars().all())
+    return Page[PrincipleResponse](
+        items=[PrincipleResponse.model_validate(p) for p in result.scalars().all()],
+        total=total,
+        limit=limit,
+        offset=offset,
+    )
 
 
 @router.get("/{record_id}/versions", response_model=list[PrincipleVersionSummary])
