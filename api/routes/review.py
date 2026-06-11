@@ -454,6 +454,7 @@ async def confirm_via_review(
     record.status = "confirmed"
     record.self_confirmed_by_admin = is_break_glass
     record.reviewed_by = user.id
+    record.reviewed_at = datetime.now(UTC)
     record.updated_by = user.id
 
     # Release own claim if held

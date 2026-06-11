@@ -15,6 +15,7 @@ Callers must NOT commit between calling one of these functions and reading the
 returned record — the commit happens inside, and the session is left clean.
 """
 
+from datetime import UTC, datetime
 from typing import Any
 
 import structlog
@@ -52,6 +53,7 @@ async def confirm_record(
     record.status = "confirmed"
     record.self_confirmed_by_admin = is_break_glass
     record.reviewed_by = user.id
+    record.reviewed_at = datetime.now(UTC)
     record.updated_by = user.id
 
     detail = _base_detail(record, record_type)

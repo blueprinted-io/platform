@@ -146,6 +146,9 @@ _CONTRIBUTOR_SUBS: list[str] = [
     "reviewer-srch-001",
     # Sprint 6 — ingestion pipeline tests
     "author-ing-001",
+    # Sprint 13 — analytics dashboard tests
+    "author-an-001",
+    "reviewer-an-001",
 ]
 
 

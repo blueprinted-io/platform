@@ -4,6 +4,7 @@ from fastapi import APIRouter
 
 from api.routes import (
     admin,
+    analytics,
     api_keys,
     audit_log,
     ingestions,
@@ -19,6 +20,7 @@ from api.routes import (
 )
 
 router = APIRouter(prefix="/api/v1")
+router.include_router(analytics.router)
 router.include_router(users.router)
 router.include_router(principles.router)
 router.include_router(tasks.router)
