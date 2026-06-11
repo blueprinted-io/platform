@@ -15,9 +15,9 @@
     "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "/home/ewan/projects/blueprinted/platform/workers/main.py": {
-    "mtime": 1780085669.957937,
-    "ast_hash": "8a71c58191b00403a6e3c7c2646f6ae7",
-    "semantic_hash": "8a71c58191b00403a6e3c7c2646f6ae7"
+    "mtime": 1781158618.4123764,
+    "ast_hash": "9e85e0cd8145c63b7d8228642967084c",
+    "semantic_hash": "9e85e0cd8145c63b7d8228642967084c"
   },
   "/home/ewan/projects/blueprinted/platform/migrations/env.py": {
     "mtime": 1778658864.7554274,
@@ -80,9 +80,9 @@
     "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "/home/ewan/projects/blueprinted/platform/tests/conftest.py": {
-    "mtime": 1778795492.946411,
-    "ast_hash": "304e3eb3c38864890178be1aff791001",
-    "semantic_hash": "304e3eb3c38864890178be1aff791001"
+    "mtime": 1781136266.168063,
+    "ast_hash": "20d226590b4196bfa7621da686839097",
+    "semantic_hash": "20d226590b4196bfa7621da686839097"
   },
   "/home/ewan/projects/blueprinted/platform/tests/test_workflows.py": {
     "mtime": 1778706083.9700966,
@@ -90,9 +90,9 @@
     "semantic_hash": "470a4eddbaaf2250a063afa9360b6b7e"
   },
   "/home/ewan/projects/blueprinted/platform/tests/test_process_chunks.py": {
-    "mtime": 1780071258.5614753,
-    "ast_hash": "4cf280c19bf9d7cdf00d18233f1bd3bf",
-    "semantic_hash": "4cf280c19bf9d7cdf00d18233f1bd3bf"
+    "mtime": 1781158698.3380232,
+    "ast_hash": "4d51f9eb7384248d0a00fc55eefac000",
+    "semantic_hash": "4d51f9eb7384248d0a00fc55eefac000"
   },
   "/home/ewan/projects/blueprinted/platform/tests/test_review.py": {
     "mtime": 1778933289.8132403,
@@ -280,14 +280,14 @@
     "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "/home/ewan/projects/blueprinted/platform/api/routes/principles.py": {
-    "mtime": 1781079800.6762059,
-    "ast_hash": "b5b9fed5de07ee698e0f81bffa435409",
-    "semantic_hash": "b5b9fed5de07ee698e0f81bffa435409"
+    "mtime": 1781136161.4287238,
+    "ast_hash": "253973e58276f2456d6ef1eef0d4a76c",
+    "semantic_hash": "253973e58276f2456d6ef1eef0d4a76c"
   },
   "/home/ewan/projects/blueprinted/platform/api/routes/tasks.py": {
-    "mtime": 1781077812.6773882,
-    "ast_hash": "68f97bf7d067f1cada9cb531a0deac44",
-    "semantic_hash": "68f97bf7d067f1cada9cb531a0deac44"
+    "mtime": 1781136124.6621478,
+    "ast_hash": "565cae1db83d1fdee8f5a86b6c7e6959",
+    "semantic_hash": "565cae1db83d1fdee8f5a86b6c7e6959"
   },
   "/home/ewan/projects/blueprinted/platform/api/routes/v1.py": {
     "mtime": 1780965616.6146166,
@@ -295,19 +295,19 @@
     "semantic_hash": "cfe304bca332db50ecbf3f65a0dc002b"
   },
   "/home/ewan/projects/blueprinted/platform/api/routes/admin.py": {
-    "mtime": 1781079367.8858526,
-    "ast_hash": "6de78e9ac9c0a9e991bd1efa6c345cc1",
-    "semantic_hash": "6de78e9ac9c0a9e991bd1efa6c345cc1"
+    "mtime": 1781136380.2400575,
+    "ast_hash": "0e1f41bcbd50371d1863d247dc1d263c",
+    "semantic_hash": "0e1f41bcbd50371d1863d247dc1d263c"
   },
   "/home/ewan/projects/blueprinted/platform/api/routes/workflows.py": {
-    "mtime": 1781079803.8404279,
-    "ast_hash": "4ae4e5624f471fe538fb5e29726c385c",
-    "semantic_hash": "4ae4e5624f471fe538fb5e29726c385c"
+    "mtime": 1781136158.248501,
+    "ast_hash": "3966c92ff4ca6f96e9ed34c595774547",
+    "semantic_hash": "3966c92ff4ca6f96e9ed34c595774547"
   },
   "/home/ewan/projects/blueprinted/platform/api/routes/ingestions.py": {
-    "mtime": 1781078505.4016094,
-    "ast_hash": "128291e52fcad383fe5e86587a02ff21",
-    "semantic_hash": "128291e52fcad383fe5e86587a02ff21"
+    "mtime": 1781158654.922956,
+    "ast_hash": "a7c19de78e60c48136dd4c444a0c679f",
+    "semantic_hash": "a7c19de78e60c48136dd4c444a0c679f"
   },
   "/home/ewan/projects/blueprinted/platform/api/services/search.py": {
     "mtime": 1778933289.8132403,
@@ -395,9 +395,9 @@
     "semantic_hash": "64c7cd0f798b1f5e87ff09e07b1c5785"
   },
   "/home/ewan/projects/blueprinted/platform/SESSIONS_ARCHIVE.md": {
-    "mtime": 1781080731.0855336,
-    "ast_hash": "0919cdc83bcfae8d6f51ffccda845830",
-    "semantic_hash": "0919cdc83bcfae8d6f51ffccda845830"
+    "mtime": 1781159361.087995,
+    "ast_hash": "0697f045547ba8e82366df984fbf5bfc",
+    "semantic_hash": "0697f045547ba8e82366df984fbf5bfc"
   },
   "/home/ewan/projects/blueprinted/platform/CLAUDE.md": {
     "mtime": 1779470480.2151098,
@@ -410,9 +410,9 @@
     "semantic_hash": "3a2f326dd298cc2c4fc1cf8aa2edf955"
   },
   "/home/ewan/projects/blueprinted/platform/SESSIONS.md": {
-    "mtime": 1781080715.5484426,
-    "ast_hash": "90f91969a76f8a0361aedaa4a4a0b189",
-    "semantic_hash": "90f91969a76f8a0361aedaa4a4a0b189"
+    "mtime": 1781159375.360979,
+    "ast_hash": "062eefca45283ad2a4061175b1401684",
+    "semantic_hash": "062eefca45283ad2a4061175b1401684"
   },
   "/home/ewan/projects/blueprinted/platform/docs/authentik-setup.md": {
     "mtime": 1778659077.2441366,
@@ -445,9 +445,9 @@
     "semantic_hash": "87d284e98e97b1846bd579acc5db3126"
   },
   "/home/ewan/projects/blueprinted/platform/docs/requirements.md": {
-    "mtime": 1781078569.7380798,
-    "ast_hash": "85248ee115f6e4813820687d6b7c4062",
-    "semantic_hash": "85248ee115f6e4813820687d6b7c4062"
+    "mtime": 1781136469.2903035,
+    "ast_hash": "d2c0eae3c2a02fa5f00663339b85daf1",
+    "semantic_hash": "d2c0eae3c2a02fa5f00663339b85daf1"
   },
   "/home/ewan/projects/blueprinted/platform/docs/session_protocol.md": {
     "mtime": 1779039082.7928758,
@@ -515,9 +515,9 @@
     "semantic_hash": "a6f9cc2d07c71e50c31897ded3d4eecb"
   },
   "/home/ewan/projects/blueprinted/platform/deploy/docker-compose.yml": {
-    "mtime": 1781034889.1341863,
-    "ast_hash": "a93490ca583ae08e5c8c57cd563b2f89",
-    "semantic_hash": "a93490ca583ae08e5c8c57cd563b2f89"
+    "mtime": 1781158683.3489642,
+    "ast_hash": "70ad83b88e860847b03cc328833e6ca4",
+    "semantic_hash": "70ad83b88e860847b03cc328833e6ca4"
   },
   "/home/ewan/projects/blueprinted/platform/deploy/docker-compose.override.yml": {
     "mtime": 1778657119.6518548,
@@ -540,9 +540,9 @@
     "semantic_hash": "78782ae89a54bc406c67a7b3c984a13d"
   },
   "/home/ewan/projects/blueprinted/platform/tests/test_html_worker.py": {
-    "mtime": 1780085674.7862742,
-    "ast_hash": "6486b04b44448b90e698027646de80e4",
-    "semantic_hash": "6486b04b44448b90e698027646de80e4"
+    "mtime": 1781158698.3380232,
+    "ast_hash": "57a60486c01be7522d1f7cd5d469c5d5",
+    "semantic_hash": "57a60486c01be7522d1f7cd5d469c5d5"
   },
   "/home/ewan/projects/blueprinted/platform/tests/test_triage_estimates.py": {
     "mtime": 1780071532.529439,
@@ -555,9 +555,9 @@
     "semantic_hash": "f7a31f1146f4f7593b4a63cbc26bbd0c"
   },
   "/home/ewan/projects/blueprinted/platform/tests/test_embedding_worker.py": {
-    "mtime": 1780085356.25209,
-    "ast_hash": "f7bc34ca82e880c77eee6dac5daebd5e",
-    "semantic_hash": "f7bc34ca82e880c77eee6dac5daebd5e"
+    "mtime": 1781158717.2513592,
+    "ast_hash": "4ff71353617a390ecd337ea49ce5b924",
+    "semantic_hash": "4ff71353617a390ecd337ea49ce5b924"
   },
   "/home/ewan/projects/blueprinted/platform/tests/test_notifications.py": {
     "mtime": 1780084171.5893831,
@@ -570,9 +570,9 @@
     "semantic_hash": "bfd305d482ce3d06eb9426d3a1e9cf4d"
   },
   "/home/ewan/projects/blueprinted/platform/tests/test_startup_hook.py": {
-    "mtime": 1780085213.3621995,
-    "ast_hash": "1f62682e0ca0943426efeb7534b72409",
-    "semantic_hash": "1f62682e0ca0943426efeb7534b72409"
+    "mtime": 1781158698.3420234,
+    "ast_hash": "c1a0380f2868741400fb7d2dfe0b9455",
+    "semantic_hash": "c1a0380f2868741400fb7d2dfe0b9455"
   },
   "/home/ewan/projects/blueprinted/platform/api/schemas/triage_estimate.py": {
     "mtime": 1779915962.338707,
@@ -585,9 +585,9 @@
     "semantic_hash": "35909603d65d985129636e02922125ab"
   },
   "/home/ewan/projects/blueprinted/platform/api/routes/triage_estimates.py": {
-    "mtime": 1779917011.8884792,
-    "ast_hash": "f12ebb7235038c66020f66091a9d5bd8",
-    "semantic_hash": "f12ebb7235038c66020f66091a9d5bd8"
+    "mtime": 1781158649.134547,
+    "ast_hash": "e18f8786b1b165e88ca453843b4fea79",
+    "semantic_hash": "e18f8786b1b165e88ca453843b4fea79"
   },
   "/home/ewan/projects/blueprinted/platform/api/routes/relationships.py": {
     "mtime": 1780688537.79424,
@@ -718,5 +718,65 @@
     "mtime": 1781080587.4034429,
     "ast_hash": "d1013cfed692237d5c9345d45689c9a6",
     "semantic_hash": "d1013cfed692237d5c9345d45689c9a6"
+  },
+  "/home/ewan/projects/blueprinted/platform/workers/common.py": {
+    "mtime": 1781158440.76382,
+    "ast_hash": "4688babf12c9201d6e46350ed4931b09",
+    "semantic_hash": "4688babf12c9201d6e46350ed4931b09"
+  },
+  "/home/ewan/projects/blueprinted/platform/workers/embeddings.py": {
+    "mtime": 1781158468.1937592,
+    "ast_hash": "7c915847be32ee4c31cc3983d72d96ac",
+    "semantic_hash": "7c915847be32ee4c31cc3983d72d96ac"
+  },
+  "/home/ewan/projects/blueprinted/platform/workers/ingestion.py": {
+    "mtime": 1781158609.815769,
+    "ast_hash": "cb823f4b898e3ba2e3839882df5b9cd1",
+    "semantic_hash": "cb823f4b898e3ba2e3839882df5b9cd1"
+  },
+  "/home/ewan/projects/blueprinted/platform/workers/llm.py": {
+    "mtime": 1781158448.1683435,
+    "ast_hash": "157aae2cd2e169e08315da1b3b8ceb4f",
+    "semantic_hash": "157aae2cd2e169e08315da1b3b8ceb4f"
+  },
+  "/home/ewan/projects/blueprinted/platform/workers/maintenance.py": {
+    "mtime": 1781158473.1461093,
+    "ast_hash": "d1868d7761d4254a3b4dbc504f7aba77",
+    "semantic_hash": "d1868d7761d4254a3b4dbc504f7aba77"
+  },
+  "/home/ewan/projects/blueprinted/platform/workers/queues.py": {
+    "mtime": 1781158436.9595509,
+    "ast_hash": "8c84e6bbb2ea8a4e0cd282993fb995cc",
+    "semantic_hash": "8c84e6bbb2ea8a4e0cd282993fb995cc"
+  },
+  "/home/ewan/projects/blueprinted/platform/workers/extraction.py": {
+    "mtime": 1781158537.3986511,
+    "ast_hash": "43aa6db011fa84667e2239e8083506ee",
+    "semantic_hash": "43aa6db011fa84667e2239e8083506ee"
+  },
+  "/home/ewan/projects/blueprinted/platform/workers/ingestion_pdf.py": {
+    "mtime": 1781158497.0157967,
+    "ast_hash": "4d457e60c357df9fee547869e132fff8",
+    "semantic_hash": "4d457e60c357df9fee547869e132fff8"
+  },
+  "/home/ewan/projects/blueprinted/platform/workers/ingestion_html.py": {
+    "mtime": 1781158584.089951,
+    "ast_hash": "f2e0d0544d74dbfeabb96d24185682cd",
+    "semantic_hash": "f2e0d0544d74dbfeabb96d24185682cd"
+  },
+  "/home/ewan/projects/blueprinted/platform/tests/test_pagination.py": {
+    "mtime": 1781158865.349819,
+    "ast_hash": "47c1cb0bb804dcb57d16dad0c5824d17",
+    "semantic_hash": "47c1cb0bb804dcb57d16dad0c5824d17"
+  },
+  "/home/ewan/projects/blueprinted/platform/tests/test_worker_queues.py": {
+    "mtime": 1781158966.5889673,
+    "ast_hash": "a83fda9a554dccbea6b577675838ae2a",
+    "semantic_hash": "a83fda9a554dccbea6b577675838ae2a"
+  },
+  "/home/ewan/projects/blueprinted/platform/api/schemas/pagination.py": {
+    "mtime": 1781136107.832969,
+    "ast_hash": "ef47346fc6cd5521f68ba00607f98f36",
+    "semantic_hash": "ef47346fc6cd5521f68ba00607f98f36"
   }
 }
