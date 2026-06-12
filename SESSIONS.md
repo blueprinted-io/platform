@@ -3,22 +3,22 @@ One entry only. On closeout: move this entry to the top of SESSIONS_ARCHIVE.md (
 Archive: SESSIONS_ARCHIVE.md (do not load unless explicitly asked).
 Format and rules: docs/session_protocol.md
 
-## Session — 2026-06-11 (Sprint 13: analytics dashboard + production DB migrations)
+## Session — 2026-06-12 (repo housekeeping: core clone, READMEs, CI fix)
 
 ### Decisions
-- Dashboard is fixed/role-aware for v1 (§15); customisable layout model is v2 — no abstractions built for it now, full rebuild when the time comes.
-- Staleness threshold hardcoded at 90 days for v1; noted as a future system_setting candidate.
-- return_rate_30d uses updated_at as a proxy for transition date (no transition history table); accurate enough for v1.
+- `core` repo cloned into the local blueprinted workspace alongside `platform` and `app`; root README documents all three as independent repos.
+- `graphify-out/graph.html` untracked and gitignored — it was skewing GitHub language stats to 60.9% HTML; the JSON/markdown graph data (useful to LLMs) remains committed.
 
 ### Done
-- `reviewed_at` was never populated on confirm — fixed in both `lifecycle_actions.confirm_record` and the inline path in `review.py`; required for staleness calculation to be meaningful.
-- `GET /api/v1/analytics/dashboard`: contributor stats (drafts/submitted/returned + recently-returned list), reviewer queue depth, admin section (confirmed_30d, return_rate_30d, stale_confirmed_count, stale_by_domain). Schema in `api/schemas/analytics.py`, route in `api/routes/analytics.py`.
-- 9 integration tests in `tests/test_analytics.py`; 354 total passing. Two new test subs added to conftest (`author-an-001`, `reviewer-an-001`).
-- `DashboardPage.tsx` replaced: stat card grid, recently-returned list with edit links, review queue depth card, admin platform-health section with stale-by-domain breakdown.
-- Production DB was 4 migrations behind (stuck at Sprint 10 triage-estimates); applied `return_severity`, `api_keys/audit_log`, `api_key_expires_at`, `(record_id, version)` unique constraint. API, worker, worker-ingestion rebuilt and restarted.
+- Cloned `blueprinted-io/core` into `/home/ewan/projects/blueprinted/core`.
+- Rewrote READMEs for all three repos: `core` (clearer MVP status, cross-links), `app` (added stack table, auth flow, cross-links), `platform` (reframed as pre-release, cleaned structure). All three pushed.
+- Created `ORG_README.md` at workspace root — ready to drop into the `blueprinted-io/.github` org profile repo.
+- Fixed platform CI: ruff I001 (unsorted imports) in `api/routes/analytics.py` and `tests/test_analytics.py`; E501 line wrap in test. CI green.
+- `graphify-out/graph.html` removed from git tracking; `.gitignore` updated. Pushed.
 
 ### Broken / Incomplete
 - (carried) Auth failure rate limiting not implemented; Authentik theme logos broken — cosmetic.
+- `app` repo has an unstaged change in `DashboardPage.tsx` — carried over from Sprint 13, not part of this session.
 
 ### Next
-Sprint 13 remaining items: profile preferences PATCH, or resolve the open mvp_audit decisions (force_submit, hard delete policy). Both are small. No prerequisites — platform and app repos are clean, deployed, and serving the dashboard.
+Sprint 13 remaining items: profile preferences PATCH, or resolve the open mvp_audit decisions (force_submit, hard delete policy). No prerequisites — all repos clean and CI green.
