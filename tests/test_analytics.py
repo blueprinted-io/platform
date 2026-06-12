@@ -26,7 +26,6 @@ from httpx import AsyncClient
 
 from tests.factories import task_payload
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -81,7 +80,9 @@ async def test_dashboard_viewer_can_access(
     client: AsyncClient, make_token: Callable[..., str]
 ) -> None:
     token = make_token(roles=["viewer"])
-    r = await client.get("/api/v1/analytics/dashboard", headers={"Authorization": f"Bearer {token}"})
+    r = await client.get(
+        "/api/v1/analytics/dashboard", headers={"Authorization": f"Bearer {token}"}
+    )
     assert r.status_code == 200
     data = r.json()
     assert "contributor" in data

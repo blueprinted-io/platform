@@ -9,7 +9,6 @@ queue depth (all users, reflects domain assignments), and admin stats (admin onl
 
 import uuid
 from datetime import UTC, datetime, timedelta
-
 from typing import Annotated
 
 import sqlalchemy as sa
