@@ -38,3 +38,6 @@ deploy/authentik/certs/
 
 # Uploads (mounted volume in production)
 uploads/
+
+# Graphify — HTML visualization is generated, not useful for LLMs
+graphify-out/graph.html
