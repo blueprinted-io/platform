@@ -24,7 +24,18 @@ coverage.xml
 # Editors
 .idea/
 .vscode/
-.claude/
+# .claude/ — commit settings.json and memory.md; ignore everything else
+.claude/settings.local.json
+.claude/projects/
+.claude/sessions/
+.claude/shell-snapshots/
+.claude/paste-cache/
+.claude/backups/
+.claude/ide/
+.claude/cache/
+.claude/mcp-needs-auth-cache.json
+.claude/.credentials.json
+.claude/.last-cleanup
 *.swp
 *.swo
 

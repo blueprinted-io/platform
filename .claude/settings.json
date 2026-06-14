@@ -1,0 +1,30 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "CMD=$(python3 -c \"import json,sys; d=json.load(sys.stdin); print(d.get('tool_input',d).get('command',''))\" 2>/dev/null || true); case \"$CMD\" in *grep*|*rg\\ *|*ripgrep*|*find\\ *|*fd\\ *|*ack\\ *|*ag\\ *)   [ -f graphify-out/graph.json ] &&   echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"additionalContext\":\"graphify: knowledge graph at graphify-out/. For focused questions, run `graphify query \\\"<question>\\\"` (scoped subgraph, usually much smaller than GRAPH_REPORT.md) instead of grepping raw files. Read GRAPH_REPORT.md only for broad architecture context.\"}}'   || true ;; esac"
+          },
+          {
+            "type": "command",
+            "command": "node -e \"const p=require('path'),f=require('fs'),h=require('os').homedir(),d=p.join(h,'.claude'),q=p.join('scripts','lib','utils.js');let r=d;try{const b=p.join(d,'plugins','cache','ecc');for(const o of f.readdirSync(b,{withFileTypes:true})){if(!o.isDirectory())continue;for(const v of f.readdirSync(p.join(b,o.name),{withFileTypes:true})){if(!v.isDirectory())continue;const c=p.join(b,o.name,v.name);if(f.existsSync(p.join(c,q))){r=c;break}}}}catch(x){}process.env.CLAUDE_PLUGIN_ROOT=r;process.argv.splice(1,0,p.join(r,'scripts/hooks/plugin-hook-bootstrap.js'));require(p.join(r,'scripts/hooks/plugin-hook-bootstrap.js'))\" node scripts/hooks/pre-bash-dispatcher.js",
+            "description": "ECC preflight: secret detection, dangerous command guard, GateGuard"
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"const p=require('path'),f=require('fs'),h=require('os').homedir(),d=p.join(h,'.claude'),q=p.join('scripts','lib','utils.js');let r=d;try{const b=p.join(d,'plugins','cache','ecc');for(const o of f.readdirSync(b,{withFileTypes:true})){if(!o.isDirectory())continue;for(const v of f.readdirSync(p.join(b,o.name),{withFileTypes:true})){if(!v.isDirectory())continue;const c=p.join(b,o.name,v.name);if(f.existsSync(p.join(c,q))){r=c;break}}}}catch(x){}process.env.CLAUDE_PLUGIN_ROOT=r;process.argv.splice(1,0,p.join(r,'scripts/hooks/plugin-hook-bootstrap.js'));require(p.join(r,'scripts/hooks/plugin-hook-bootstrap.js'))\" node scripts/hooks/run-with-flags.js pre:edit-write:gateguard-fact-force scripts/hooks/gateguard-fact-force.js standard",
+            "description": "ECC preflight: GateGuard fact-forcing gate for file writes"
+          }
+        ]
+      }
+    ]
+  }
+}
