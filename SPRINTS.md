@@ -4,6 +4,94 @@ Updated at the end of each sprint.
 
 ---
 
+## Sprint 14 — Ingestion Overhaul + Markdown + HTML Crawl
+
+**Goal:** Fix the ingestion UX, make body fields render properly everywhere, investigate and fix HTML crawl ordering and hierarchy loss, profile preferences, Authentik branding
+**Status:** In progress
+**Spec at start:** v4.10
+
+**Scope:**
+
+*Ingestion UX overhaul*
+- Remove "accept" as a concept — flow becomes: view candidates → select → commit
+- Multi-select candidates; commit selected or commit all in one action
+- Committed candidates become draft records entering the governance pipeline directly
+- Discarded candidates remain visible at the bottom with a "promote back" action
+- Raw ingestion JSON never shown to the user
+
+*Markdown rendering*
+- Body fields on Task, Workflow, and Principle records currently display raw markdown syntax
+- Fix rendering everywhere a body field appears: detail pages, diff pages, review context
+- Single shared component
+
+*HTML ingestion — structure and ordering*
+- Investigate backend crawl: whether page order is non-deterministic and why
+- Extracted candidates are currently a flat list — parent page/section context is lost
+- Steps from different processes become indistinguishable ("Step 1" with no attribution)
+- Fix: preserve and surface nav hierarchy and parent context on each candidate
+
+*Profile preferences PATCH*
+- Allow users to save personal preferences (locale, notification settings etc.)
+
+*Authentik theme logos*
+- Add blueprinted.io branding to the Authentik login screen
+
+**Deferred to Sprint 15:**
+- Auth failure rate limiting (requires custom Redis middleware beyond slowapi)
+- last_used_at fire-and-forget caching (low priority until agent traffic starts)
+
+**Closed (no implementation):**
+- force_submit — undermines governance pipeline; revisit only when system-admin role (separate from org-admin) is designed
+- Hard delete — intentionally absent; soft delete only
+
+---
+
+## Sprint 13 — Dashboard + Responsive Design
+
+**Goal:** Real analytics dashboard replacing the placeholder; responsive mobile layout
+**Status:** Complete
+**Spec at start:** v4.10 → **at end:** v4.10
+
+**Completed:**
+- `api/schemas/analytics.py`, `api/routes/analytics.py` — `GET /api/v1/analytics/dashboard` returning role-shaped payload: contributor stats (drafts/submitted/returned + recently_returned list), reviewer queue depth, admin stats (confirmed_30d, return_rate_30d, stale_confirmed_count, stale_by_domain)
+- `reviewed_at` now populated on confirm in `lifecycle_actions.confirm_record` AND inline confirm path in `review.py` — previously always NULL, breaking staleness
+- `DashboardPage.tsx` — stat card grids, recently-returned list with edit links, review queue depth card, admin platform-health section with stale-by-domain breakdown
+- 9 new integration tests in `tests/test_analytics.py`
+- Mobile responsive layout: hamburger sidebar drawer, sticky mobile header, overlay backdrop
+- All inline `gridTemplateColumns` replaced with `.bp-grid-3`, `.bp-grid-2`, `.bp-diff-row` utility classes collapsing to single column on mobile (≤767px)
+- ReviewQueuePage simplified: 6-column table with claim/release/return removed → 4-column clickable row list (Type / Title / Status / Date)
+
+**Decisions:**
+- Dashboard v1 fixed layout per spec §15; customisable pin-to-dashboard deferred to dedicated reporting sprint (Sprint 15+)
+- Claim/release workflow removed from queue page — review actions live on individual record detail pages
+
+**Carried forward:**
+- Staleness threshold hardcoded — configurable threshold deferred
+- Profile preferences PATCH → Sprint 14
+
+---
+
+## Sprint 12 — Pagination, Worker Split, Harness
+
+**Goal:** API pagination, worker architecture split, ECC harness setup across all repos
+**Status:** Complete
+**Spec at start:** v4.10 → **at end:** v4.10
+
+**Completed:**
+- `Page<T>` envelope on all list endpoints (`/tasks`, `/workflows`, `/principles`, `/ingestions`, `/notifications`, `/admin/users`, `/admin/domains`)
+- Frontend updated to consume Page envelope via `getAllPages` pattern
+- Worker ingestion deployed
+- ECC plugin installed; harness audit run across workspace root, platform/, and app/
+- CLAUDE.md, .claude/settings.json, .claude/memory.md, SECURITY.md created/updated for all three repos
+- GitHub Actions CI tightened: setup-uv pinned to v8.2.0, Node bumped to 22, app dependency-audit workflow added
+- AgentShield security scan run; permissions hardened
+
+**Decisions:**
+- `.claude/settings.json` and `.claude/memory.md` committed to git in both repos — aids onboarding of future devs
+- `.gitignore` updated to exclude only sensitive claude paths (sessions, projects, settings.local) not the whole `.claude/` dir
+
+---
+
 ## Sprint 11 — Backend Hardening
 
 **Goal:** Audit log completeness, route deduplication, rate limiting, API key expiry, step linting
