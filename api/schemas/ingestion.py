@@ -48,6 +48,7 @@ class IngestionStatusResponse(IngestionResponse):
     """Ingestion status with full chunk list (GET /ingestions/{id}/status)."""
 
     chunks: list[IngestionChunkResponse]
+    nav_pages_rendering: int = 0
 
 
 class SelectChunksRequest(BaseModel):

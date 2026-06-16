@@ -11,6 +11,7 @@ from datetime import UTC, datetime
 from typing import Annotated, Any
 from urllib.parse import urlparse, urlunparse
 
+import sqlalchemy as sa
 import structlog
 from fastapi import APIRouter, HTTPException, Query, Request, UploadFile, status
 from sqlalchemy import select
@@ -196,7 +197,17 @@ async def get_ingestion_status(
         raise HTTPException(status_code=404, detail="Ingestion not found.")
     if ingestion.created_by != user.id:
         raise HTTPException(status_code=404, detail="Ingestion not found.")
-    return IngestionStatusResponse.model_validate(ingestion)
+
+    rendering_count_result = await session.execute(
+        select(sa.func.count()).where(
+            IngestionNavPage.ingestion_id == ingestion_id,
+            IngestionNavPage.nav_status == "selected",
+        )
+    )
+    nav_pages_rendering = rendering_count_result.scalar_one()
+
+    base = IngestionStatusResponse.model_validate(ingestion)
+    return base.model_copy(update={"nav_pages_rendering": nav_pages_rendering})
 
 
 @router.post("/{ingestion_id}/select", response_model=SelectChunksResponse)
