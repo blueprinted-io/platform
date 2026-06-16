@@ -65,6 +65,11 @@ class IngestionChunk(Base):
     section_level: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     pages_json: Mapped[list[int] | None] = mapped_column(JSON, nullable=True)
     source_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    nav_page_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("ingestion_nav_pages.id", ondelete="SET NULL"),
+        nullable=True,
+    )
     text: Mapped[str] = mapped_column(Text, nullable=False)
     text_preview: Mapped[str] = mapped_column(Text, nullable=False)
     word_count: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -131,6 +136,7 @@ class IngestionNavPage(Base):
     url: Mapped[str] = mapped_column(Text, nullable=False)
     title: Mapped[str | None] = mapped_column(Text, nullable=True)
     nav_level: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    nav_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     parent_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("ingestion_nav_pages.id"), nullable=True
     )

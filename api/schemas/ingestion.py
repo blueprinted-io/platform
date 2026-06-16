@@ -17,6 +17,8 @@ class IngestionChunkResponse(BaseModel):
     section_title: str | None
     section_level: int
     pages_json: list[int] | None
+    source_url: str | None
+    nav_page_id: uuid.UUID | None
     text_preview: str
     word_count: int
     chunk_status: str
@@ -102,6 +104,29 @@ class CandidateCommitResponse(BaseModel):
     target_status: str
 
 
+class BatchCommitItem(BaseModel):
+    """Per-candidate result within a batch commit response."""
+
+    candidate_id: uuid.UUID
+    committed_record_id: uuid.UUID
+    record_type: str
+
+
+class BatchCommitRequest(BaseModel):
+    """Body for POST /ingestions/{id}/candidates/commit-batch."""
+
+    candidate_ids: list[uuid.UUID]
+    domain: str
+    target_status: Literal["draft", "submitted"] = "draft"
+
+
+class BatchCommitResponse(BaseModel):
+    """Response from the batch commit endpoint."""
+
+    committed_count: int
+    results: list[BatchCommitItem]
+
+
 # ---------------------------------------------------------------------------
 # HTML ingestion schemas (§11.10, §11.11)
 # ---------------------------------------------------------------------------
@@ -132,6 +157,7 @@ class NavPageResponse(BaseModel):
     url: str
     title: str | None
     nav_level: int
+    nav_order: int
     parent_id: uuid.UUID | None
     nav_status: str
     error_detail: str | None

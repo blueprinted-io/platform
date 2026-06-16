@@ -164,6 +164,7 @@ services:
     volumes:
       - ./authentik/media:/media
       - ./authentik/custom-templates:/templates
+      - ./authentik/blueprints:/blueprints/custom
     ports:
       - "${AUTHENTIK_PORT_HTTP:-9000}:9000"
       - "${AUTHENTIK_PORT_HTTPS:-9443}:9443"
@@ -189,6 +190,7 @@ services:
       - ./authentik/media:/media
       - ./authentik/certs:/certs
       - ./authentik/custom-templates:/templates
+      - ./authentik/blueprints:/blueprints/custom
     depends_on:
       - auth-db
       - auth-redis

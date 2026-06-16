@@ -1075,8 +1075,8 @@ async def _seed_nav_page(
         await conn.execute(
             sa.text("""
                 INSERT INTO ingestion_nav_pages
-                  (id, ingestion_id, url, nav_level, nav_status, chunk_count)
-                VALUES (:id, :iid, 'https://example.com/page', 1, :status, 0)
+                  (id, ingestion_id, url, nav_level, nav_order, nav_status, chunk_count)
+                VALUES (:id, :iid, 'https://example.com/page', 1, 0, :status, 0)
                 ON CONFLICT DO NOTHING
             """),
             {"id": nav_page_id, "iid": ingestion_id, "status": nav_status},
@@ -1558,3 +1558,170 @@ async def test_json_task_order_no_id_field_with_empty_task_order_accepted(
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 201
+
+
+# ---------------------------------------------------------------------------
+# Batch commit (POST /ingestions/{id}/candidates/commit-batch)
+# ---------------------------------------------------------------------------
+
+
+async def test_commit_batch_commits_selected_candidates(
+    client: AsyncClient,
+    make_token: Callable[..., str],
+    test_settings: Settings,
+) -> None:
+    """Batch commit creates governance records for all requested candidates."""
+    ingestion_id = uuid.uuid4()
+    await _seed_ingestion(test_settings, ingestion_id)
+    c1 = uuid.uuid4()
+    c2 = uuid.uuid4()
+    await _seed_candidate(test_settings, c1, ingestion_id, record_type="task", proposed_json=_TASK_PROPOSED)
+    await _seed_candidate(test_settings, c2, ingestion_id, record_type="principle", proposed_json=_PRINCIPLE_PROPOSED)
+
+    token = make_token(sub="author-ing-001", roles=["contributor"])
+    response = await client.post(
+        f"/api/v1/ingestions/{ingestion_id}/candidates/commit-batch",
+        json={"candidate_ids": [str(c1), str(c2)], "domain": _TEST_DOMAIN, "target_status": "draft"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 201
+    body = response.json()
+    assert body["committed_count"] == 2
+    result_ids = {r["candidate_id"] for r in body["results"]}
+    assert str(c1) in result_ids
+    assert str(c2) in result_ids
+
+
+async def test_commit_batch_skips_already_committed(
+    client: AsyncClient,
+    make_token: Callable[..., str],
+    test_settings: Settings,
+) -> None:
+    """Candidates already committed are silently excluded from the batch."""
+    ingestion_id = uuid.uuid4()
+    await _seed_ingestion(test_settings, ingestion_id)
+    already_committed_id = uuid.uuid4()
+    pending_id = uuid.uuid4()
+    fake_record_id = uuid.uuid4()
+    await _seed_candidate(
+        test_settings, already_committed_id, ingestion_id,
+        candidate_status="accepted", committed_record_id=fake_record_id,
+    )
+    await _seed_candidate(test_settings, pending_id, ingestion_id, proposed_json=_TASK_PROPOSED)
+
+    token = make_token(sub="author-ing-001", roles=["contributor"])
+    response = await client.post(
+        f"/api/v1/ingestions/{ingestion_id}/candidates/commit-batch",
+        json={
+            "candidate_ids": [str(already_committed_id), str(pending_id)],
+            "domain": _TEST_DOMAIN,
+            "target_status": "draft",
+        },
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 201
+    body = response.json()
+    assert body["committed_count"] == 1
+    assert body["results"][0]["candidate_id"] == str(pending_id)
+
+
+async def test_commit_batch_rejects_discarded_candidates(
+    client: AsyncClient,
+    make_token: Callable[..., str],
+    test_settings: Settings,
+) -> None:
+    """Discarded candidates are excluded from the batch (they must be promoted first)."""
+    ingestion_id = uuid.uuid4()
+    await _seed_ingestion(test_settings, ingestion_id)
+    discarded_id = uuid.uuid4()
+    await _seed_candidate(test_settings, discarded_id, ingestion_id, candidate_status="discarded")
+
+    token = make_token(sub="author-ing-001", roles=["contributor"])
+    response = await client.post(
+        f"/api/v1/ingestions/{ingestion_id}/candidates/commit-batch",
+        json={"candidate_ids": [str(discarded_id)], "domain": _TEST_DOMAIN, "target_status": "draft"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 201
+    assert response.json()["committed_count"] == 0
+
+
+async def test_commit_batch_empty_candidate_ids_returns_422(
+    client: AsyncClient,
+    make_token: Callable[..., str],
+    test_settings: Settings,
+) -> None:
+    ingestion_id = uuid.uuid4()
+    await _seed_ingestion(test_settings, ingestion_id)
+    token = make_token(sub="author-ing-001", roles=["contributor"])
+    response = await client.post(
+        f"/api/v1/ingestions/{ingestion_id}/candidates/commit-batch",
+        json={"candidate_ids": [], "domain": _TEST_DOMAIN, "target_status": "draft"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 422
+
+
+# ---------------------------------------------------------------------------
+# Promote candidate (POST /ingestions/{id}/candidates/{id}/promote)
+# ---------------------------------------------------------------------------
+
+
+async def test_promote_candidate_restores_discarded_to_pending(
+    client: AsyncClient,
+    make_token: Callable[..., str],
+    test_settings: Settings,
+) -> None:
+    ingestion_id = uuid.uuid4()
+    await _seed_ingestion(test_settings, ingestion_id)
+    candidate_id = uuid.uuid4()
+    await _seed_candidate(test_settings, candidate_id, ingestion_id, candidate_status="discarded")
+
+    token = make_token(sub="author-ing-001", roles=["contributor"])
+    response = await client.post(
+        f"/api/v1/ingestions/{ingestion_id}/candidates/{candidate_id}/promote",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 200
+    assert response.json()["candidate_status"] == "pending"
+
+
+async def test_promote_candidate_rejects_already_committed(
+    client: AsyncClient,
+    make_token: Callable[..., str],
+    test_settings: Settings,
+) -> None:
+    ingestion_id = uuid.uuid4()
+    await _seed_ingestion(test_settings, ingestion_id)
+    candidate_id = uuid.uuid4()
+    fake_record_id = uuid.uuid4()
+    await _seed_candidate(
+        test_settings, candidate_id, ingestion_id,
+        candidate_status="accepted", committed_record_id=fake_record_id,
+    )
+
+    token = make_token(sub="author-ing-001", roles=["contributor"])
+    response = await client.post(
+        f"/api/v1/ingestions/{ingestion_id}/candidates/{candidate_id}/promote",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 422
+
+
+async def test_promote_candidate_rejects_non_discarded(
+    client: AsyncClient,
+    make_token: Callable[..., str],
+    test_settings: Settings,
+) -> None:
+    """Promoting a pending (non-discarded) candidate returns 422."""
+    ingestion_id = uuid.uuid4()
+    await _seed_ingestion(test_settings, ingestion_id)
+    candidate_id = uuid.uuid4()
+    await _seed_candidate(test_settings, candidate_id, ingestion_id, candidate_status="pending")
+
+    token = make_token(sub="author-ing-001", roles=["contributor"])
+    response = await client.post(
+        f"/api/v1/ingestions/{ingestion_id}/candidates/{candidate_id}/promote",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 422

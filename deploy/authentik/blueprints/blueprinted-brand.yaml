@@ -1,0 +1,19 @@
+# Authentik Blueprint — Blueprinted branding
+# Applies brand name, logo, and favicon to the default Authentik brand.
+# Auto-applied on auth-worker startup when mounted at /blueprints/custom/.
+#
+# Docs: https://docs.goauthentik.io/docs/customize/brands
+
+version: 1
+metadata:
+  name: Blueprinted Brand
+entries:
+  - model: authentik_brands.brand
+    state: present
+    identifiers:
+      domain: authentik-default
+    attrs:
+      branding_title: Blueprinted
+      branding_logo: /media/logo.svg
+      branding_favicon: /media/logo.svg
+      ui_footer_links: []

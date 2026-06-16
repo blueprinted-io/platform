@@ -94,7 +94,93 @@ async def test_me_response_has_required_fields(
     )
     body = response.json()
     expected_fields = (
-        "id", "sub", "email", "display_name", "roles", "is_active", "created_at", "updated_at"
+        "id", "sub", "email", "display_name", "roles",
+        "preferences", "is_active", "created_at", "updated_at",
     )
     for field in expected_fields:
         assert field in body, f"Missing field: {field}"
+
+
+@pytest.mark.asyncio
+async def test_me_preferences_default_empty(
+    client: AsyncClient,
+    make_token: Callable[..., str],
+) -> None:
+    token = make_token(sub="prefs-default-user", email="prefs-default@example.com")
+    response = await client.get(
+        "/api/v1/users/me",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 200
+    assert response.json()["preferences"] == {}
+
+
+@pytest.mark.asyncio
+async def test_patch_preferences_sets_locale(
+    client: AsyncClient,
+    make_token: Callable[..., str],
+) -> None:
+    token = make_token(sub="prefs-locale-user", email="prefs-locale@example.com")
+    auth = {"Authorization": f"Bearer {token}"}
+    await client.get("/api/v1/users/me", headers=auth)
+
+    response = await client.patch(
+        "/api/v1/users/me/preferences",
+        json={"locale": "fr"},
+        headers=auth,
+    )
+    assert response.status_code == 200
+    assert response.json()["preferences"]["locale"] == "fr"
+
+
+@pytest.mark.asyncio
+async def test_patch_preferences_merges_fields(
+    client: AsyncClient,
+    make_token: Callable[..., str],
+) -> None:
+    token = make_token(sub="prefs-merge-user", email="prefs-merge@example.com")
+    auth = {"Authorization": f"Bearer {token}"}
+    await client.get("/api/v1/users/me", headers=auth)
+
+    await client.patch(
+        "/api/v1/users/me/preferences",
+        json={"locale": "de"},
+        headers=auth,
+    )
+    response = await client.patch(
+        "/api/v1/users/me/preferences",
+        json={"notifications": {"ingestion_complete": False}},
+        headers=auth,
+    )
+    assert response.status_code == 200
+    prefs = response.json()["preferences"]
+    assert prefs["locale"] == "de"
+    assert prefs["notifications"] == {"ingestion_complete": False}
+
+
+@pytest.mark.asyncio
+async def test_patch_preferences_rejects_unknown_locale(
+    client: AsyncClient,
+    make_token: Callable[..., str],
+) -> None:
+    token = make_token(sub="prefs-bad-locale-user", email="prefs-bad@example.com")
+    auth = {"Authorization": f"Bearer {token}"}
+    await client.get("/api/v1/users/me", headers=auth)
+
+    response = await client.patch(
+        "/api/v1/users/me/preferences",
+        json={"locale": "xx"},
+        headers=auth,
+    )
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_patch_preferences_unauthenticated_returns_401(
+    client: AsyncClient,
+) -> None:
+    response = await client.patch(
+        "/api/v1/users/me/preferences",
+        json={"locale": "en"},
+    )
+    assert response.status_code == 401

@@ -29,6 +29,9 @@ from api.models.principle import Principle
 from api.models.task import Task, TaskStep, TaskStepAction
 from api.models.user import User
 from api.schemas.ingestion import (
+    BatchCommitItem,
+    BatchCommitRequest,
+    BatchCommitResponse,
     CandidateCommitRequest,
     CandidateCommitResponse,
     CandidateReviewRequest,
@@ -490,6 +493,171 @@ async def commit_candidate(
         record_type=candidate.record_type,
         target_status=body.target_status,
     )
+
+
+@router.post(
+    "/{ingestion_id}/candidates/commit-batch",
+    response_model=BatchCommitResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def commit_batch(
+    ingestion_id: uuid.UUID,
+    body: BatchCommitRequest,
+    session: DBSession,
+    user: _Writer,
+) -> BatchCommitResponse:
+    """Commit multiple candidates into the governance pipeline in one operation.
+
+    Accepts candidates in pending, accepted, or edited status. Already-committed
+    and discarded candidates in the list are silently skipped.
+    """
+    ingestion = (
+        await session.execute(select(Ingestion).where(Ingestion.id == ingestion_id))
+    ).scalar_one_or_none()
+    if ingestion is None or ingestion.created_by != user.id:
+        raise HTTPException(status_code=404, detail="Ingestion not found.")
+
+    if not body.candidate_ids:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="candidate_ids must not be empty.",
+        )
+
+    await lifecycle.assert_domain_active(body.domain, session)
+    await lifecycle.assert_domain_access(body.domain, user, session)
+
+    result = await session.execute(
+        select(IngestionCandidate).where(
+            IngestionCandidate.ingestion_id == ingestion_id,
+            IngestionCandidate.id.in_(body.candidate_ids),
+            IngestionCandidate.candidate_status.in_(("pending", "accepted", "edited")),
+            IngestionCandidate.committed_record_id.is_(None),
+        )
+    )
+    candidates_to_commit = result.scalars().all()
+
+    now = datetime.now(tz=UTC)
+    results: list[BatchCommitItem] = []
+
+    for candidate in candidates_to_commit:
+        proposed = candidate.proposed_json
+
+        if candidate.record_type == "task":
+            record: Task | Principle = _build_task(proposed, body.domain, user.id, ingestion_id)
+            _build_steps(record, proposed)  # type: ignore[arg-type]
+            session.add(record)
+            await session.flush()
+
+            if body.target_status == "submitted":
+                lifecycle.assert_can_submit(record.status, user)
+                record.status = "submitted"
+                record.updated_by = user.id
+
+        elif candidate.record_type == "principle":
+            record = Principle(
+                title=proposed["title"],
+                summary=proposed["summary"],
+                explanation=proposed["explanation"],
+                analogies=proposed.get("analogies"),
+                domain=body.domain,
+                ingestion_id=ingestion_id,
+                created_by=user.id,
+                updated_by=user.id,
+            )
+            session.add(record)
+            await session.flush()
+
+            if body.target_status == "submitted":
+                lifecycle.assert_can_submit(record.status, user)
+                record.status = "submitted"
+                record.updated_by = user.id
+        else:
+            log.warning(
+                "batch_commit_unknown_record_type",
+                candidate_id=str(candidate.id),
+                record_type=candidate.record_type,
+            )
+            continue
+
+        candidate.committed_record_id = record.id
+        candidate.candidate_status = "accepted"
+        candidate.reviewed_by = user.id
+        candidate.reviewed_at = now
+
+        results.append(
+            BatchCommitItem(
+                candidate_id=candidate.id,
+                committed_record_id=record.id,
+                record_type=candidate.record_type,
+            )
+        )
+
+    await session.commit()
+
+    log.info(
+        "ingestion_batch_committed",
+        ingestion_id=str(ingestion_id),
+        committed=len(results),
+        requested=len(body.candidate_ids),
+        domain=body.domain,
+        target_status=body.target_status,
+    )
+    return BatchCommitResponse(committed_count=len(results), results=results)
+
+
+@router.post(
+    "/{ingestion_id}/candidates/{candidate_id}/promote",
+    response_model=IngestionCandidateResponse,
+)
+async def promote_candidate(
+    ingestion_id: uuid.UUID,
+    candidate_id: uuid.UUID,
+    session: DBSession,
+    user: _Writer,
+) -> IngestionCandidateResponse:
+    """Promote a discarded candidate back to pending (undo discard)."""
+    ingestion = (
+        await session.execute(select(Ingestion).where(Ingestion.id == ingestion_id))
+    ).scalar_one_or_none()
+    if ingestion is None or ingestion.created_by != user.id:
+        raise HTTPException(status_code=404, detail="Ingestion not found.")
+
+    candidate = (
+        await session.execute(
+            select(IngestionCandidate).where(
+                IngestionCandidate.id == candidate_id,
+                IngestionCandidate.ingestion_id == ingestion_id,
+            )
+        )
+    ).scalar_one_or_none()
+    if candidate is None:
+        raise HTTPException(status_code=404, detail="Candidate not found.")
+
+    if candidate.committed_record_id is not None:
+        raise HTTPException(
+            status_code=422,
+            detail="Cannot promote a candidate that has already been committed.",
+        )
+    if candidate.candidate_status != "discarded":
+        raise HTTPException(
+            status_code=422,
+            detail=f"Only discarded candidates can be promoted (current status: '{candidate.candidate_status}').",
+        )
+
+    candidate.candidate_status = "pending"
+    candidate.reviewed_by = None
+    candidate.reviewed_at = None
+    candidate.review_note = None
+
+    await session.commit()
+    await session.refresh(candidate)
+
+    log.info(
+        "ingestion_candidate_promoted",
+        candidate_id=str(candidate_id),
+        ingestion_id=str(ingestion_id),
+    )
+    return IngestionCandidateResponse.model_validate(candidate)
 
 
 # ---------------------------------------------------------------------------

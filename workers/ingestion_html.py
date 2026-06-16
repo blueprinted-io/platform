@@ -60,6 +60,8 @@ _EXTRACT_SECTIONS_JS = """
 """
 
 # JS expression that finds navigable links within nav/aside/role=navigation.
+# Returns [{url, text, depth}, ...] where depth is the nesting level of the
+# containing <ul>/<ol> elements within each nav root (0 = direct child of root).
 _EXTRACT_NAV_LINKS_JS = """
 () => {
     const navRoots = Array.from(document.querySelectorAll(
@@ -73,7 +75,18 @@ _EXTRACT_NAV_LINKS_JS = """
             if (!href || seen.has(href)) continue;
             if (!href.startsWith('http://') && !href.startsWith('https://')) continue;
             seen.add(href);
-            links.push({url: href, text: (a.innerText || a.textContent || '').trim()});
+            // Count <ul>/<ol> ancestors between the <a> and the nav root.
+            let depth = 0;
+            let node = a.parentElement;
+            while (node && node !== nav) {
+                if (node.tagName === 'UL' || node.tagName === 'OL') depth++;
+                node = node.parentElement;
+            }
+            links.push({
+                url: href,
+                text: (a.innerText || a.textContent || '').trim(),
+                depth: depth,
+            });
         }
     }
     return links;
@@ -249,7 +262,7 @@ async def crawl_html(
                     root_origin = urlparse(url).netloc
                     seen_urls: set[str] = set()
                     nav_pages = []
-                    for link in raw_links:
+                    for i, link in enumerate(raw_links):
                         link_url: str = link["url"]
                         if urlparse(link_url).netloc != root_origin:
                             continue
@@ -262,7 +275,8 @@ async def crawl_html(
                                 ingestion_id=iid,
                                 url=link_url,
                                 title=link["text"] or None,
-                                nav_level=1,
+                                nav_level=link.get("depth", 0) + 1,
+                                nav_order=i,
                             )
                         )
 
@@ -329,10 +343,12 @@ async def render_nav_pages(
 
     async with AsyncSession(engine) as session:
         result = await session.execute(
-            select(IngestionNavPage).where(
+            select(IngestionNavPage)
+            .where(
                 IngestionNavPage.ingestion_id == iid,
                 IngestionNavPage.nav_status == "selected",
             )
+            .order_by(IngestionNavPage.nav_order)
         )
         pages = result.scalars().all()
 
@@ -362,9 +378,11 @@ async def render_nav_pages(
                         chunks = await _render_and_chunk(
                             browser, nav_page.url, iid, respect_robots
                         )
-                        # Re-index chunks to not overlap with existing ones.
+                        # Re-index chunks to not overlap with existing ones and
+                        # stamp the source nav page so the UI can group by page.
                         for i, chunk in enumerate(chunks):
                             chunk.chunk_index = chunk_offset + i
+                            chunk.nav_page_id = nav_page.id
                         chunk_offset += len(chunks)
 
                         async with AsyncSession(engine) as session:
