@@ -130,8 +130,8 @@ async def _insert_nav_page(
         await conn.execute(
             sa.text("""
                 INSERT INTO ingestion_nav_pages
-                  (id, ingestion_id, url, nav_status, nav_level, chunk_count)
-                VALUES (:id, :iid, :url, :status, 1, 0)
+                  (id, ingestion_id, url, nav_status, nav_level, nav_order, chunk_count)
+                VALUES (:id, :iid, :url, :status, 1, 0, 0)
             """),
             {"id": pid, "iid": ingestion_id, "url": url, "status": nav_status},
         )
