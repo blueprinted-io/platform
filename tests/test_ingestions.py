@@ -1575,13 +1575,21 @@ async def test_commit_batch_commits_selected_candidates(
     await _seed_ingestion(test_settings, ingestion_id)
     c1 = uuid.uuid4()
     c2 = uuid.uuid4()
-    await _seed_candidate(test_settings, c1, ingestion_id, record_type="task", proposed_json=_TASK_PROPOSED)
-    await _seed_candidate(test_settings, c2, ingestion_id, record_type="principle", proposed_json=_PRINCIPLE_PROPOSED)
+    await _seed_candidate(
+        test_settings, c1, ingestion_id, record_type="task", proposed_json=_TASK_PROPOSED
+    )
+    await _seed_candidate(
+        test_settings, c2, ingestion_id, record_type="principle", proposed_json=_PRINCIPLE_PROPOSED
+    )
 
     token = make_token(sub="author-ing-001", roles=["contributor"])
     response = await client.post(
         f"/api/v1/ingestions/{ingestion_id}/candidates/commit-batch",
-        json={"candidate_ids": [str(c1), str(c2)], "domain": _TEST_DOMAIN, "target_status": "draft"},
+        json={
+            "candidate_ids": [str(c1), str(c2)],
+            "domain": _TEST_DOMAIN,
+            "target_status": "draft",
+        },
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 201
@@ -1639,7 +1647,11 @@ async def test_commit_batch_rejects_discarded_candidates(
     token = make_token(sub="author-ing-001", roles=["contributor"])
     response = await client.post(
         f"/api/v1/ingestions/{ingestion_id}/candidates/commit-batch",
-        json={"candidate_ids": [str(discarded_id)], "domain": _TEST_DOMAIN, "target_status": "draft"},
+        json={
+            "candidate_ids": [str(discarded_id)],
+            "domain": _TEST_DOMAIN,
+            "target_status": "draft",
+        },
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 201

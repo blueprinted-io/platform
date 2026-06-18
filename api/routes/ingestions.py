@@ -652,7 +652,10 @@ async def promote_candidate(
     if candidate.candidate_status != "discarded":
         raise HTTPException(
             status_code=422,
-            detail=f"Only discarded candidates can be promoted (current status: '{candidate.candidate_status}').",
+            detail=(
+                f"Only discarded candidates can be promoted"
+                f" (current status: '{candidate.candidate_status}')."
+            ),
         )
 
     candidate.candidate_status = "pending"

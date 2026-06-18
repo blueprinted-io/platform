@@ -7,7 +7,6 @@ JWT on each request so Authentik remains the authoritative source.
 
 import uuid
 from datetime import datetime
-
 from typing import Any
 
 from sqlalchemy import ARRAY, Boolean, DateTime, String, Text, func
