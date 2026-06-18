@@ -4,7 +4,7 @@
 
 This is a private project. Report security issues directly to the maintainer:
 
-**Email:** mathesonewan@gmail.com
+**Email:** ewan@blueprinted.io
 
 Please include a description, reproduction steps, and potential impact. Do not open a public GitHub issue for security vulnerabilities.
 
