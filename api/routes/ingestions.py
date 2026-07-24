@@ -17,7 +17,7 @@ from fastapi import APIRouter, HTTPException, Query, Request, UploadFile, status
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from api.auth import Role
+from api.auth import AgentRole, Role, is_machine_credential
 from api.dependencies import AppSettings, ArqPool, CurrentUser, DBSession, require_role
 from api.limiter import limiter
 from api.models.ingestion import (
@@ -57,7 +57,9 @@ log = structlog.get_logger(__name__)
 
 router = APIRouter(prefix="/ingestions", tags=["ingestions"])
 
-_Writer = Annotated[User, require_role(Role.CONTRIBUTOR, Role.ADMIN)]
+_Writer = Annotated[
+    User, require_role(Role.CONTRIBUTOR, Role.ADMIN, AgentRole.INGESTION_AGENT)
+]
 
 _ALLOWED_MIME = {"application/pdf"}
 _MAX_FILENAME_LEN = 255
@@ -443,7 +445,11 @@ async def commit_candidate(
         )
 
     await lifecycle.assert_domain_active(body.domain, session)
-    await lifecycle.assert_domain_access(body.domain, user, session)
+    # Machine producers are cross-domain: domain governance is enforced at the
+    # human confirm step (reviewer must hold domain access), not at ingestion
+    # commit. Human contributors still require explicit domain assignment (§7.3).
+    if not is_machine_credential(user.roles):
+        await lifecycle.assert_domain_access(body.domain, user, session)
 
     proposed = candidate.proposed_json
 
@@ -535,7 +541,11 @@ async def commit_batch(
         )
 
     await lifecycle.assert_domain_active(body.domain, session)
-    await lifecycle.assert_domain_access(body.domain, user, session)
+    # Machine producers are cross-domain: domain governance is enforced at the
+    # human confirm step (reviewer must hold domain access), not at ingestion
+    # commit. Human contributors still require explicit domain assignment (§7.3).
+    if not is_machine_credential(user.roles):
+        await lifecycle.assert_domain_access(body.domain, user, session)
 
     result = await session.execute(
         select(IngestionCandidate).where(

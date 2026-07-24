@@ -2,11 +2,13 @@
 
 ## Platform Rebuild — Requirements Specification
 
-**Version 4.11 · June 2026**
+**Version 4.12 · July 2026**
 
 *Confidential. Internal Use Only*
 
 github.com/blueprinted-io/platform
+
+v4.12 changes from v4.11: Sprint 15 — agent ingestion path (demo readiness). §5.2 gains producer role `agent:ingestion_agent`: a machine credential that may drive the ingestion pipeline end to end (create ingestions, list/commit candidates, reach `submitted`) so machine-drafted content lands in the human review queue. Like every `agent:` role it is unconditionally barred from confirm (§5.3, §10.2) — `assert_can_submit` permits it (submit is a request for review, not an approval), `assert_can_confirm` does not. §7.3: machine producers are cross-domain — `assert_domain_access` is waived for machine credentials at ingestion commit (`assert_domain_active` still applies); domain governance is enforced at the human confirm step, where the reviewer must hold domain access. `require_role` widened to accept agent roles; ingestion write + commit endpoints now admit `agent:ingestion_agent` alongside human contributor/admin. (Auth-failure rate limiting and `last_used_at` caching remain deferred.)
 
 v4.11 changes from v4.10: Sprint 12. §6 pagination convention added — `Page` envelope `{items, total, limit, offset}`, `limit` default 20 / max 100, applied to `/tasks`, `/workflows`, `/principles` list endpoints. Response shape change within `/api/v1` accepted as a pre-GA exception to the breaking-changes rule (no external consumers yet; the app frontend adopts the envelope in Sprint 8 work). §14 worker split: ingestion jobs (`chunk_pdf`, `process_chunks`, `extract_chunk`, `crawl_html`, `render_nav_pages`) move to a dedicated ARQ worker on queue `ingestion`; embeddings and review-claim expiry remain on the default worker. Chunk-recovery startup logic lives with the ingestion worker only.
 
@@ -206,7 +208,10 @@ Agent roles are available from Sprint 10, when machine auth is implemented.
 | agent:workflow_consumer | Read confirmed Workflows via API. Read only. | Sprint 10 |
 | agent:staleness_monitor | Flag confirmed records for human attention. No write access. | Sprint 10 |
 | agent:orphan_detector | Identify unlinked Tasks and Principles. No write access. | Sprint 10 |
+| agent:ingestion_agent | **Producer role.** Drive the ingestion pipeline: create ingestions, list/commit candidates, submit for human review. Cannot confirm. | Sprint 15 |
 | agent:relationship_suggester | Propose relationship edges only. Cannot confirm anything. | v1.1 (no relationship kinds defined in v1) |
+
+`agent:ingestion_agent` is the only agent role with write access. It is a *producer*: it may draft and submit governed records (machine-authored content requesting human review), but the no-machine-can-confirm constraint below applies to it in full. Machine producers are treated as cross-domain — at ingestion commit, domain assignment (§7.3) is not required of the agent; the domain-access gate binds at human confirm instead.
 
 **Absolute constraint (enforced from Sprint 4, before machine auth exists):** no machine credential can ever call a confirm endpoint. This constraint is a property of the confirm endpoints themselves — it does not depend on machine auth existing to be enforced. Human confirmation of governed knowledge is non-negotiable.
 

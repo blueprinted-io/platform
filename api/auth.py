@@ -30,11 +30,18 @@ class Role(str, Enum):
 
 
 class AgentRole(str, Enum):
-    """Machine credential roles as defined in §5.2. Available from Sprint 10."""
+    """Machine credential roles as defined in §5.2.
+
+    Consumer roles (Sprint 10) read governed content. The producer role
+    (ingestion_agent, Sprint 15) may drive the ingestion pipeline — create
+    ingestions and commit candidates up to submitted — but like every agent:
+    role is unconditionally barred from confirming records (§5.3, §10.2).
+    """
 
     WORKFLOW_CONSUMER = "agent:workflow_consumer"
     STALENESS_MONITOR = "agent:staleness_monitor"
     ORPHAN_DETECTOR = "agent:orphan_detector"
+    INGESTION_AGENT = "agent:ingestion_agent"
 
 
 def is_machine_credential(roles: list[str]) -> bool:

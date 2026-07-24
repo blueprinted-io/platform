@@ -12,7 +12,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.auth import Role, TokenVerificationError, TokenVerifier
+from api.auth import AgentRole, Role, TokenVerificationError, TokenVerifier
 from api.config import Settings
 from api.models.api_key import ApiKey
 from api.models.user import User
@@ -185,7 +185,7 @@ async def get_current_user(
 CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
-def require_role(*roles: Role) -> Annotated[User, Depends]:
+def require_role(*roles: Role | AgentRole) -> Annotated[User, Depends]:
     """Dependency factory that enforces role membership.
 
     Usage:

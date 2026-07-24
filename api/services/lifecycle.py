@@ -31,12 +31,15 @@ import sqlalchemy as sa
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.auth import Role, is_machine_credential
+from api.auth import AgentRole, Role, is_machine_credential
 from api.models.review_claim import ReviewClaim
 from api.models.user import User
 
 _EDITABLE_STATUSES = {"draft", "returned"}
 _CONTRIBUTOR_OR_ADMIN = {Role.CONTRIBUTOR.value, Role.ADMIN.value}
+# Submitting is a request for human review, not an approval, so the ingestion
+# producer agent may submit (§11). Confirm remains machine-barred (§5.3, §10.2).
+_SUBMIT_ROLES = _CONTRIBUTOR_OR_ADMIN | {AgentRole.INGESTION_AGENT.value}
 
 
 def _is_admin(user: User) -> bool:
@@ -66,13 +69,13 @@ def assert_can_mutate_refs(record_status: str) -> None:
 
 
 def assert_can_submit(record_status: str, user: User) -> None:
-    """draft/returned → submitted. Requires contributor or admin."""
+    """draft/returned → submitted. Requires contributor, admin, or ingestion agent."""
     if record_status not in _EDITABLE_STATUSES:
         raise HTTPException(
             status_code=422,
             detail=f"Cannot submit a record with status '{record_status}'.",
         )
-    if not _has_role(user, *_CONTRIBUTOR_OR_ADMIN):
+    if not _has_role(user, *_SUBMIT_ROLES):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions."
         )
