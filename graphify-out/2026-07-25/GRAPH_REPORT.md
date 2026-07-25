@@ -1,16 +1,16 @@
-# Graph Report - platform  (2026-07-25)
+# Graph Report - platform  (2026-06-16)
 
 ## Corpus Check
-- 160 files · ~147,462 words
+- 158 files · ~144,963 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 3247 nodes · 5523 edges · 276 communities (255 shown, 21 thin omitted)
-- Extraction: 89% EXTRACTED · 11% INFERRED · 0% AMBIGUOUS · INFERRED: 580 edges (avg confidence: 0.74)
+- 2947 nodes · 5187 edges · 270 communities (248 shown, 22 thin omitted)
+- Extraction: 89% EXTRACTED · 11% INFERRED · 0% AMBIGUOUS · INFERRED: 577 edges (avg confidence: 0.74)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `acf33542`
+- Built from commit: `e0f98776`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -262,17 +262,11 @@
 - [[_COMMUNITY_Community 267|Community 267]]
 - [[_COMMUNITY_Community 268|Community 268]]
 - [[_COMMUNITY_Community 269|Community 269]]
-- [[_COMMUNITY_Community 270|Community 270]]
-- [[_COMMUNITY_Community 271|Community 271]]
-- [[_COMMUNITY_Community 272|Community 272]]
-- [[_COMMUNITY_Community 273|Community 273]]
-- [[_COMMUNITY_Community 274|Community 274]]
-- [[_COMMUNITY_Community 275|Community 275]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `make_token()` - 234 edges
+1. `make_token()` - 232 edges
 2. `create_engine()` - 60 edges
-3. `Session Archive — blueprinted.io` - 59 edges
+3. `Session Archive — blueprinted.io` - 52 edges
 4. `task_payload()` - 45 edges
 5. `Base` - 44 edges
 6. `Settings` - 42 edges
@@ -299,39 +293,39 @@
 - **Analytics test helper functions for task lifecycle** — tests_test_analytics_create_task_helper, tests_test_analytics_submit_task_helper, tests_test_analytics_confirm_task_helper, tests_test_analytics_return_task_helper [EXTRACTED 1.00]
 - **Analytics integration test suite (9 tests)** — tests_test_analytics_test_dashboard_requires_auth, tests_test_analytics_test_dashboard_viewer_can_access, tests_test_analytics_test_contributor_stats_count_own_records, tests_test_analytics_test_recently_returned, tests_test_analytics_test_reviewer_queue_depth, tests_test_analytics_test_reviewer_queue_excludes_own, tests_test_analytics_test_admin_section_present, tests_test_analytics_test_admin_confirmed_30d, tests_test_analytics_test_reviewed_at_set_on_confirm [EXTRACTED 1.00]
 
-## Communities (276 total, 21 thin omitted)
+## Communities (270 total, 22 thin omitted)
 
 ### Community 0 - "Ingestion Tests"
 Cohesion: 0.03
-Nodes (75): _pdf_bytes(), _pdf_upload(), Tests for the Ingestion Pipeline API (§11).  Spec refs:   §11.3  Ingestion pipel, force=true bypasses dedup and creates a new ingestion record., Insert a minimal HTML ingestion row., Insert a minimal ingestion_nav_pages row., A page already in selected status is not re-queued., A task item missing a required field is rejected with 422. (+67 more)
+Nodes (84): _pdf_upload(), Tests for the Ingestion Pipeline API (§11).  Spec refs:   §11.3  Ingestion pipel, force=true bypasses dedup and creates a new ingestion record., Nav pages endpoint rejects non-HTML ingestions., A task item missing a required field is rejected with 422., Valid JSON payload creates ingestion in ready status with candidates immediately, Identical JSON payload returns the existing ingestion., JSON ingestion is synchronous — no worker job should be enqueued. (+76 more)
 
 ### Community 1 - "Analytics Dashboard"
 Cohesion: 0.07
-Nodes (56): DBSession dependency, return_rate_30d uses updated_at as proxy for transition date, reviewed_at never populated on confirm — fixed for staleness calculation, Role-aware fixed dashboard layout (§15 v1 design), Staleness threshold 90-day hardcoded for v1 (future system_setting), _admin_stats(), _ADMIN_THROUGHPUT_SQL — 30-day confirmed/returned counts, _CONTRIBUTOR_COUNTS_SQL — draft/submitted/returned counts (+48 more)
+Nodes (57): DBSession dependency, User ORM model, return_rate_30d uses updated_at as proxy for transition date, reviewed_at never populated on confirm — fixed for staleness calculation, Role-aware fixed dashboard layout (§15 v1 design), Staleness threshold 90-day hardcoded for v1 (future system_setting), _admin_stats(), _ADMIN_THROUGHPUT_SQL — 30-day confirmed/returned counts (+49 more)
 
 ### Community 2 - "Auth and Dependencies"
-Cohesion: 0.10
-Nodes (34): claim_item(), _collect_queue_items(), confirm_via_review(), _get_active_claim(), _get_record(), get_review_queue(), _get_user_domains(), Review Queue and Claiming API.  §8.1  Global Review Queue — filtered view of sub (+26 more)
+Cohesion: 0.05
+Nodes (59): Human roles as defined in §5.1., Role, _authenticate_api_key(), get_current_user(), Validate Bearer token (JWT or bp_ API key) and return the authenticated user., Validate Bearer token (JWT or bp_ API key) and return the authenticated user., Dependency factory that enforces role membership.      Usage:         @router.ge, Dependency factory that enforces role membership.      Usage:         @router.ge (+51 more)
 
 ### Community 3 - "CLI Commands"
 Cohesion: 0.09
 Nodes (25): api_keys_create(), api_keys_revoke(), backup(), healthcheck(), migrate(), Blueprinted CLI — all operational tasks for a running instance.  Usage:     blue, Register a new tenant schema and run its migrations., Remove a tenant schema. Irreversible — take a backup first. (+17 more)
 
 ### Community 4 - "Session Archive"
-Cohesion: 0.17
-Nodes (12): Session Close-Out — ARQ pool wiring + Sprint 7 Search and Embeddings, Session Close-Out — Sprint 2: Authentik setup (OIDC groups, OAuth2 provider), No-machine-can-confirm enforcement phased: Sprints 4-9 require human OIDC JWT (sufficient as machine credentials don't exist); Sprint 10 adds explicit machine-credential rejection, Domain filter excludes facts/concepts entirely when ?domain=X — they surface implicitly through tasks; S608 false-positive suppressed for hardcoded SQL configs, Session Close-Out — Sprint 1: Platform scaffold, Session Close-Out — Sprint 3: test suite written (Facts, Concepts, Tasks, Principles, Workflows), Session Close-Out — Sprint 4: Domain enforcement, Session Close-Out — Sprint 4: ORM models, lifecycle, routes (+4 more)
+Cohesion: 0.04
+Nodes (45): Session docs restructure + task create + confirm flow, Session LLM ingestion pipeline repair, response_format: json_object removed from extraction LLM, Session — admin page + system_settings + per-job LLM resolver, Session — admin settings test-connection + model picker, Session — admin users tab + CI fix, Session Close-Out — ARQ pool wiring + Sprint 7 Search and Embeddings, Session Close-Out — Auth Flow Debugging (+37 more)
 
 ### Community 5 - "Triage and Audit Concepts"
-Cohesion: 0.09
-Nodes (34): Agent Role Prefix — agent: prefix distinguishes machine from human credentials, Audit Log — append-only privileged operation trail (§9.6), Admin Break-Glass Confirm, CI Auto-fix Pipeline — event-driven GitHub Actions using synthetic.new GLM-5.1, Ingestion pipeline (triage → extraction), Iterative Ingestion — primary model; 2-5 chunk batches per pass, Knowledge Hierarchy — Domain > Workflows > Tasks + Principles, Machine Auth — API keys and OIDC client credentials (Sprint 10) (+26 more)
+Cohesion: 0.08
+Nodes (36): Agent Role Prefix — agent: prefix distinguishes machine from human credentials, Audit Log — append-only privileged operation trail (§9.6), Admin Break-Glass Confirm, CI Auto-fix Pipeline — event-driven GitHub Actions using synthetic.new GLM-5.1, Ingestion pipeline (triage → extraction), Iterative Ingestion — primary model; 2-5 chunk batches per pass, Knowledge Hierarchy — Domain > Workflows > Tasks + Principles, Machine Auth — API keys and OIDC client credentials (Sprint 10) (+28 more)
 
 ### Community 6 - "Workflow and Task Schemas"
-Cohesion: 0.15
-Nodes (27): _get_task_by_record_version(), get_task_diff(), get_task_version(), Tasks API endpoints, including steps.  §9.5  — Tasks schema: steps with actions,, Fetch a specific version of a Task by its stable record_id and version number., Fetch a specific version of a Task by its stable record_id and version number., from_lint(), lint_warnings() (+19 more)
+Cohesion: 0.14
+Nodes (34): BaseModel, _get_task_by_record_version(), get_task_diff(), get_task_version(), Tasks API endpoints, including steps.  §9.5  — Tasks schema: steps with actions,, Fetch a specific version of a Task by its stable record_id and version number., Fetch a specific version of a Task by its stable record_id and version number., ConfirmRequest (+26 more)
 
 ### Community 7 - "Database and Chunk Processing"
 Cohesion: 0.15
-Nodes (44): create_engine(), _chat_response(), _get_candidates(), _get_chunk(), _get_estimates(), _insert_extraction_queued_chunk(), _insert_queued_chunk(), _make_env_settings() (+36 more)
+Nodes (41): create_engine(), _chat_response(), _get_candidates(), _get_chunk(), _get_estimates(), _insert_extraction_queued_chunk(), _insert_queued_chunk(), _make_env_settings() (+33 more)
 
 ### Community 8 - "Admin Tests"
 Cohesion: 0.12
@@ -339,63 +333,63 @@ Nodes (40): _admin_headers(), Tests for the Admin API (§23.11).  Spec refs:   �
 
 ### Community 9 - "Ingestion Models"
 Cohesion: 0.08
-Nodes (32): ARQ background worker, IngestionChunk status state machine, Review Queue Claiming Model (§8.2), dispose_worker_ctx(), Dispose the database engine created by init_worker_ctx., Ingestion ARQ worker entrypoint (§14).  Start with: arq workers.ingestion.Worker, shutdown(), _call_llm() (+24 more)
+Nodes (43): Base, ARQ background worker, IngestionChunk status state machine, ingestion_triage_estimates Table, IngestionCandidate, IngestionChunk, LLM-generated candidate estimate for a chunk, reviewed before extraction runs (§, One structural section of an ingested source document (§11.14). (+35 more)
 
 ### Community 10 - "Pagination and Conftest"
 Cohesion: 0.09
 Nodes (40): make_token(), Factory that produces signed RS256 JWTs for testing., Factory that produces signed RS256 JWTs for testing., _create_and_submit_task(), Tests for the Review Queue and Claiming API.  TEST_REVISED (v4.4 — dissolve Fact, All record types are domain-scoped; no-domain contributor sees nothing., An expired claim should not appear as an active claim on queue items., Create a draft task and submit it. Returns the task UUID string. (+32 more)
 
 ### Community 11 - "Config and Admin Routes"
-Cohesion: 0.14
-Nodes (21): BaseModel, admin_health(), disable_domain(), enable_domain(), _get_domain_or_404(), Admin API endpoints (§23.11).  All endpoints require the Admin role.  Routes:, Probe GET {base_url}/models and return available model IDs.      If api_key is b, Probe GET {base_url}/models and return available model IDs.      If api_key is b (+13 more)
+Cohesion: 0.09
+Nodes (30): System Settings Store, SystemSetting ORM model (§10.4)., SystemSetting, admin_health(), disable_domain(), enable_domain(), _get_domain_or_404(), patch_settings() (+22 more)
 
 ### Community 12 - "Lifecycle and Review"
-Cohesion: 0.07
-Nodes (43): Domain Enforcement (§7.3), confirm_task(), create_task(), deprecate_task(), _get_task(), Fetch a Task with all sub-resources loaded., Fetch a Task with all sub-resources loaded., retire_task() (+35 more)
+Cohesion: 0.09
+Nodes (39): is_machine_credential(), Return True if all roles in the list are agent-prefixed (§5.3)., Domain Enforcement (§7.3), Lifecycle State Machine, confirm_task(), create_task(), deprecate_task(), _get_task() (+31 more)
 
 ### Community 13 - "CI and Graph Decisions"
-Cohesion: 0.18
-Nodes (11): Session CI auto-fix pipeline, GLM-5.1 chosen as auto-fix model, Session — admin + notifications test coverage, CAST(:embedding AS vector) fix for asyncpg, claude-code-action incompatible with non-Anthropic providers; GLM-5.1 chosen as fix model; event-driven GHA replaces scheduled agent due to 5 runs/day limit, Session — CI fix (duplicate migration ID, stale tests, starlette CVE), Session — E2E verification + empty error_detail fix, Session — startup hook, embedding, HTML worker tests + two bug fixes (+3 more)
+Cohesion: 0.06
+Nodes (37): Session CI auto-fix pipeline, Session Fable 5 review documentation + graphify wiring, GLM-5.1 chosen as auto-fix model, graphify-out/ committed to git decision, Capture: Fourth source type (capture ingestion with event stream + screenshots), Capture: Full capture tooling (desktop/extension with pre-submission editing), Capture-based ingestion (workflow recording as a source type), Recorded workflow sessions are step-shaped (one session ≈ one task candidate); composes with governance instead of competing; redaction must happen client-side at capture time; never-confirmed rule applies unchanged (+29 more)
 
 ### Community 14 - "Test Factories"
-Cohesion: 0.10
-Nodes (36): Minimal valid request payload factories for governed record tests.  Each factory, task_payload(), task_step_action_payload(), task_step_payload(), Tests for the §6 pagination convention (v4.11) on governed record lists.  Covers, test_list_rejects_out_of_bounds_params(), test_list_returns_page_envelope_with_defaults(), test_list_tasks_offset_past_end_returns_empty_page() (+28 more)
+Cohesion: 0.09
+Nodes (38): Minimal valid request payload factories for governed record tests.  Each factory, task_payload(), task_step_action_payload(), task_step_payload(), Tests for the §6 pagination convention (v4.11) on governed record lists.  Covers, Fetch every page of a list endpoint, returning (all items, reported total)., test_list_rejects_out_of_bounds_params(), test_list_returns_page_envelope_with_defaults() (+30 more)
 
 ### Community 15 - "Community 15"
-Cohesion: 0.06
-Nodes (81): HTML Ingestion and Nav Discovery (§11.10, §11.11), IngestionNavPage, Discovered navigable page from an HTML site-nav crawl (§11.15)., Discovered navigable page from an HTML site-nav crawl (§11.15)., healthz(), GET /healthz — public endpoint, no auth required.  Checks database connectivity, promote_candidate(), Promote a discarded candidate back to pending (undo discard). (+73 more)
+Cohesion: 0.05
+Nodes (82): Request ID middleware and security headers., Attach a unique request ID to every request and response.      Binds the ID to s, RequestIDMiddleware, BaseHTTPMiddleware, HTML Ingestion and Nav Discovery (§11.10, §11.11), IngestionNavPage, Discovered navigable page from an HTML site-nav crawl (§11.15)., Discovered navigable page from an HTML site-nav crawl (§11.15). (+74 more)
 
 ### Community 16 - "Community 16"
-Cohesion: 0.17
-Nodes (25): Embedding Lifecycle (§12.1), load_llm_settings(), Load LLM config from system_settings, falling back to env Settings.      The per, Session 2026-05-29 — Worker Tests + asyncpg CAST() Embedding Fix, _embedding_response(), _get_embedding(), _make_ctx(), Tests for the generate_embedding ARQ job (§12.1, §14).  Covers:   - No embedding (+17 more)
+Cohesion: 0.18
+Nodes (24): Embedding Lifecycle (§12.1), Session 2026-05-29 — Worker Tests + asyncpg CAST() Embedding Fix, _embedding_response(), _get_embedding(), _make_ctx(), Tests for the generate_embedding ARQ job (§12.1, §14).  Covers:   - No embedding, test_embedding_api_error_raises(), test_no_embedding_config_exits_cleanly() (+16 more)
 
 ### Community 17 - "Community 17"
-Cohesion: 0.16
-Nodes (26): Principle, Principle ORM model.  §9.5 — foundational document-grain knowledge attached to W, confirm_principle(), create_principle(), deprecate_principle(), _get_or_404(), get_principle(), list_principle_versions() (+18 more)
+Cohesion: 0.13
+Nodes (31): Review Queue Claiming Model (§8.2), Principle, Principle ORM model.  §9.5 — foundational document-grain knowledge attached to W, confirm_principle(), create_principle(), deprecate_principle(), _get_or_404(), get_principle() (+23 more)
 
 ### Community 18 - "Community 18"
-Cohesion: 0.08
-Nodes (28): is_machine_credential(), Return True if all roles in the list are agent-prefixed (§5.3)., Return True if all roles in the list are agent-prefixed (§5.3)., _build_steps(), _build_task(), commit_batch(), commit_candidate(), Construct a Task ORM object (without steps) from extraction JSON. (+20 more)
+Cohesion: 0.12
+Nodes (18): _build_steps(), _build_task(), commit_batch(), commit_candidate(), Construct a Task ORM object (without steps) from extraction JSON., Construct a Task ORM object (without steps) from extraction JSON., Attach TaskStep and TaskStepAction children to a Task., Attach TaskStep and TaskStepAction children to a Task. (+10 more)
 
 ### Community 19 - "Community 19"
 Cohesion: 0.14
 Nodes (28): Notification, Notification ORM model (§13)., list_notifications(), mark_all_read(), mark_read(), Notifications API endpoints (§13)., Return the current user's notifications, newest first., Mark a single notification as read. (+20 more)
 
 ### Community 20 - "Community 20"
-Cohesion: 0.25
-Nodes (8): Select nav pages to render and chunk (§11.11).      Selected pages are queued fo, Select nav pages to render and chunk (§11.11).      Selected pages are queued fo, Select nav pages to render and chunk (§11.11).      Selected pages are queued fo, select_nav_pages(), NavSelectResponse, Response for POST /ingestions/{id}/nav-select., Response for POST /ingestions/{id}/nav-select., Response for POST /ingestions/{id}/nav-select.
+Cohesion: 0.33
+Nodes (6): Select nav pages to render and chunk (§11.11).      Selected pages are queued fo, Select nav pages to render and chunk (§11.11).      Selected pages are queued fo, select_nav_pages(), NavSelectResponse, Response for POST /ingestions/{id}/nav-select., Response for POST /ingestions/{id}/nav-select.
 
 ### Community 21 - "Community 21"
-Cohesion: 0.29
-Nodes (24): _auth(), _make_ingestion_with_triage_complete_chunk(), Tests for triage estimate review endpoints (§11.5a).  Spec refs:   §11.5a Triage, Seed an ingestion + chunk in triage_complete state; return (ingestion_id, chunk_, Insert estimate rows and return their IDs in order., _seed_estimates(), test_approve_all_rejected_moves_chunk_to_done(), test_approve_estimates_marks_approved() (+16 more)
+Cohesion: 0.06
+Nodes (57): Return the roles list from claims, defaulting to empty., TokenVerifier for tests — verifies against a supplied RSA public key.      No HT, Raised when a JWT cannot be verified., Verifies RS256 JWTs against a JWKS endpoint.      Fetches and caches JWKS on fir, Decode and verify a JWT. Returns the verified claims dict.          Raises Token, StubTokenVerifier, TokenVerificationError, TokenVerifier (+49 more)
 
 ### Community 22 - "Community 22"
 Cohesion: 0.05
 Nodes (44): 11.10 HTML Ingestion, 11.11 Nav Discovery and Selection, 11.12 JSON Ingestion, 11.13 ingestions Table, 11.14 ingestion_chunks Table, 11.15 ingestion_nav_pages Table, 11.1 LLM Provider Strategy, 11.2 LLM Provider Formats (+36 more)
 
 ### Community 23 - "Community 23"
-Cohesion: 0.09
-Nodes (32): Base, ingestion_triage_estimates Table, LLM Provider Strategy (§11.1, §11.2), IngestionCandidate, IngestionChunk, IngestionTriageEstimate, LLM-generated candidate estimate for a chunk, reviewed before extraction runs (§, LLM-generated candidate estimate for a chunk, reviewed before extraction runs (§ (+24 more)
+Cohesion: 0.10
+Nodes (31): load(), Return the cached Prompt for the given pipeline stage.      Raises KeyError if s, Triage/Extraction Human Review Gate, LLM Provider Strategy (§11.1, §11.2), IngestionTriageEstimate, LLM-generated candidate estimate for a chunk, reviewed before extraction runs (§, LLMSettings, load_llm_settings() (+23 more)
 
 ### Community 24 - "Community 24"
 Cohesion: 0.06
@@ -406,16 +400,16 @@ Cohesion: 0.13
 Nodes (20): _make_confirmed_task(), Tests for GET /api/v1/search (§12.2).  TEST_REVISED (v4.4 — dissolve Facts/Conce, Unknown type tokens in the filter are silently ignored (not a 422)., ?semantic=true with no embedding config falls back to fulltext gracefully., Confirmed records should not appear when searching for draft status., Create, submit, and confirm a Task containing the search keyword. Returns its id, test_domain_filter_non_matching_domain_returns_no_task(), test_search_empty_q_returns_422() (+12 more)
 
 ### Community 26 - "Community 26"
-Cohesion: 0.12
-Nodes (16): 9.5 Record Taxonomy, Assessments — Removed from v1, code:block10 (principles), code:block11 (tasks), code:block12 (maps), code:block13 (workflows), code:block14 (relationships), code:block8 (facts) (+8 more)
+Cohesion: 0.06
+Nodes (31): 9.1 Shared Identity Pattern, 9.2 Shared Lifecycle Fields, 9.3 Lifecycle State Machine, 9.4 Relationship Kind Taxonomy, 9.5 Record Taxonomy, 9.6 Platform Tables, 9.7 Ingestion Pipeline Tables, 9.8 Export and Delivery Tables — v1 Stubs (+23 more)
 
 ### Community 27 - "Community 27"
-Cohesion: 0.11
-Nodes (28): Base, Shared declarative base for all ORM models., DeclarativeBase, LifecycleMixin, Shared identity and lifecycle columns inherited by all governed record tables., Domain, Domain and UserDomain ORM models.  §7.1 — domain registry and user assignment, UserDomain (+20 more)
+Cohesion: 0.08
+Nodes (34): Base, Shared declarative base for all ORM models., DeclarativeBase, LifecycleMixin, Shared identity and lifecycle columns inherited by all governed record tables., Domain, Domain and UserDomain ORM models.  §7.1 — domain registry and user assignment, UserDomain (+26 more)
 
 ### Community 28 - "Community 28"
-Cohesion: 0.04
-Nodes (63): ORM models for the ingestion pipeline tables (SS11.13-SS11.15, SS11.8a)., Queue selected chunks for LLM triage and extraction (§11.5).      Callable multi, Queue selected chunks for LLM triage and extraction (§11.5).      Callable multi, Queue selected chunks for LLM triage and extraction (§11.5).      Callable multi, select_chunks(), CandidateCommitRequest, CandidateReviewRequest, HtmlIngestionRequest (+55 more)
+Cohesion: 0.11
+Nodes (24): ORM models for the ingestion pipeline tables (SS11.13-SS11.15, SS11.8a)., CandidateReviewRequest, IngestionChunkResponse, items_not_empty(), JsonIngestionRequest, JsonPrincipleItem, JsonStepItem, NavPageResponse (+16 more)
 
 ### Community 29 - "Community 29"
 Cohesion: 0.18
@@ -426,52 +420,52 @@ Cohesion: 0.18
 Nodes (18): Tests for scoped API key management and machine credential auth (§5.3, §9.6)., A valid bp_ key authenticates and can call read endpoints., A bp_ API key is rejected with 403 at any confirm endpoint., test_api_key_authenticates_for_data_endpoint(), test_create_api_key_invalid_role_returns_422(), test_create_api_key_returns_201_with_raw_key(), test_create_api_key_with_expiry(), test_create_api_key_without_expiry_has_null_expires_at() (+10 more)
 
 ### Community 31 - "Community 31"
-Cohesion: 0.16
-Nodes (17): extract_chunk ARQ job function, _triage_chunk ARQ job function, Session Triage/extraction split Sprint 11.5a, Domain Scoping and Enforcement, Maps as Display Layer, Prompt Contracts, Two-Directional Authoring and Governance, Triage stops at triage_complete with estimate rows; extraction is a separate ARQ job triggered by approve; reference_material/skip chunks skip to done; idempotency via chunk_id + record_type guard (+9 more)
+Cohesion: 0.24
+Nodes (11): extract_chunk ARQ job function, _triage_chunk ARQ job function, Session Triage/extraction split Sprint 11.5a, Maps as Display Layer, Prompt Contracts, Triage stops at triage_complete with estimate rows; extraction is a separate ARQ job triggered by approve; reference_material/skip chunks skip to done; idempotency via chunk_id + record_type guard, api_keys table schema, Blueprinted AI-native knowledge governance platform (+3 more)
 
 ### Community 32 - "Community 32"
 Cohesion: 0.24
 Nodes (17): Synthetic GLM-5.1 (CI auto-fix LLM), main (fix_ci), apply_files(), call_model(), extract_paths(), fix_general(), fix_pip_audit(), get_logs() (+9 more)
 
 ### Community 33 - "Community 33"
-Cohesion: 0.07
-Nodes (35): create_ingestion(), delete_ingestion(), get_ingestion_status(), list_ingestions(), list_nav_pages(), Ingestion pipeline API endpoints (§11).  PDF upload, HTML URL, JSON payload, chu, List ingestions created by the current user, newest first., List ingestions created by the current user, newest first. (+27 more)
+Cohesion: 0.11
+Nodes (17): get_ingestion_status(), list_ingestions(), list_nav_pages(), promote_candidate(), Ingestion pipeline API endpoints (§11).  PDF upload, HTML URL, JSON payload, chu, List ingestions created by the current user, newest first., List ingestions created by the current user, newest first., Return ingestion with its full chunk list (§11.5 section selection screen). (+9 more)
 
 ### Community 34 - "Community 34"
-Cohesion: 0.07
-Nodes (38): v1 APIRouter, Relationship ORM model.  §9.4 — infrastructure table; all writes rejected with H, Relationship, Rationale: wrong taxonomy worse than no taxonomy; relationship semantics harder than they appear, list_api_keys(), List all API keys. Raw keys are never returned., list_relationships(), Relationships API endpoints. §9.4, §23.9  All writes rejected with HTTP 422 in v (+30 more)
+Cohesion: 0.16
+Nodes (21): approve_estimates(), _get_chunk_or_404(), list_estimates(), merge_estimates(), patch_estimate(), Triage estimate review endpoints (§11.5a).  GET    /ingestions/{id}/chunks/{chun, Merge multiple estimates into one (§11.5a).      The first estimate in the list, Merge multiple estimates into one (§11.5a).      The first estimate in the list (+13 more)
 
 ### Community 35 - "Community 35"
-Cohesion: 0.13
-Nodes (19): AgentRole, OIDC token verification.  TokenVerifier validates RS256 JWTs issued by Authentik, Human roles as defined in §5.1., Machine credential roles as defined in §5.2.      Consumer roles (Sprint 10) rea, Role, Enum, ApiKey, ApiKey ORM model (§9.6, §5.3). (+11 more)
+Cohesion: 0.18
+Nodes (15): AgentRole, OIDC token verification.  TokenVerifier validates RS256 JWTs issued by Authentik, Machine credential roles as defined in §5.2. Available from Sprint 10., Enum, create_api_key(), _generate_key(), Admin API key management endpoints (§5.3, §9.6).  GET    /admin/api-keys, Return (raw_key, key_prefix, key_hash). (+7 more)
 
 ### Community 36 - "Community 36"
-Cohesion: 0.14
-Nodes (22): API Keys Table Schema, ARQ Resumability via Application Checkpoints, Break-Glass Admin Confirm, Facts and Concepts Dissolved (v4.4), Ingestion Pipeline, Lifecycle State Machine, Machine Auth — API Keys and Agent Roles, Notifications System (+14 more)
+Cohesion: 0.20
+Nodes (16): API Keys Table Schema, ARQ Resumability via Application Checkpoints, Facts and Concepts Dissolved (v4.4), Human-in-the-Loop Governance, Ingestion Pipeline, Machine Auth — API Keys and Agent Roles, No-Machine-Can-Confirm (§10.2, §5.3), Notifications System (+8 more)
 
 ### Community 37 - "Community 37"
-Cohesion: 0.12
-Nodes (16): Authentik OIDC Provider Configuration, Blueprinted Roles Property Mapping, Authentik Setup Guide, Human-in-the-Loop Governance, Blueprinted Platform, Technology Stack Overview, Testing Principles, Agent Roles (workflow_consumer/staleness_monitor/orphan_detector) (+8 more)
+Cohesion: 0.13
+Nodes (15): Authentik OIDC Provider Configuration, Blueprinted Roles Property Mapping, Authentik Setup Guide, Blueprinted Platform, Technology Stack Overview, Testing Principles, Agent Roles (workflow_consumer/staleness_monitor/orphan_detector), Authentication and Authorisation Model (+7 more)
 
 ### Community 38 - "Community 38"
 Cohesion: 0.24
 Nodes (14): principle_payload(), Tests for the Principles lifecycle API.  Spec refs:   §9.3  Lifecycle state mach, test_create_principle_contributor_returns_201_draft(), test_create_principle_missing_summary_returns_422(), test_create_principle_response_has_required_fields(), test_create_principle_unauthenticated_returns_401(), test_create_principle_viewer_returns_403(), test_create_principle_with_domain() (+6 more)
 
 ### Community 39 - "Community 39"
-Cohesion: 0.22
-Nodes (17): Startup hook crash-recovery (§14), _get_chunk_status(), _insert_ingestion_and_chunk(), Tests for the ARQ worker startup hook (§14, issue 5).  Covers:   - processing →, test_startup_populates_ctx(), test_startup_reenqueues_extraction_queued_chunks(), test_startup_resets_extracting_to_extraction_queued(), test_startup_resets_processing_to_queued() (+9 more)
+Cohesion: 0.33
+Nodes (13): Startup hook crash-recovery (§14), _get_chunk_status(), _insert_ingestion_and_chunk(), Tests for the ARQ worker startup hook (§14, issue 5).  Covers:   - processing →, test_startup_populates_ctx(), test_startup_reenqueues_extraction_queued_chunks(), test_startup_resets_extracting_to_extraction_queued(), test_startup_resets_processing_to_queued() (+5 more)
 
 ### Community 40 - "Community 40"
 Cohesion: 0.19
 Nodes (13): JSON Import Schema (v1.0), Manual JSON Authoring Guide, Extract Principle Prompt, Extract Task Prompt, Triage Category Classification, Triage Prompt, Changelog Propose Prompt (v1.1), Changelog Screen Prompt (v1.1) (+5 more)
 
 ### Community 41 - "Community 41"
-Cohesion: 0.17
-Nodes (12): Session v4.4/v4.5 backend refactor — dissolve Facts/Concepts, CI Auto-Fix Pipeline, Embedding Generation Worker, Hybrid Search with pgvector, Backend Technology Stack, Database Stack PostgreSQL + pgvector, Search and Embeddings (§12), Active Session (SESSIONS.md) (+4 more)
+Cohesion: 0.22
+Nodes (9): Session v4.4/v4.5 backend refactor — dissolve Facts/Concepts, Embedding Generation Worker, Hybrid Search with pgvector, Backend Technology Stack, Database Stack PostgreSQL + pgvector, Search and Embeddings (§12), Sprint 7 — Search and Embeddings, Sprint 8 — Core Read Screens (Frontend) (+1 more)
 
 ### Community 42 - "Community 42"
-Cohesion: 0.17
-Nodes (4): Bootstrap configuration loaded from environment variables.  Runtime configuratio, Settings, Async SQLAlchemy engine and session management., BaseSettings
+Cohesion: 0.10
+Nodes (18): get_settings(), Bootstrap configuration loaded from environment variables.  Runtime configuratio, Settings, create_session_factory(), Async SQLAlchemy engine and session management., configure_logging(), structlog configuration — JSON output, request ID propagation.  Call configure_l, Strip known secret field names from log events before output. (+10 more)
 
 ### Community 43 - "Community 43"
 Cohesion: 0.18
@@ -486,12 +480,12 @@ Cohesion: 0.07
 Nodes (31): Auth failure rate limiting deferred, Audit Log, Authentik Identity Provider, Break-Glass Confirm, Domain Enforcement (§7.3), Embedding Generation Worker, Fable 5 Review Hardening Roadmap, Facts/Concepts Dissolution (v4.4) (+23 more)
 
 ### Community 46 - "Community 46"
-Cohesion: 0.24
-Nodes (11): lifecycle_actions.py shared service, api/services/linting.py step quality warnings, Machine/human credential distinction via agent: prefix, Route deduplication via shared service layer decision, Session Sprint 10 machine auth, audit log, CLI, Session Sprint 11 Hardening (complete), Synthetic User record per API key decision, api_keys table schema (+3 more)
+Cohesion: 0.27
+Nodes (10): lifecycle_actions.py shared service, api/services/linting.py step quality warnings, Machine/human credential distinction via agent: prefix, Route deduplication via shared service layer decision, Session Sprint 10 machine auth, audit log, CLI, Session Sprint 11 Hardening (complete), Synthetic User record per API key decision, audit_log table schema (+2 more)
 
 ### Community 47 - "Community 47"
-Cohesion: 0.08
-Nodes (38): Nav pages endpoint rejects non-HTML ingestions., Batch commit creates governance records for all requested candidates., Candidates already committed are silently excluded from the batch., Candidates already committed are silently excluded from the batch., Discarded candidates are excluded from the batch (they must be promoted first)., Discarded candidates are excluded from the batch (they must be promoted first)., Promoting a pending (non-discarded) candidate returns 422., Promoting a pending (non-discarded) candidate returns 422. (+30 more)
+Cohesion: 0.39
+Nodes (7): delete_ingestion(), delete_ingestion_dir(), _ingestion_dir(), File storage abstraction (§4.4).  v1 implements local-disk storage only. The int, Write uploaded file to local storage. Returns (storage_path, sha256_hex)., Remove the storage directory for an ingestion (no-op if absent)., save_ingestion_file()
 
 ### Community 48 - "Community 48"
 Cohesion: 0.11
@@ -502,20 +496,20 @@ Cohesion: 0.11
 Nodes (17): 14. Background Job Processing, 15.1 LearningOps Metrics, 15. Analytics and Dashboards, 16. Observability, 1. Purpose and Scope, 21. CLI, 22. Documentation, 24. Parked Decisions (+9 more)
 
 ### Community 50 - "Community 50"
-Cohesion: 0.21
-Nodes (14): api service (FastAPI), auth service (Authentik OIDC), db service (PostgreSQL 16 + pgvector), redis service (ARQ broker + rate limit backend), storage service (MinIO, optional), worker service (default ARQ worker), worker-ingestion service (ingestion ARQ worker), Pagination Convention — Page Envelope (§6, v4.11) (+6 more)
+Cohesion: 0.15
+Nodes (18): api service (FastAPI), auth service (Authentik OIDC), db service (PostgreSQL 16 + pgvector), redis service (ARQ broker + rate limit backend), storage service (MinIO, optional), worker service (default ARQ worker), worker-ingestion service (ingestion ARQ worker), Pagination Convention — Page Envelope (§6, v4.11) (+10 more)
 
 ### Community 51 - "Community 51"
 Cohesion: 0.11
 Nodes (17): 14. Background Job Processing, 15.1 LearningOps Metrics, 15. Analytics and Dashboards, 16. Observability, 1. Purpose and Scope, 21. CLI, 22. Documentation, 24. Parked Decisions (+9 more)
 
 ### Community 52 - "Community 52"
-Cohesion: 0.22
-Nodes (9): load(), _load_all(), _parse_prompt_file(), Prompt, Prompt loading for the ingestion pipeline (§11.16).  Reads versioned markdown fi, A loaded prompt ready to be rendered into a message pair., Return (system_message, user_message) with variables substituted., Extract system and user_template text from a prompt markdown file. (+1 more)
+Cohesion: 0.28
+Nodes (7): _load_all(), _parse_prompt_file(), Prompt, Prompt loading for the ingestion pipeline (§11.16).  Reads versioned markdown fi, A loaded prompt ready to be rendered into a message pair., Return (system_message, user_message) with variables substituted., Extract system and user_template text from a prompt markdown file.
 
 ### Community 53 - "Community 53"
-Cohesion: 0.22
-Nodes (10): Project Index (CLAUDE.md), No-Machine-Can-Confirm (§10.2, §5.3), Schema-Per-Tenant Multi-Tenancy, TEST_REVISED Process, Architecture and Working Practice, Code Style Guide, Project Rules (Absolute), Absolute Rules (+2 more)
+Cohesion: 0.18
+Nodes (12): Project Index (CLAUDE.md), CI Auto-Fix Pipeline, Schema-Per-Tenant Multi-Tenancy, TEST_REVISED Process, Architecture and Working Practice, Code Style Guide, Project Rules (Absolute), Absolute Rules (+4 more)
 
 ### Community 54 - "Community 54"
 Cohesion: 0.22
@@ -530,8 +524,8 @@ Cohesion: 0.11
 Nodes (17): 14. Background Job Processing, 15.1 LearningOps Metrics, 15. Analytics and Dashboards, 16. Observability, 1. Purpose and Scope, 21. CLI, 22. Documentation, 24. Parked Decisions (+9 more)
 
 ### Community 57 - "Community 57"
-Cohesion: 0.08
-Nodes (29): get_session(), _authenticate_api_key(), get_arq_pool(), get_current_user(), get_db_session(), get_token_verifier(), FastAPI dependency providers., Validate Bearer token (JWT or bp_ API key) and return the authenticated user. (+21 more)
+Cohesion: 0.27
+Nodes (6): Relationship ORM model.  §9.4 — infrastructure table; all writes rejected with H, Relationship, Rationale: wrong taxonomy worse than no taxonomy; relationship semantics harder than they appear, Relationships API endpoints. §9.4, §23.9  All writes rejected with HTTP 422 in v, Relationship response schema. §9.4, RelationshipResponse
 
 ### Community 58 - "Community 58"
 Cohesion: 0.15
@@ -546,7 +540,7 @@ Cohesion: 0.32
 Nodes (8): Docker Compose Production Stack, MinIO S3-Compatible Storage, Docker Compose Dev Override, Blueprinted.io Brand Logo, Authentik OIDC Provider, Docker Compose Stack, Local Dev Setup Guide, Playwright Chromium for HTML Ingestion
 
 ### Community 61 - "Community 61"
-Cohesion: 0.13
+Cohesion: 0.11
 Nodes (17): Decisions, Decisions, Decisions, Decisions, Done, Done, Done, Done (+9 more)
 
 ### Community 62 - "Community 62"
@@ -554,12 +548,12 @@ Cohesion: 0.12
 Nodes (15): 1. Start Authentik, 2. Complete the initial setup wizard, 3. Create an OAuth2/OIDC Provider, 4. Add a roles property mapping, 5. Create an Authentik Application, 6. Create Blueprinted roles as Authentik groups, 7. Collect the OIDC configuration values, 8. Restart the API (+7 more)
 
 ### Community 63 - "Community 63"
-Cohesion: 0.10
-Nodes (20): 11.13 ingestions Table, 11.14 ingestion_chunks Table, 11.15 ingestion_nav_pages Table, 11.1 LLM Provider Strategy, 11.2 LLM Provider Formats, 11.3 Pipeline Stages, 11.5 Section Selection Flow, 11.5a Triage Estimate Review (+12 more)
+Cohesion: 0.12
+Nodes (16): 11.13 ingestions Table, 11.14 ingestion_chunks Table, 11.15 ingestion_nav_pages Table, 11.1 LLM Provider Strategy, 11.2 LLM Provider Formats, 11.3 Pipeline Stages, 11.5 Section Selection Flow, 11.6 Candidate Validation Rules (+8 more)
 
 ### Community 64 - "Community 64"
-Cohesion: 0.18
-Nodes (16): get_settings(), System Settings Store, SystemSetting ORM model (§10.4)., SystemSetting, patch_settings(), _get_expiry_hours(), _decrypt(), _encrypt() (+8 more)
+Cohesion: 0.22
+Nodes (9): v1 APIRouter, list_api_keys(), List all API keys. Raw keys are never returned., list_relationships(), list_tasks(), list_workflows(), Page, Generic pagination envelope for list endpoints.  §6 — API pagination convention (+1 more)
 
 ### Community 65 - "Community 65"
 Cohesion: 0.38
@@ -571,11 +565,11 @@ Nodes (16): 11.13 ingestions Table, 11.14 ingestion_chunks Table, 11.15 ingestio
 
 ### Community 67 - "Community 67"
 Cohesion: 0.12
-Nodes (16): Sprint 10 — Machine Auth, CLI, Observability, Sprint 11 — Backend Hardening, Sprint 12 — Pagination, Worker Split, Harness, Sprint 13 — Dashboard + Responsive Design, Sprint 14 — Ingestion Overhaul + Markdown + HTML Crawl, Sprint 15 — Agent Ingestion Path (demo readiness), Sprint 1 — Foundation, Sprint 2 — Human Auth (Authentik) (+8 more)
+Nodes (15): Sprint 10 — Machine Auth, CLI, Observability, Sprint 11 — Backend Hardening, Sprint 12 — Pagination, Worker Split, Harness, Sprint 13 — Dashboard + Responsive Design, Sprint 14 — Ingestion Overhaul + Markdown + HTML Crawl, Sprint 1 — Foundation, Sprint 2 — Human Auth (Authentik), Sprint 3 — Test Infrastructure and Specification Gaps (+7 more)
 
 ### Community 68 - "Community 68"
 Cohesion: 0.12
-Nodes (16): Acceptance, code:bash (cd platform), Decision record (autonomous — documented per session protocol), Files to Change, Patterns to Mirror, Plan: Sprint 15 — Agent Ingestion Path (demo readiness), Risks, Sub-decisions (estimated maintainer's choice) (+8 more)
+Nodes (16): _pdf_bytes(), Second upload of identical bytes returns the existing ingestion, no new row., Status endpoint 404s for ingestions belonging to another user (no info leak)., Empty chunk_ids list is rejected before status is checked., Cannot select chunks on a pending ingestion (not yet chunked)., Select on a ready ingestion queues matching pending chunks and returns count., Selecting a chunk already in queued status does not re-queue it., test_select_already_queued_chunk_is_skipped() (+8 more)
 
 ### Community 69 - "Community 69"
 Cohesion: 0.13
@@ -586,12 +580,12 @@ Cohesion: 0.33
 Nodes (7): Active Session Log — blueprinted.io, Auto-fix PR #3 partial rejection decision, Weekly pip-audit without --strict, Dependency Audit Workflow, Sprint 12 Next Steps, dependency-audit.yml GitHub Actions workflow, pip-audit --skip-editable step
 
 ### Community 71 - "Community 71"
-Cohesion: 0.07
-Nodes (29): 9.1 Shared Identity Pattern, 9.2 Shared Lifecycle Fields, 9.3 Lifecycle State Machine, 9.4 Relationship Kind Taxonomy, 9.5 Record Taxonomy, 9.6 Platform Tables, 9.7 Ingestion Pipeline Tables, 9.8 Export and Delivery Tables — v1 Stubs (+21 more)
+Cohesion: 0.13
+Nodes (15): 9.1 Shared Identity Pattern, 9.2 Shared Lifecycle Fields, 9.3 Lifecycle State Machine, 9.4 Relationship Kind Taxonomy, 9.6 Platform Tables, 9.7 Ingestion Pipeline Tables, 9.8 Export and Delivery Tables — v1 Stubs, 9. Data Model (+7 more)
 
 ### Community 72 - "Community 72"
 Cohesion: 0.11
-Nodes (34): LifecycleResponse, delete_step(), update_step(), add_task_ref(), attach_principle(), create_workflow(), deprecate_workflow(), detach_principle() (+26 more)
+Nodes (30): LifecycleResponse, delete_step(), update_step(), add_task_ref(), attach_principle(), deprecate_workflow(), detach_principle(), get_workflow() (+22 more)
 
 ### Community 73 - "Community 73"
 Cohesion: 0.32
@@ -606,8 +600,8 @@ Cohesion: 0.47
 Nodes (5): api(), main(), psql(), Development seed script — populates the local dev database with realistic tasks., Run SQL directly via docker exec — used only for domain bootstrap.
 
 ### Community 76 - "Community 76"
-Cohesion: 0.21
-Nodes (15): _create_agent_key(), _ingest_one_candidate(), _json_payload(), Tests for the ingestion producer agent (§5.2, §11) — Sprint 15.  An agent:ingest, The agent holds no domain assignment yet commits into test-domain (§7.3 waiver)., The machine may draft and submit, but never confirm (§5.3, §10.2)., Only the producer role may ingest — consumer agent roles are 403., Admin creates an API key with the given agent role; return the raw bp_ key. (+7 more)
+Cohesion: 0.14
+Nodes (14): 9.5 Record Taxonomy, Assessments — Removed from v1, code:block10 (principles), code:block11 (tasks), code:block12 (workflows), code:block13 (relationships), code:block8 (facts), code:block9 (concepts) (+6 more)
 
 ### Community 77 - "Community 77"
 Cohesion: 0.48
@@ -622,16 +616,16 @@ Cohesion: 0.50
 Nodes (3): _lifecycle_cols(), Return fresh lifecycle column instances for each table.      ForeignKey objects, upgrade()
 
 ### Community 81 - "Community 81"
-Cohesion: 0.12
-Nodes (18): Ingestion, Ingestion job record — one per uploaded PDF, HTML source, or JSON payload (§11.1, _canonical_json(), create_html_ingestion(), create_json_ingestion(), _normalise_url(), Lowercase scheme+host, strip fragment, sort query params for stable dedup., Submit a URL for HTML ingestion (§11.10).      Single-page mode renders one URL (+10 more)
+Cohesion: 0.14
+Nodes (14): Ingestion, Ingestion job record — one per uploaded PDF, HTML source, or JSON payload (§11.1, create_html_ingestion(), create_ingestion(), _normalise_url(), Lowercase scheme+host, strip fragment, sort query params for stable dedup., Submit a URL for HTML ingestion (§11.10).      Single-page mode renders one URL, Strip path components and replace unsafe characters. (+6 more)
 
 ### Community 82 - "Community 82"
-Cohesion: 0.13
-Nodes (15): 9.1 Shared Identity Pattern, 9.2 Shared Lifecycle Fields, 9.3 Lifecycle State Machine, 9.4 Relationship Kind Taxonomy, 9.6 Platform Tables, 9.7 Ingestion Pipeline Tables, 9.8 Export and Delivery Tables — v1 Stubs, 9. Data Model (+7 more)
+Cohesion: 0.33
+Nodes (6): Queue selected chunks for LLM triage and extraction (§11.5).      Callable multi, Queue selected chunks for LLM triage and extraction (§11.5).      Callable multi, select_chunks(), Response for POST /ingestions/{id}/select., Response for POST /ingestions/{id}/select., SelectChunksResponse
 
 ### Community 83 - "Community 83"
-Cohesion: 0.20
-Nodes (9): Return the roles list from claims, defaulting to empty., Return the roles list from claims, defaulting to empty., TokenVerifier for tests — verifies against a supplied RSA public key.      No HT, TokenVerifier for tests — verifies against a supplied RSA public key.      No HT, Verifies RS256 JWTs against a JWKS endpoint.      Fetches and caches JWKS on fir, Verifies RS256 JWTs against a JWKS endpoint.      Fetches and caches JWKS on fir, StubTokenVerifier, TokenVerifier (+1 more)
+Cohesion: 0.33
+Nodes (6): IngestionResponse, IngestionStatusResponse, Ingestion job summary returned on create and status endpoints., Ingestion job summary returned on create and status endpoints., Ingestion status with full chunk list (GET /ingestions/{id}/status)., Ingestion status with full chunk list (GET /ingestions/{id}/status).
 
 ### Community 85 - "Community 85"
 Cohesion: 0.17
@@ -654,8 +648,8 @@ Cohesion: 0.17
 Nodes (12): 23.10 Search, 23.11 Admin, 23.1 Auth and Profile, 23.2 Dashboard, 23.3 Tasks, 23.4 Workflows, 23.5 Facts and Concepts, 23.6 Principles (+4 more)
 
 ### Community 106 - "Community 106"
-Cohesion: 0.24
-Nodes (9): create_session_factory(), configure_logging(), structlog configuration — JSON output, request ID propagation.  Call configure_l, Strip known secret field names from log events before output., Configure structlog for JSON output. Call once at startup., _redact_secrets(), create_app(), lifespan() (+1 more)
+Cohesion: 0.67
+Nodes (3): NavSelectRequest, Body for POST /ingestions/{id}/nav-select (§11.11)., Body for POST /ingestions/{id}/nav-select (§11.11).
 
 ### Community 107 - "Community 107"
 Cohesion: 0.17
@@ -666,16 +660,16 @@ Cohesion: 0.18
 Nodes (10): Architecture — blueprinted.io, Async, Configuration, Error Handling, Handling Ambiguity, Logging, Multi-tenancy, Plan Before Code (+2 more)
 
 ### Community 109 - "Community 109"
-Cohesion: 0.18
-Nodes (11): Session LLM ingestion pipeline repair, response_format: json_object removed from extraction LLM, Session — admin page + system_settings + per-job LLM resolver, Session — admin settings test-connection + model picker, Session — admin users tab + CI fix, Session — bug fixes + ingestion delete, Session — design system implementation (tokens, shell, tables, badges), Session — Platform CI fix + design system migration (+3 more)
+Cohesion: 0.67
+Nodes (3): Body for POST /ingestions/{id}/select (§11.5)., Body for POST /ingestions/{id}/select (§11.5)., SelectChunksRequest
 
 ### Community 110 - "Community 110"
-Cohesion: 0.07
-Nodes (28): code:block1 (docker compose -f platform/deploy/docker-compose.yml --env-f), code:block2 (VITE_OIDC_AUTHORITY=http://192.168.1.82:9000/application/o/b), code:block3 (OIDC_ISSUER=http://192.168.1.82:9000/application/o/blueprint), Completed, Completed, Completed, Completed, Current state of the stack (+20 more)
+Cohesion: 0.18
+Nodes (11): code:block1 (docker compose -f platform/deploy/docker-compose.yml --env-f), code:block2 (VITE_OIDC_AUTHORITY=http://192.168.1.82:9000/application/o/b), code:block3 (OIDC_ISSUER=http://192.168.1.82:9000/application/o/blueprint), Completed, Current state of the stack, Decisions made, Env file reference (structure only — actual values in gitignored env files), Incomplete or broken (+3 more)
 
 ### Community 131 - "Community 131"
-Cohesion: 0.18
-Nodes (11): Active Session — Sprint 13 (analytics dashboard + production DB migrations), GET /api/v1/analytics/dashboard endpoint, Page<T> envelope {items, total, limit, offset}, reviewed_at population fix on confirm, Sprint 11 CI Hardening + Dependency Audit, Sprint 12 Follow-ups: frontend Page envelope + worker-ingestion deploy, Sprint 12: Pagination + Worker Split, Sprint 13: Analytics Dashboard (+3 more)
+Cohesion: 0.20
+Nodes (10): Break-Glass Admin Confirm, Domain Scoping and Enforcement, Review Queue and Claiming, Self-Review Prohibition, Two-Directional Authoring and Governance, Domains organisational model, Lifecycle State Machine (draft→submitted→confirmed→deprecated/retired), Sprint 4 — Core Data Model and Lifecycle API (+2 more)
 
 ### Community 132 - "Community 132"
 Cohesion: 0.20
@@ -698,8 +692,8 @@ Cohesion: 0.20
 Nodes (9): code:json ({), code:json ({), code:json ({), How to use this guide, Manual JSON Authoring Guide, Output rules, Principle schema, System Prompt (+1 more)
 
 ### Community 137 - "Community 137"
-Cohesion: 0.18
-Nodes (8): pytest fixtures for the Blueprinted test suite.  Test DB setup runs via asyncio., Pre-seed the test domain and all contributor users with domain assignments., Pre-seed the test domain and all contributor users with domain assignments., Create all ORM tables once per session, outside the async event loop., Create all ORM tables once per session, outside the async event loop., setup_test_db(), setup_test_domain_and_users(), test_settings()
+Cohesion: 0.24
+Nodes (10): Insert a minimal HTML ingestion row., Insert a minimal ingestion_nav_pages row., A page already in selected status is not re-queued., _seed_html_ingestion(), _seed_nav_page(), test_list_nav_pages_returns_pages(), test_nav_select_already_selected_page_is_skipped(), test_nav_select_empty_ids_returns_422() (+2 more)
 
 ### Community 138 - "Community 138"
 Cohesion: 0.25
@@ -766,8 +760,8 @@ Cohesion: 0.29
 Nodes (7): 10.1 No Machine Can Confirm, 10.2 Every First-Party Component is an API Consumer, 10.3 Tests are Written Before Implementation, 10.4 Everything Configurable is Configurable via UI, 10.5 Imports Never Create Confirmed Records, 10.6 Staleness is Tracked Not Assumed, 10. Key Design Principles
 
 ### Community 154 - "Community 154"
-Cohesion: 0.18
-Nodes (11): 11.10 HTML Ingestion, Chunk metadata, Chunk metadata, Content extraction and chunking, Duplicate detection, Duplicate detection, Failure modes, Failure modes (+3 more)
+Cohesion: 0.29
+Nodes (7): 11.10 HTML Ingestion, Chunk metadata, Content extraction and chunking, Duplicate detection, Failure modes, Source acceptance, Source modes
 
 ### Community 155 - "Community 155"
 Cohesion: 0.29
@@ -778,36 +772,36 @@ Cohesion: 0.29
 Nodes (6): Authentication, code:bash (uv run pip-audit --skip-editable), Dependency scanning, Reporting a vulnerability, Secrets, Security Policy
 
 ### Community 157 - "Community 157"
-Cohesion: 0.39
-Nodes (7): Active Session — blueprinted.io, Broken / Incomplete, Decisions, Done, Next, Session — 2026-06-12 (repo housekeeping: core clone, READMEs, CI fix), Session — 2026-07-24 (Sprint 15: agent ingestion path — demo readiness)
+Cohesion: 0.29
+Nodes (6): Active Session — blueprinted.io, Broken / Incomplete, Decisions, Done, Next, Session — 2026-06-12 (repo housekeeping: core clone, READMEs, CI fix)
 
 ### Community 158 - "Community 158"
 Cohesion: 0.29
-Nodes (8): _make_raw(), Tests for JWT token verification logic., test_expired_token_raises(), test_extract_roles_returns_list(), test_tampered_token_raises(), test_valid_token_decodes(), test_wrong_audience_raises(), test_wrong_issuer_raises()
+Nodes (7): Completed, Decisions made, Incomplete or broken, Next session should start from, Session Close-Out — 2026-05-15 (housekeeping — setup docs and machine move prep), TEST_REVISED commits, Watch out for
 
 ### Community 159 - "Community 159"
-Cohesion: 0.15
-Nodes (13): Completed, Completed, Decisions made, Decisions made, Incomplete or broken, Incomplete or broken, Next session should start from, Next session should start from (+5 more)
+Cohesion: 0.29
+Nodes (7): Completed, Decisions made, Incomplete or broken, Next session should start from, Session Close-Out — 2026-05-15 (Sprint 8 — Frontend scaffold and PKCE auth), TEST_REVISED commits, Watch out for
 
 ### Community 160 - "Community 160"
-Cohesion: 0.15
-Nodes (13): Completed, Completed, Decisions made, Decisions made, Incomplete or broken, Incomplete or broken, Next session should start from, Next session should start from (+5 more)
+Cohesion: 0.29
+Nodes (7): Completed, Decisions made, Incomplete or broken, Next session should start from, Session Close-Out — 2026-05-15 (task_order spec gap fix), TEST_REVISED commits, Watch out for
 
 ### Community 161 - "Community 161"
-Cohesion: 0.15
-Nodes (13): Completed, Completed, Decisions made, Decisions made, Incomplete or broken, Incomplete or broken, Next session should start from, Next session should start from (+5 more)
+Cohesion: 0.29
+Nodes (7): Completed, Decisions made, Incomplete or broken, Next session should start from, Session Close-Out — 2026-05-14 (Sprint 6 — HTML and JSON ingestion), TEST_REVISED commits, Watch out for
 
 ### Community 162 - "Community 162"
-Cohesion: 0.15
-Nodes (13): Completed, Completed, Decisions made, Decisions made, Incomplete or broken, Incomplete or broken, Next session should start from, Next session should start from (+5 more)
+Cohesion: 0.29
+Nodes (7): Completed, Decisions made, Incomplete or broken, Next session should start from, Session Close-Out — 2026-05-14 (Sprint 6 — Ingestion Pipeline, full sprint), TEST_REVISED commits, Watch out for
 
 ### Community 163 - "Community 163"
-Cohesion: 0.15
-Nodes (13): Completed, Completed, Decisions made, Decisions made, Incomplete or broken, Incomplete or broken, Next session should start from, Next session should start from (+5 more)
+Cohesion: 0.29
+Nodes (7): Completed, Decisions made, Incomplete or broken, Next session should start from, Session Close-Out — 2026-05-14, TEST_REVISED commits, Watch out for
 
 ### Community 164 - "Community 164"
-Cohesion: 0.15
-Nodes (13): Completed, Completed, Decisions made, Decisions made, Incomplete or broken, Incomplete or broken, Next session should start from, Next session should start from (+5 more)
+Cohesion: 0.29
+Nodes (7): Completed, Decisions made, Incomplete or broken, Next session should start from, Session Close-Out — 2026-05-13, TEST_REVISED commits, Watch out for
 
 ### Community 165 - "Community 165"
 Cohesion: 0.29
@@ -830,20 +824,20 @@ Cohesion: 0.29
 Nodes (7): Completed, Decisions made, Incomplete or broken, Next session should start from, Session Close-Out — 2026-05-13, TEST_REVISED commits, Watch out for
 
 ### Community 170 - "Community 170"
-Cohesion: 0.17
-Nodes (12): Completed, Completed, Decisions made, Decisions made, Incomplete or broken, Incomplete or broken, Next session should start from, Next session should start from (+4 more)
+Cohesion: 0.29
+Nodes (7): Completed, Decisions made, Incomplete or broken, Next session should start from, Session Close-Out — 2026-05-16 (Task detail screen + dev seed script), TEST_REVISED commits, Watch out for
 
 ### Community 171 - "Community 171"
-Cohesion: 0.15
-Nodes (13): Completed, Completed, Decisions made, Decisions made, Incomplete or broken, Incomplete or broken, Next session should start from, Next session should start from (+5 more)
+Cohesion: 0.29
+Nodes (7): Completed, Decisions made, Incomplete or broken, Next session should start from, Session Close-Out — 2026-05-16 (Task list screen + search.py final fix), TEST_REVISED commits, Watch out for
 
 ### Community 172 - "Community 172"
-Cohesion: 0.15
-Nodes (13): Completed, Completed, Decisions made, Decisions made, Incomplete or broken, Incomplete or broken, Next session should start from, Next session should start from (+5 more)
+Cohesion: 0.29
+Nodes (7): Completed, Decisions made, Incomplete or broken, Next session should start from, Session Close-Out — 2026-05-16 (v4.4/v4.5 backend refactor — dissolve Facts/Concepts, procedure fields), TEST_REVISED commits, Watch out for
 
 ### Community 173 - "Community 173"
-Cohesion: 0.15
-Nodes (13): Completed, Completed, Decisions made, Decisions made, Incomplete or broken, Incomplete or broken, Next session should start from, Next session should start from (+5 more)
+Cohesion: 0.29
+Nodes (7): Completed, Decisions made, Incomplete or broken, Next session should start from, Session Close-Out — 2026-05-15 (Infrastructure debugging — DB recovery, auth roles), TEST_REVISED commits, Watch out for
 
 ### Community 174 - "Community 174"
 Cohesion: 0.33
@@ -882,8 +876,8 @@ Cohesion: 0.33
 Nodes (6): Completed, Decisions made, Incomplete or broken, Next session should start from, Session Close-Out — 2026-05-16 (CI failure investigation), TEST_REVISED commits
 
 ### Community 183 - "Community 183"
-Cohesion: 0.25
-Nodes (9): Session Fable 5 review documentation + graphify wiring, graphify-out/ committed to git decision, audit_log table and write_audit_event() service, api/services/lifecycle_actions.py — shared confirm/return/deprecate/retire, Machine/human credential distinction via agent: role prefix; synthetic User per API key lets all CurrentUser route dependencies work unchanged, slowapi rate limiting (30/min search, 10/min ingestion), Auth failure rate limiting (5/min) deferred — counting only failures requires custom Redis middleware; blanket limits cover main attack surface, Sprint 10 — machine auth, audit log, CLI (+1 more)
+Cohesion: 0.40
+Nodes (6): _canonical_json(), create_json_ingestion(), Canonical JSON: sorted keys, no whitespace — for stable SHA-256 dedup., Submit a pre-structured JSON payload for ingestion (§11.12).      JSON ingestion, Canonical JSON: sorted keys, no whitespace — for stable SHA-256 dedup., Submit a pre-structured JSON payload for ingestion (§11.12).      JSON ingestion
 
 ### Community 184 - "Community 184"
 Cohesion: 0.40
@@ -894,8 +888,8 @@ Cohesion: 0.40
 Nodes (5): 11.11 Nav Discovery and Selection, code:block24 (POST /api/v1/ingestions/{id}/nav-select), Discovery, Nav page statuses, Selection
 
 ### Community 186 - "Community 186"
-Cohesion: 0.33
-Nodes (6): 11.12 JSON Ingestion, Duplicate detection, Duplicate detection, Flow, Schema authority, Source storage
+Cohesion: 0.40
+Nodes (5): 11.12 JSON Ingestion, Duplicate detection, Flow, Schema authority, Source storage
 
 ### Community 187 - "Community 187"
 Cohesion: 0.40
@@ -998,28 +992,28 @@ Cohesion: 0.40
 Nodes (5): 8.1 Global Review Queue, 8.2 Claiming Model, 8.3 Ingestion Review Queue, 8. Review Queue and Claiming, code:block3 (review_claims)
 
 ### Community 212 - "Community 212"
-Cohesion: 0.16
-Nodes (15): Broken / Incomplete, Broken / Incomplete, Decisions, Decisions, Decisions, Done, Done, Done (+7 more)
+Cohesion: 0.40
+Nodes (5): Broken / Incomplete, Decisions, Done, Next, Session — 2026-06-11 (Sprint 13: analytics dashboard + production DB migrations)
 
 ### Community 213 - "Community 213"
-Cohesion: 0.22
-Nodes (9): Broken / Incomplete, Broken / Incomplete, Decisions, Decisions, Done, Done, Next, Next (+1 more)
+Cohesion: 0.40
+Nodes (5): Broken / Incomplete, Decisions, Done, Next, Session — 2026-06-10 (Sprint 11 Hardening — complete)
 
 ### Community 214 - "Community 214"
-Cohesion: 0.22
-Nodes (9): Broken / Incomplete, Broken / Incomplete, Decisions, Decisions, Done, Done, Next, Next (+1 more)
+Cohesion: 0.40
+Nodes (5): Broken / Incomplete, Decisions, Done, Next, Session — 2026-06-11 (Sprint 12 follow-ups: frontend Page envelope + worker-ingestion deploy)
 
 ### Community 215 - "Community 215"
-Cohesion: 0.22
-Nodes (9): Broken / Incomplete, Broken / Incomplete, Decisions, Decisions, Done, Done, Next, Next (+1 more)
+Cohesion: 0.40
+Nodes (5): Broken / Incomplete, Decisions, Done, Next, Session — 2026-05-18 (admin settings test-connection + model picker)
 
 ### Community 216 - "Community 216"
-Cohesion: 0.22
-Nodes (9): Broken / Incomplete, Broken / Incomplete, Decisions, Decisions, Done, Done, Next, Next (+1 more)
+Cohesion: 0.40
+Nodes (5): Broken / Incomplete, Decisions, Done, Next, Session — 2026-06-11 (Sprint 12: pagination + worker split)
 
 ### Community 217 - "Community 217"
-Cohesion: 0.22
-Nodes (9): Broken / Incomplete, Broken / Incomplete, Decisions, Decisions, Done, Done, Next, Next (+1 more)
+Cohesion: 0.40
+Nodes (5): Broken / Incomplete, Decisions, Done, Next, Session — 2026-06-10 (Sprint 11 CI hardening + dependency audit)
 
 ### Community 218 - "Community 218"
 Cohesion: 0.40
@@ -1090,168 +1084,140 @@ Cohesion: 0.50
 Nodes (4): 5.1 Human Roles, 5.2 Agent Roles, 5.3 Machine Auth — Sprint 10, 5. Authentication and Authorisation
 
 ### Community 235 - "Community 235"
-Cohesion: 0.29
-Nodes (7): Decisions, Decisions, Done, Done, Next, Next, Session — 2026-06-09 (Fable 5 review documentation + graphify wiring)
+Cohesion: 0.50
+Nodes (4): Decisions, Done, Next, Session — 2026-06-09 (Fable 5 review documentation + graphify wiring)
 
 ### Community 236 - "Community 236"
-Cohesion: 0.12
-Nodes (18): Decisions, Decisions, Decisions, Decisions, Decisions, Done, Done, Done (+10 more)
+Cohesion: 0.50
+Nodes (4): Decisions, Done, Next, Session — 2026-06-09 (Sprint 10 — machine auth, audit log, CLI)
 
 ### Community 237 - "Community 237"
-Cohesion: 0.29
-Nodes (6): Raised when a JWT cannot be verified., Raised when a JWT cannot be verified., Decode and verify a JWT. Returns the verified claims dict.          Raises Token, Decode and verify a JWT. Returns the verified claims dict.          Raises Token, TokenVerificationError, Exception
+Cohesion: 0.50
+Nodes (4): Decisions, Done, Next, Session — 2026-05-29 (task diff view — §23.3)
 
 ### Community 238 - "Community 238"
-Cohesion: 0.25
-Nodes (7): ArqPool dependency, client(), Async HTTP client with lifespan started and StubTokenVerifier installed., Async HTTP client with lifespan started and StubTokenVerifier installed., Test stub for arq.connections.ArqRedis. Records calls without touching Redis., Test stub for arq.connections.ArqRedis. Records calls without touching Redis., StubArqPool
+Cohesion: 0.50
+Nodes (4): Decisions, Done, Next, Session — 2026-06-05 (relationships screen — §23.9)
 
 ### Community 239 - "Community 239"
-Cohesion: 0.29
-Nodes (7): Decisions, Decisions, Done, Done, Next, Next, Session — 2026-05-29 (E2E verification + empty error_detail fix)
+Cohesion: 0.50
+Nodes (4): Decisions, Done, Next, Session — 2026-05-29 (E2E verification + empty error_detail fix)
 
 ### Community 240 - "Community 240"
-Cohesion: 0.29
-Nodes (7): Decisions, Decisions, Done, Done, Next, Next, Session — 2026-05-29 (CI fix — duplicate migration ID, stale tests, starlette CVE)
+Cohesion: 0.50
+Nodes (4): Decisions, Done, Next, Session — 2026-05-29 (CI fix — duplicate migration ID, stale tests, starlette CVE)
 
 ### Community 241 - "Community 241"
-Cohesion: 0.29
-Nodes (7): Decisions, Decisions, Done, Done, Next, Next, Session — 2026-05-27 (Triage/extraction split — §11.5a)
+Cohesion: 0.50
+Nodes (4): Decisions, Done, Next, Session — 2026-05-27 (Triage/extraction split — §11.5a)
 
 ### Community 242 - "Community 242"
-Cohesion: 0.29
-Nodes (7): Decisions, Decisions, Done, Done, Next, Next, Session — 2026-05-27 (Platform CI fix + design system migration)
+Cohesion: 0.50
+Nodes (4): Decisions, Done, Next, Session — 2026-05-27 (Platform CI fix + design system migration)
 
 ### Community 243 - "Community 243"
-Cohesion: 0.29
-Nodes (7): Decisions, Decisions, Done, Done, Next, Next, Session — 2026-05-18 (design system implementation — tokens, shell, tables, badges)
+Cohesion: 0.50
+Nodes (4): Decisions, Done, Next, Session — 2026-05-18 (design system implementation — tokens, shell, tables, badges)
 
 ### Community 244 - "Community 244"
-Cohesion: 0.29
-Nodes (7): Decisions, Decisions, Done, Done, Next, Next, Session — 2026-05-18 (LLM ingestion pipeline repair)
+Cohesion: 0.50
+Nodes (4): Decisions, Done, Next, Session — 2026-05-18 (LLM ingestion pipeline repair)
 
 ### Community 245 - "Community 245"
-Cohesion: 0.29
-Nodes (7): Decisions, Decisions, Done, Done, Next, Next, Session — 2026-05-18 (CI fix + Playwright Dockerfile)
+Cohesion: 0.50
+Nodes (4): Decisions, Done, Next, Session — 2026-05-18 (CI fix + Playwright Dockerfile)
 
 ### Community 246 - "Community 246"
-Cohesion: 0.29
-Nodes (7): Decisions, Decisions, Done, Done, Next, Next, Session — 2026-05-18 (admin users tab + CI fix)
+Cohesion: 0.50
+Nodes (4): Decisions, Done, Next, Session — 2026-05-18 (admin users tab + CI fix)
 
 ### Community 247 - "Community 247"
-Cohesion: 0.29
-Nodes (7): Decisions, Decisions, Done, Done, Next, Next, Session — 2026-05-18 (bug fixes + ingestion delete)
+Cohesion: 0.50
+Nodes (4): Decisions, Done, Next, Session — 2026-05-18 (bug fixes + ingestion delete)
 
 ### Community 248 - "Community 248"
-Cohesion: 0.15
-Nodes (13): Decisions, Decisions, Decisions, Decisions, Done, Done, Done, Next (+5 more)
+Cohesion: 0.50
+Nodes (4): Decisions, Done, Next, Session — 2026-05-18 (admin page + system_settings + per-job LLM resolver)
 
 ### Community 249 - "Community 249"
-Cohesion: 0.29
-Nodes (7): Decisions, Decisions, Done, Done, Next, Next, Session — 2026-05-18 (ingestion UI + notifications)
+Cohesion: 0.50
+Nodes (4): Decisions, Done, Next, Session — 2026-05-18 (ingestion UI + notifications)
 
 ### Community 250 - "Community 250"
-Cohesion: 0.25
-Nodes (8): Session docs restructure + task create + confirm flow, Session Close-Out — CI failure investigation, Session Close-Out — CI recovery, Review claims are enforced not advisory — only claim holder may confirm or return; confirm removed from review queue row to prevent rubber-stamp approvals, Session — search, review queue, claim enforcement, Session Close-Out — Task detail screen + dev seed script, Session Close-Out — Task list screen + search.py final fix, Session — workflow and principle screens
+Cohesion: 0.50
+Nodes (4): Decisions, Done, Next, Session — 2026-05-18 (draft edit shortcut + small fixes)
 
 ### Community 251 - "Community 251"
-Cohesion: 0.29
-Nodes (7): Decisions, Decisions, Done, Done, Next, Next, Session — 2026-05-18 (workflow ref management UI + backend 500 fix)
+Cohesion: 0.50
+Nodes (4): Decisions, Done, Next, Session — 2026-05-18 (workflow ref management UI + backend 500 fix)
 
 ### Community 252 - "Community 252"
-Cohesion: 0.29
-Nodes (7): Decisions, Decisions, Done, Done, Next, Next, Session — 2026-05-18 (workflow/principle revise flow + dialog fix)
+Cohesion: 0.50
+Nodes (4): Decisions, Done, Next, Session — 2026-05-18 (workflow/principle revise flow + dialog fix)
 
 ### Community 253 - "Community 253"
-Cohesion: 0.29
-Nodes (7): Decisions, Decisions, Done, Done, Next, Next, Session — 2026-05-17 (task revise flow)
+Cohesion: 0.50
+Nodes (4): Decisions, Done, Next, Session — 2026-05-17 (task revise flow)
 
 ### Community 254 - "Community 254"
-Cohesion: 0.15
-Nodes (13): Decisions, Decisions, Decisions, Decisions, Done, Done, Done, Next (+5 more)
+Cohesion: 0.50
+Nodes (4): Decisions, Done, Next, Session — 2026-05-17 (search, review queue, claim enforcement)
 
 ### Community 255 - "Community 255"
-Cohesion: 0.29
-Nodes (7): Decisions, Decisions, Done, Done, Next, Next, Session — 2026-05-17 (workflow and principle screens)
+Cohesion: 0.50
+Nodes (4): Decisions, Done, Next, Session — 2026-05-17 (workflow and principle screens)
 
 ### Community 256 - "Community 256"
-Cohesion: 0.25
-Nodes (8): Session Close-Out — Auth Flow Debugging, Session Close-Out — Infrastructure debugging (DB recovery, auth roles), sessionStorage for token storage (conservative, clears on tab close); Vite proxy instead of backend CORS; blueprinted_roles claim assumed in OIDC profile, Session Close-Out — housekeeping (setup docs and machine move prep), Session Close-Out — Sprint 8: Frontend scaffold and PKCE auth, Session Close-Out — task_order spec gap fix, Facts/Concepts dissolved as independently governed records; now TEXT[] arrays on tasks table; LLM image-to-step association deferred to v1.1, Session Close-Out — v4.4/v4.5 backend refactor (dissolve Facts/Concepts, procedure fields)
+Cohesion: 0.50
+Nodes (4): Decisions, Done, Next, Session — 2026-05-17 (docs restructure + task create + confirm flow)
 
 ### Community 257 - "Community 257"
-Cohesion: 0.29
-Nodes (7): Decisions, Decisions, Done, Done, Next, Next, Session — 2026-05-16 (CI recovery)
+Cohesion: 0.50
+Nodes (4): Decisions, Done, Next, Session — 2026-05-16 (CI recovery)
 
 ### Community 260 - "Community 260"
-Cohesion: 0.29
-Nodes (7): list_candidates(), List all candidates for an ingestion (§11.8)., List all candidates for an ingestion (§11.8)., List all candidates for an ingestion (§11.8)., Accept or discard a candidate, optionally with an edited proposed_json (§11.8)., Accept or discard a candidate, optionally with an edited proposed_json (§11.8)., review_candidate()
+Cohesion: 0.67
+Nodes (3): list_candidates(), List all candidates for an ingestion (§11.8)., List all candidates for an ingestion (§11.8).
 
 ### Community 261 - "Community 261"
-Cohesion: 0.29
-Nodes (4): Request ID middleware and security headers., Attach a unique request ID to every request and response.      Binds the ID to s, RequestIDMiddleware, BaseHTTPMiddleware
+Cohesion: 0.67
+Nodes (3): CandidateCommitRequest, Body for POST /ingestions/{id}/candidates/{candidate_id}/commit., Body for POST /ingestions/{id}/candidates/{candidate_id}/commit.
 
 ### Community 262 - "Community 262"
-Cohesion: 0.29
-Nodes (7): Completed, Decisions made, Incomplete or broken, Next session should start from, Session Close-Out — 2026-05-13, TEST_REVISED commits, Watch out for
+Cohesion: 0.67
+Nodes (3): HtmlIngestionRequest, Body for POST /ingestions/html (§11.10)., Body for POST /ingestions/html (§11.10).
 
 ### Community 263 - "Community 263"
-Cohesion: 0.29
-Nodes (7): Completed, Decisions made, Incomplete or broken, Next session should start from, Session Close-Out — 2026-05-13, TEST_REVISED commits, Watch out for
+Cohesion: 0.67
+Nodes (3): IngestionCandidateResponse, Single candidate awaiting human review (§11.8)., Single candidate awaiting human review (§11.8).
 
 ### Community 264 - "Community 264"
-Cohesion: 0.29
-Nodes (7): Completed, Decisions made, Incomplete or broken, Next session should start from, Session Close-Out — 2026-05-13, TEST_REVISED commits, Watch out for
-
-### Community 266 - "Community 266"
-Cohesion: 0.29
-Nodes (7): Completed, Decisions made, Incomplete or broken, Next session should start from, Session Close-Out — 2026-05-13, TEST_REVISED commits, Watch out for
-
-### Community 267 - "Community 267"
-Cohesion: 0.29
-Nodes (7): Completed, Decisions made, Incomplete or broken, Next session should start from, Session Close-Out — 2026-05-13, TEST_REVISED commits, Watch out for
-
-### Community 270 - "Community 270"
-Cohesion: 0.29
-Nodes (7): Decisions, Decisions, Done, Done, Next, Next, Session — 2026-05-29 (admin + notifications test coverage)
-
-### Community 271 - "Community 271"
-Cohesion: 0.38
-Nodes (7): test_validate_task_empty_steps(), test_validate_task_missing_field(), test_validate_task_valid(), Return an error string if the task candidate is missing required fields., _validate_task(), Return an error string if the task candidate is missing required fields., _validate_task()
-
-### Community 272 - "Community 272"
-Cohesion: 0.33
-Nodes (6): Capture: Fourth source type (capture ingestion with event stream + screenshots), Capture: Full capture tooling (desktop/extension with pre-submission editing), Capture-based ingestion (workflow recording as a source type), Recorded workflow sessions are step-shaped (one session ≈ one task candidate); composes with governance instead of competing; redaction must happen client-side at capture time; never-confirmed rule applies unchanged, Capture: Zero-backend version (browser extension emitting JSON import schema), Guidde — AI video-documentation SaaS (capture-based ingestion inspiration)
-
-### Community 273 - "Community 273"
-Cohesion: 0.33
-Nodes (6): Session — draft edit shortcut + small fixes, Session — ingestion UI + notifications, Session — task revise flow, Revise allowed from any status; returned tasks inherit return note automatically; list_tasks returns only latest version per record_id; duplicate draft prevention via 409, Session — workflow/principle revise flow + dialog fix, Session — workflow ref management UI + backend 500 fix
-
-### Community 274 - "Community 274"
-Cohesion: 0.40
-Nodes (4): ConfirmRequest, Shared lifecycle response schema for all governed record types.  §9.1 — identity, Optional body for confirm endpoints.      justification is required (non-empty), Optional body for confirm endpoints.      justification is required (non-empty)
+Cohesion: 0.67
+Nodes (3): JsonTaskItem, Task object in the JSON import payload (§11.12, json_import_schema_spec.md)., Task object in the JSON import payload (§11.12, json_import_schema_spec.md).
 
 ## Ambiguous Edges - Review These
 - `Authentik OIDC Provider` → `Blueprinted.io Brand Logo`  [AMBIGUOUS]
   platform/docs/authentik-logo.svg · relation: conceptually_related_to
 
 ## Knowledge Gaps
-- **1076 isolated node(s):** `command`, `args`, `allow`, `deny`, `PreToolUse` (+1071 more)
+- **879 isolated node(s):** `command`, `args`, `allow`, `deny`, `PreToolUse` (+874 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **21 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **22 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
 - **What is the exact relationship between `Authentik OIDC Provider` and `Blueprinted.io Brand Logo`?**
   _Edge tagged AMBIGUOUS (relation: conceptually_related_to) - confidence is low._
-- **Why does `make_token()` connect `Pagination and Conftest` to `Ingestion Tests`, `Analytics Dashboard`, `Community 38`, `Admin Tests`, `Community 137`, `Community 43`, `Community 76`, `Community 77`, `Test Factories`, `Community 47`, `Community 16`, `Community 19`, `Community 21`, `Community 25`, `Community 29`, `Community 30`?**
-  _High betweenness centrality (0.089) - this node is a cross-community bridge._
-- **Why does `ingestion_triage_estimates Table` connect `Community 23` to `Community 34`, `Community 36`, `Triage and Audit Concepts`, `Database and Chunk Processing`, `Ingestion Models`, `Community 27`, `Community 28`?**
-  _High betweenness centrality (0.031) - this node is a cross-community bridge._
-- **Why does `Session Archive — blueprinted.io` connect `Community 212` to `Community 257`, `Community 262`, `Community 263`, `Community 264`, `Community 266`, `Community 267`, `Community 270`, `Community 159`, `Community 160`, `Community 161`, `Community 162`, `Community 163`, `Community 164`, `Community 165`, `Community 166`, `Community 167`, `Community 168`, `Community 169`, `Community 170`, `Community 171`, `Community 172`, `Community 173`, `Community 182`, `Community 61`, `Community 213`, `Community 214`, `Community 215`, `Community 216`, `Community 217`, `Community 235`, `Community 236`, `Community 110`, `Community 239`, `Community 240`, `Community 241`, `Community 242`, `Community 243`, `Community 244`, `Community 245`, `Community 246`, `Community 247`, `Community 248`, `Community 249`, `Community 251`, `Community 252`, `Community 253`, `Community 254`, `Community 255`?**
-  _High betweenness centrality (0.027) - this node is a cross-community bridge._
-- **Are the 231 inferred relationships involving `make_token()` (e.g. with `test_dashboard_viewer_can_access()` and `test_contributor_stats_count_own_records()`) actually correct?**
-  _`make_token()` has 231 INFERRED edges - model-reasoned connections that need verification._
-- **Are the 104 inferred relationships involving `str` (e.g. with `exc_str()` and `_store_embedding()`) actually correct?**
-  _`str` has 104 INFERRED edges - model-reasoned connections that need verification._
+- **Why does `make_token()` connect `Pagination and Conftest` to `Ingestion Tests`, `Analytics Dashboard`, `Community 68`, `Community 38`, `Admin Tests`, `Community 137`, `Community 43`, `Community 77`, `Test Factories`, `Community 16`, `Community 19`, `Community 21`, `Community 25`, `Community 27`, `Community 29`, `Community 30`?**
+  _High betweenness centrality (0.106) - this node is a cross-community bridge._
+- **Why does `Ingestion Pipeline` connect `Community 36` to `Community 131`, `Ingestion Models`, `Config and Admin Routes`, `Community 15`, `Community 23`, `Community 31`?**
+  _High betweenness centrality (0.041) - this node is a cross-community bridge._
+- **Why does `Session Triage/extraction split Sprint 11.5a` connect `Community 31` to `Community 131`, `Session Archive`, `CI and Graph Decisions`?**
+  _High betweenness centrality (0.038) - this node is a cross-community bridge._
+- **Are the 229 inferred relationships involving `make_token()` (e.g. with `test_dashboard_viewer_can_access()` and `test_contributor_stats_count_own_records()`) actually correct?**
+  _`make_token()` has 229 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 103 inferred relationships involving `str` (e.g. with `exc_str()` and `_store_embedding()`) actually correct?**
+  _`str` has 103 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `command`, `args`, `Development seed script — populates the local dev database with realistic tasks.` to the rest of the system?**
-  _1582 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _1324 weakly-connected nodes found - possible documentation gaps or missing edges._

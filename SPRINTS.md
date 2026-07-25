@@ -4,11 +4,34 @@ Updated at the end of each sprint.
 
 ---
 
+## Sprint 15 — Agent Ingestion Path (demo readiness)
+
+**Goal:** Let an agent API credential drive the ingestion pipeline end to end so machine-drafted content lands in the human review queue, without weakening no-machine-can-confirm
+**Status:** Complete
+**Spec at start:** v4.11 → **at end:** v4.12
+
+**Completed:**
+- `AgentRole.INGESTION_AGENT` (`agent:ingestion_agent`) producer role — the first agent role with write access (§5.2)
+- `require_role` widened to `Role | AgentRole`; ingestion write + commit endpoints (`_Writer`) admit the producer role
+- `assert_can_submit` permits the producer via `_SUBMIT_ROLES` (submit = request for review); `assert_can_confirm` unchanged — all `agent:` roles still barred from confirm
+- Domain-access waived for machine credentials at `commit_candidate`/`commit_batch` (`assert_domain_active` retained)
+- `tests/test_agent_ingestion.py` — 5 tests (end-to-end producer path, cross-domain waiver, machine-cannot-confirm 403, consumer-agent-cannot-ingest 403). Full suite 371 pass; ruff + mypy (api/cli/workers) clean
+
+**Decisions:**
+- Chose this over the formally-deferred S15 items (auth-failure rate limiting, `last_used_at` caching) per `docs/demo-prep.md` intent; both remain deferred
+- Machine producers are cross-domain — domain governance is enforced at human confirm, not at machine ingestion commit
+- First sprint executed in autonomous mode: decisions estimated from prior maintainer choices and documented in-place
+
+**Spec changes:**
+- v4.12: §5.2 producer role `agent:ingestion_agent`; §7.3 machine-producer domain waiver; ingestion endpoints admit the producer role
+
+---
+
 ## Sprint 14 — Ingestion Overhaul + Markdown + HTML Crawl
 
 **Goal:** Fix the ingestion UX, make body fields render properly everywhere, investigate and fix HTML crawl ordering and hierarchy loss, profile preferences, Authentik branding
-**Status:** In progress
-**Spec at start:** v4.10
+**Status:** Complete
+**Spec at start:** v4.10 → **at end:** v4.11
 
 **Scope:**
 

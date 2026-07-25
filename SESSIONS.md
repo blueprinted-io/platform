@@ -3,19 +3,23 @@ One entry only. On closeout: move this entry to the top of SESSIONS_ARCHIVE.md (
 Archive: SESSIONS_ARCHIVE.md (do not load unless explicitly asked).
 Format and rules: docs/session_protocol.md
 
-## Session — 2026-06-16 (Sprint 14: ingestion UX overhaul + preferences + HTML ordering + branding)
+## Session — 2026-07-24 (Sprint 15: agent ingestion path — demo readiness)
 
 ### Decisions
-- Removed "accept" as a mandatory gate before committing candidates — batch commit now accepts pending/accepted/edited directly, skips discarded and already-committed silently.
-- Vite 6 `allowedHosts: true` required for LAN dev access; dev-only, not a security issue.
-- Authentik branding applied via Blueprint YAML auto-applied by auth-worker; no manual Authentik UI changes needed.
+- Chose the agent ingestion path over the formally-deferred Sprint 15 items (auth-failure rate limiting, `last_used_at` caching), driven by `docs/demo-prep.md` intent — the real gap blocking the demo narrative. Rate limiting and `last_used_at` remain deferred.
+- Producer agents are cross-domain: `assert_domain_access` is waived for machine credentials at ingestion commit (`assert_domain_active` still applies); domain governance binds at human confirm instead.
+- `assert_can_submit` permits the producer role — submitting is a request for review, not an approval. Confirm stays machine-barred, unchanged.
+- First autonomous-mode sprint: decisions estimated from prior maintainer choices and documented rather than paused on.
 
 ### Done
-- Sprint 14 item 2: HTML nav ordering — `nav_order` on `ingestion_nav_pages`, `nav_page_id` FK on `ingestion_chunks`, worker stamps both, status query orders by `nav_order`. Two migrations applied.
-- Sprint 14 item 3: User preferences — JSONB `preferences` on `users`, `PATCH /users/me/preferences` with locale validation, `SettingsPage.tsx` (locale + notification toggles). TEST_REVISED (6 new tests).
-- Sprint 14 item 4: Authentik branding — `blueprinted-brand.yaml` blueprint, `logo.svg`, docker-compose volume mounts for auth + auth-worker.
-- Sprint 14 item 1: Ingestion UX overhaul — `POST /candidates/commit-batch` and `POST /candidates/{id}/promote` endpoints; `CandidateReviewPage` rewritten with multi-select, batch commit panel, discard, promote-back, no raw JSON. TEST_REVISED (7 new tests; fixed `_seed_nav_page` for `nav_order NOT NULL`).
-- Vite LAN fix — `allowedHosts: true`; resolves `__WS_TOKEN__ is not defined` on non-localhost access.
+- Producer role `agent:ingestion_agent` (§5.2) — an agent API credential can now drive ingestion end to end (create ingestion → commit candidates → submitted → human review queue) with no-machine-can-confirm intact. Committed and pushed to platform main.
+- `require_role` widened to accept agent roles; ingestion write + commit endpoints admit the producer; domain-access waived for machine credentials.
+- `tests/test_agent_ingestion.py` — 5 tests: end-to-end producer path, cross-domain waiver, machine-cannot-confirm (403), consumer-agent-cannot-ingest (403). Full suite 371 pass; ruff clean; mypy (api/cli/workers) clean.
+- Spec `requirements.md` v4.11 → v4.12 documenting the role, permissions, and domain waiver.
+- Corrected the stale Sprint 14 "In progress" status line in SPRINTS.md to Complete.
+
+### Broken / Incomplete
+- Pre-existing mypy errors remain in `seed/` and `tests/` (8 total) — outside CI's `api/ cli/ workers/` scope, so CI is unaffected. Not introduced this sprint; not fixed this sprint.
 
 ### Next
-Sprint 14 fully shipped. Run `alembic upgrade head` against the dev DB to apply the two new migrations before testing. Next candidates: force_submit policy (mvp_audit), hard-delete policy, or auth failure rate limiting.
+The agent ingestion path is code-complete but the demo (`docs/demo-prep.md`) is not yet exercised end to end against a running stack. Pick up: create a real `agent:ingestion_agent` key via the admin endpoint, run an agent ingestion against the deploy stack, and walk the review-queue → human-confirm flow. Prerequisite: deploy stack running and at least one contributor/reviewer account provisioned in Authentik.
