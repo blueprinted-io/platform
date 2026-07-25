@@ -33,7 +33,7 @@ dependencies = [
     # Vector storage and semantic search
     "pgvector==0.4.2",
     # JSON repair for LLM extraction fallback (markdown fences, truncated output)
-    "json-repair==0.30.3",
+    "json-repair==0.60.1",
     # PDF extraction (§11.9, §4.1) — AGPL3, see operator deployment notes
     "pymupdf==1.25.5",
     "python-multipart==0.0.31",
@@ -41,6 +41,8 @@ dependencies = [
     "playwright==1.48.0",
     # Cryptography (pinned to fix GHSA-537c-gmf6-5ccf)
     "cryptography==48.0.1",
+    # Pin transitive msgpack to patched version (GHSA-6v7p-g79w-8964)
+    "msgpack==1.2.1",
 ]
 
 [project.scripts]
