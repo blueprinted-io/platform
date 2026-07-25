@@ -410,8 +410,8 @@
     "semantic_hash": ""
   },
   "/home/ewan/projects/blueprinted/platform/SESSIONS.md": {
-    "mtime": 1784941811.3252661,
-    "ast_hash": "26273e1e1b0bcaaf660e9bc68dc37cd1",
+    "mtime": 1784937578.3200834,
+    "ast_hash": "00f422e8acc4f84c2c9c353ae2579821",
     "semantic_hash": ""
   },
   "/home/ewan/projects/blueprinted/platform/docs/authentik-setup.md": {
@@ -625,9 +625,9 @@
     "semantic_hash": "1365811d47609a931c24017a624fc58e"
   },
   "/home/ewan/projects/blueprinted/platform/.github/scripts/fix_ci.py": {
-    "mtime": 1784940261.2400813,
-    "ast_hash": "bda70f875acd5fff73f11d685f9a50aa",
-    "semantic_hash": ""
+    "mtime": 1780722143.7460902,
+    "ast_hash": "74821f20ee5ca8541a3c9d126c68dbd5",
+    "semantic_hash": "74821f20ee5ca8541a3c9d126c68dbd5"
   },
   "/home/ewan/projects/blueprinted/platform/migrations/versions/20260609_2a3b4c5d6e7f_machine_auth_and_audit.py": {
     "mtime": 1780965460.9236336,

@@ -281,7 +281,7 @@
       "label": "apply_files()",
       "file_type": "code",
       "source_file": ".github/scripts/fix_ci.py",
-      "source_location": "L147",
+      "source_location": "L138",
       "id": "scripts_fix_ci_apply_files",
       "community": 32,
       "norm_label": "apply_files()"
@@ -290,7 +290,7 @@
       "label": "fix_pip_audit()",
       "file_type": "code",
       "source_file": ".github/scripts/fix_ci.py",
-      "source_location": "L171",
+      "source_location": "L159",
       "id": "scripts_fix_ci_fix_pip_audit",
       "community": 32,
       "norm_label": "fix_pip_audit()"
@@ -299,7 +299,7 @@
       "label": "fix_general()",
       "file_type": "code",
       "source_file": ".github/scripts/fix_ci.py",
-      "source_location": "L202",
+      "source_location": "L182",
       "id": "scripts_fix_ci_fix_general",
       "community": 32,
       "norm_label": "fix_general()"
@@ -308,7 +308,7 @@
       "label": "main()",
       "file_type": "code",
       "source_file": ".github/scripts/fix_ci.py",
-      "source_location": "L233",
+      "source_location": "L213",
       "id": "scripts_fix_ci_main",
       "community": 32,
       "norm_label": "main()"
@@ -679,7 +679,7 @@
       "source_file": "workers/maintenance.py",
       "source_location": "L1",
       "id": "workers_maintenance_py",
-      "community": 12,
+      "community": 27,
       "norm_label": "maintenance.py"
     },
     {
@@ -697,7 +697,7 @@
       "source_file": "workers/maintenance.py",
       "source_location": "L1",
       "id": "workers_maintenance_rationale_1",
-      "community": 12,
+      "community": 27,
       "norm_label": "scheduled maintenance jobs (\u00a78.2, \u00a714). runs on the default worker."
     },
     {
@@ -15005,7 +15005,7 @@
       "label": "Broken / Incomplete",
       "file_type": "document",
       "source_file": "SESSIONS.md",
-      "source_location": "L24",
+      "source_location": "L21",
       "id": "platform_sessions_broken_incomplete",
       "community": 157,
       "norm_label": "broken / incomplete"
@@ -15014,7 +15014,7 @@
       "label": "Next",
       "file_type": "document",
       "source_file": "SESSIONS.md",
-      "source_location": "L27",
+      "source_location": "L24",
       "id": "platform_sessions_next",
       "community": 157,
       "norm_label": "next"
@@ -27569,7 +27569,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 276,
+      "community": 5,
       "norm_label": "knowledge hierarchy \u2014 domain > workflows > tasks + principles",
       "id": "concept_knowledge_hierarchy"
     },
@@ -28360,7 +28360,7 @@
       "captured_at": "2026-06-10",
       "author": null,
       "contributor": null,
-      "community": 276,
+      "community": 5,
       "norm_label": "record taxonomy (principles/tasks/workflows/relationships)",
       "id": "requirements_record_taxonomy"
     },
@@ -28373,7 +28373,7 @@
       "captured_at": "2026-06-10",
       "author": null,
       "contributor": null,
-      "community": 276,
+      "community": 5,
       "norm_label": "task schema with steps/actions/images",
       "id": "requirements_task_schema"
     },
@@ -28386,7 +28386,7 @@
       "captured_at": "2026-06-10",
       "author": null,
       "contributor": null,
-      "community": 276,
+      "community": 5,
       "norm_label": "workflow schema with task refs and principle refs",
       "id": "requirements_workflow_schema"
     },
@@ -28399,7 +28399,7 @@
       "captured_at": "2026-06-10",
       "author": null,
       "contributor": null,
-      "community": 276,
+      "community": 5,
       "norm_label": "principle schema",
       "id": "requirements_principle_schema"
     },
@@ -28504,7 +28504,7 @@
       "author": null,
       "contributor": null,
       "rationale": "v1 ships with no relationship kinds. Relationship semantics harder to specify correctly than they appear; wrong taxonomy is worse than no taxonomy.",
-      "community": 276,
+      "community": 5,
       "norm_label": "relationship kind taxonomy (empty in v1)",
       "id": "requirements_relationship_kinds"
     },
@@ -42148,9 +42148,9 @@
       "source_file": "tests/test_agent_ingestion.py",
       "source_location": "L22",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "tests_test_agent_ingestion_py",
-      "target": "tests_test_agent_ingestion_create_agent_key"
+      "target": "tests_test_agent_ingestion_create_agent_key",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42158,9 +42158,9 @@
       "source_file": "tests/test_agent_ingestion.py",
       "source_location": "L36",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "tests_test_agent_ingestion_py",
-      "target": "tests_test_agent_ingestion_json_payload"
+      "target": "tests_test_agent_ingestion_json_payload",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42168,9 +42168,9 @@
       "source_file": "tests/test_agent_ingestion.py",
       "source_location": "L72",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "tests_test_agent_ingestion_py",
-      "target": "tests_test_agent_ingestion_ingest_one_candidate"
+      "target": "tests_test_agent_ingestion_ingest_one_candidate",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42178,9 +42178,9 @@
       "source_file": "tests/test_agent_ingestion.py",
       "source_location": "L87",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "tests_test_agent_ingestion_py",
-      "target": "tests_test_agent_ingestion_test_ingestion_agent_role_is_creatable"
+      "target": "tests_test_agent_ingestion_test_ingestion_agent_role_is_creatable",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42188,9 +42188,9 @@
       "source_file": "tests/test_agent_ingestion.py",
       "source_location": "L94",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "tests_test_agent_ingestion_py",
-      "target": "tests_test_agent_ingestion_test_ingestion_agent_can_ingest_and_submit_to_review_queue"
+      "target": "tests_test_agent_ingestion_test_ingestion_agent_can_ingest_and_submit_to_review_queue",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42198,9 +42198,9 @@
       "source_file": "tests/test_agent_ingestion.py",
       "source_location": "L125",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "tests_test_agent_ingestion_py",
-      "target": "tests_test_agent_ingestion_test_ingestion_agent_commits_cross_domain_without_assignment"
+      "target": "tests_test_agent_ingestion_test_ingestion_agent_commits_cross_domain_without_assignment",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42208,9 +42208,9 @@
       "source_file": "tests/test_agent_ingestion.py",
       "source_location": "L147",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "tests_test_agent_ingestion_py",
-      "target": "tests_test_agent_ingestion_test_ingestion_agent_cannot_confirm"
+      "target": "tests_test_agent_ingestion_test_ingestion_agent_cannot_confirm",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42218,9 +42218,9 @@
       "source_file": "tests/test_agent_ingestion.py",
       "source_location": "L170",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "tests_test_agent_ingestion_py",
-      "target": "tests_test_agent_ingestion_test_consumer_agent_cannot_ingest"
+      "target": "tests_test_agent_ingestion_test_consumer_agent_cannot_ingest",
+      "confidence_score": 1.0
     },
     {
       "relation": "rationale_for",
@@ -42228,9 +42228,9 @@
       "source_file": "tests/test_agent_ingestion.py",
       "source_location": "L1",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "tests_test_agent_ingestion_rationale_1",
-      "target": "tests_test_agent_ingestion_py"
+      "target": "tests_test_agent_ingestion_py",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -42239,9 +42239,9 @@
       "source_file": "tests/test_agent_ingestion.py",
       "source_location": "L90",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "tests_test_agent_ingestion_test_ingestion_agent_role_is_creatable",
-      "target": "tests_test_agent_ingestion_create_agent_key"
+      "target": "tests_test_agent_ingestion_create_agent_key",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -42250,9 +42250,9 @@
       "source_file": "tests/test_agent_ingestion.py",
       "source_location": "L97",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "tests_test_agent_ingestion_test_ingestion_agent_can_ingest_and_submit_to_review_queue",
-      "target": "tests_test_agent_ingestion_create_agent_key"
+      "target": "tests_test_agent_ingestion_create_agent_key",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -42261,9 +42261,9 @@
       "source_file": "tests/test_agent_ingestion.py",
       "source_location": "L129",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "tests_test_agent_ingestion_test_ingestion_agent_commits_cross_domain_without_assignment",
-      "target": "tests_test_agent_ingestion_create_agent_key"
+      "target": "tests_test_agent_ingestion_create_agent_key",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -42272,9 +42272,9 @@
       "source_file": "tests/test_agent_ingestion.py",
       "source_location": "L151",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "tests_test_agent_ingestion_test_ingestion_agent_cannot_confirm",
-      "target": "tests_test_agent_ingestion_create_agent_key"
+      "target": "tests_test_agent_ingestion_create_agent_key",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -42283,9 +42283,9 @@
       "source_file": "tests/test_agent_ingestion.py",
       "source_location": "L174",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "tests_test_agent_ingestion_test_consumer_agent_cannot_ingest",
-      "target": "tests_test_agent_ingestion_create_agent_key"
+      "target": "tests_test_agent_ingestion_create_agent_key",
+      "confidence_score": 1.0
     },
     {
       "relation": "rationale_for",
@@ -42293,9 +42293,9 @@
       "source_file": "tests/test_agent_ingestion.py",
       "source_location": "L25",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "tests_test_agent_ingestion_rationale_25",
-      "target": "tests_test_agent_ingestion_create_agent_key"
+      "target": "tests_test_agent_ingestion_create_agent_key",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -42315,9 +42315,9 @@
       "source_file": "tests/test_agent_ingestion.py",
       "source_location": "L76",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "tests_test_agent_ingestion_ingest_one_candidate",
-      "target": "tests_test_agent_ingestion_json_payload"
+      "target": "tests_test_agent_ingestion_json_payload",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -42326,9 +42326,9 @@
       "source_file": "tests/test_agent_ingestion.py",
       "source_location": "L176",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "tests_test_agent_ingestion_test_consumer_agent_cannot_ingest",
-      "target": "tests_test_agent_ingestion_json_payload"
+      "target": "tests_test_agent_ingestion_json_payload",
+      "confidence_score": 1.0
     },
     {
       "relation": "rationale_for",
@@ -42336,9 +42336,9 @@
       "source_file": "tests/test_agent_ingestion.py",
       "source_location": "L37",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "tests_test_agent_ingestion_rationale_37",
-      "target": "tests_test_agent_ingestion_json_payload"
+      "target": "tests_test_agent_ingestion_json_payload",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -42347,9 +42347,9 @@
       "source_file": "tests/test_agent_ingestion.py",
       "source_location": "L100",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "tests_test_agent_ingestion_test_ingestion_agent_can_ingest_and_submit_to_review_queue",
-      "target": "tests_test_agent_ingestion_ingest_one_candidate"
+      "target": "tests_test_agent_ingestion_ingest_one_candidate",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -42358,9 +42358,9 @@
       "source_file": "tests/test_agent_ingestion.py",
       "source_location": "L132",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "tests_test_agent_ingestion_test_ingestion_agent_commits_cross_domain_without_assignment",
-      "target": "tests_test_agent_ingestion_ingest_one_candidate"
+      "target": "tests_test_agent_ingestion_ingest_one_candidate",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -42369,9 +42369,9 @@
       "source_file": "tests/test_agent_ingestion.py",
       "source_location": "L154",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "tests_test_agent_ingestion_test_ingestion_agent_cannot_confirm",
-      "target": "tests_test_agent_ingestion_ingest_one_candidate"
+      "target": "tests_test_agent_ingestion_ingest_one_candidate",
+      "confidence_score": 1.0
     },
     {
       "relation": "rationale_for",
@@ -42379,9 +42379,9 @@
       "source_file": "tests/test_agent_ingestion.py",
       "source_location": "L75",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "tests_test_agent_ingestion_rationale_75",
-      "target": "tests_test_agent_ingestion_ingest_one_candidate"
+      "target": "tests_test_agent_ingestion_ingest_one_candidate",
+      "confidence_score": 1.0
     },
     {
       "relation": "rationale_for",
@@ -42389,9 +42389,9 @@
       "source_file": "tests/test_agent_ingestion.py",
       "source_location": "L128",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "tests_test_agent_ingestion_rationale_128",
-      "target": "tests_test_agent_ingestion_test_ingestion_agent_commits_cross_domain_without_assignment"
+      "target": "tests_test_agent_ingestion_test_ingestion_agent_commits_cross_domain_without_assignment",
+      "confidence_score": 1.0
     },
     {
       "relation": "rationale_for",
@@ -42399,9 +42399,9 @@
       "source_file": "tests/test_agent_ingestion.py",
       "source_location": "L150",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "tests_test_agent_ingestion_rationale_150",
-      "target": "tests_test_agent_ingestion_test_ingestion_agent_cannot_confirm"
+      "target": "tests_test_agent_ingestion_test_ingestion_agent_cannot_confirm",
+      "confidence_score": 1.0
     },
     {
       "relation": "rationale_for",
@@ -42409,9 +42409,9 @@
       "source_file": "tests/test_agent_ingestion.py",
       "source_location": "L173",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "tests_test_agent_ingestion_rationale_173",
-      "target": "tests_test_agent_ingestion_test_consumer_agent_cannot_ingest"
+      "target": "tests_test_agent_ingestion_test_consumer_agent_cannot_ingest",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48823,9 +48823,9 @@
       "source_file": "tests/test_ingestions.py",
       "source_location": "L1608",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "tests_test_ingestions_rationale_1608",
-      "target": "tests_test_ingestions_test_commit_batch_skips_already_committed"
+      "target": "tests_test_ingestions_test_commit_batch_skips_already_committed",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -48854,9 +48854,9 @@
       "source_file": "tests/test_ingestions.py",
       "source_location": "L1641",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "tests_test_ingestions_rationale_1641",
-      "target": "tests_test_ingestions_test_commit_batch_rejects_discarded_candidates"
+      "target": "tests_test_ingestions_test_commit_batch_rejects_discarded_candidates",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -48885,9 +48885,9 @@
       "source_file": "tests/test_ingestions.py",
       "source_location": "L1728",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "tests_test_ingestions_rationale_1728",
-      "target": "tests_test_ingestions_test_promote_candidate_rejects_non_discarded"
+      "target": "tests_test_ingestions_test_promote_candidate_rejects_non_discarded",
+      "confidence_score": 1.0
     },
     {
       "relation": "rationale_for",
@@ -53468,9 +53468,9 @@
       "source_file": "api/dependencies.py",
       "source_location": "L15",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "api_dependencies_py",
-      "target": "api_auth_agentrole"
+      "target": "api_auth_agentrole",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports",
@@ -53501,9 +53501,9 @@
       "source_file": "api/routes/ingestions.py",
       "source_location": "L20",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "api_routes_ingestions_py",
-      "target": "api_auth_agentrole"
+      "target": "api_auth_agentrole",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports",
@@ -53512,9 +53512,9 @@
       "source_file": "api/services/lifecycle.py",
       "source_location": "L34",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "api_services_lifecycle_py",
-      "target": "api_auth_agentrole"
+      "target": "api_auth_agentrole",
+      "confidence_score": 1.0
     },
     {
       "relation": "uses",
@@ -53552,9 +53552,9 @@
       "source_file": "api/auth.py",
       "source_location": "L48",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "api_auth_rationale_48",
-      "target": "api_auth_is_machine_credential"
+      "target": "api_auth_is_machine_credential",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports",
@@ -53563,9 +53563,9 @@
       "source_file": "api/routes/ingestions.py",
       "source_location": "L20",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "api_routes_ingestions_py",
-      "target": "api_auth_is_machine_credential"
+      "target": "api_auth_is_machine_credential",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports",
@@ -53669,9 +53669,9 @@
       "source_file": "api/auth.py",
       "source_location": "L53",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "api_auth_rationale_53",
-      "target": "api_auth_tokenverificationerror"
+      "target": "api_auth_tokenverificationerror",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports",
@@ -53750,9 +53750,9 @@
       "source_file": "api/auth.py",
       "source_location": "L57",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "api_auth_rationale_57",
-      "target": "api_auth_tokenverifier"
+      "target": "api_auth_tokenverifier",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports",
@@ -53834,9 +53834,9 @@
       "source_file": "api/auth.py",
       "source_location": "L78",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "api_auth_rationale_78",
-      "target": "api_auth_tokenverifier_decode"
+      "target": "api_auth_tokenverifier_decode",
+      "confidence_score": 1.0
     },
     {
       "relation": "rationale_for",
@@ -53854,9 +53854,9 @@
       "source_file": "api/auth.py",
       "source_location": "L114",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "api_auth_rationale_114",
-      "target": "api_auth_tokenverifier_extract_roles"
+      "target": "api_auth_tokenverifier_extract_roles",
+      "confidence_score": 1.0
     },
     {
       "relation": "rationale_for",
@@ -53894,9 +53894,9 @@
       "source_file": "api/auth.py",
       "source_location": "L122",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "api_auth_rationale_122",
-      "target": "api_auth_stubtokenverifier"
+      "target": "api_auth_stubtokenverifier",
+      "confidence_score": 1.0
     },
     {
       "relation": "rationale_for",
@@ -59222,9 +59222,9 @@
       "source_file": "api/schemas/ingestion.py",
       "source_location": "L55",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_ingestion_rationale_55",
-      "target": "schemas_ingestion_selectchunksrequest"
+      "target": "schemas_ingestion_selectchunksrequest",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports",
@@ -59274,9 +59274,9 @@
       "source_file": "api/schemas/ingestion.py",
       "source_location": "L61",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_ingestion_rationale_61",
-      "target": "schemas_ingestion_selectchunksresponse"
+      "target": "schemas_ingestion_selectchunksresponse",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports",
@@ -59337,9 +59337,9 @@
       "source_file": "api/schemas/ingestion.py",
       "source_location": "L68",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_ingestion_rationale_68",
-      "target": "schemas_ingestion_ingestioncandidateresponse"
+      "target": "schemas_ingestion_ingestioncandidateresponse",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports",
@@ -59389,9 +59389,9 @@
       "source_file": "api/schemas/ingestion.py",
       "source_location": "L85",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_ingestion_rationale_85",
-      "target": "schemas_ingestion_candidatereviewrequest"
+      "target": "schemas_ingestion_candidatereviewrequest",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports",
@@ -59441,9 +59441,9 @@
       "source_file": "api/schemas/ingestion.py",
       "source_location": "L93",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_ingestion_rationale_93",
-      "target": "schemas_ingestion_candidatecommitrequest"
+      "target": "schemas_ingestion_candidatecommitrequest",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports",
@@ -59493,9 +59493,9 @@
       "source_file": "api/schemas/ingestion.py",
       "source_location": "L100",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_ingestion_rationale_100",
-      "target": "schemas_ingestion_candidatecommitresponse"
+      "target": "schemas_ingestion_candidatecommitresponse",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports",
@@ -59556,9 +59556,9 @@
       "source_file": "api/schemas/ingestion.py",
       "source_location": "L109",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_ingestion_rationale_109",
-      "target": "schemas_ingestion_batchcommititem"
+      "target": "schemas_ingestion_batchcommititem",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports",
@@ -59598,9 +59598,9 @@
       "source_file": "api/schemas/ingestion.py",
       "source_location": "L117",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_ingestion_rationale_117",
-      "target": "schemas_ingestion_batchcommitrequest"
+      "target": "schemas_ingestion_batchcommitrequest",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports",
@@ -59629,9 +59629,9 @@
       "source_file": "api/schemas/ingestion.py",
       "source_location": "L125",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_ingestion_rationale_125",
-      "target": "schemas_ingestion_batchcommitresponse"
+      "target": "schemas_ingestion_batchcommitresponse",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports",
@@ -59671,9 +59671,9 @@
       "source_file": "api/schemas/ingestion.py",
       "source_location": "L137",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_ingestion_rationale_137",
-      "target": "schemas_ingestion_htmlingestionrequest"
+      "target": "schemas_ingestion_htmlingestionrequest",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports",
@@ -59733,9 +59733,9 @@
       "source_file": "api/schemas/ingestion.py",
       "source_location": "L152",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_ingestion_rationale_152",
-      "target": "schemas_ingestion_navpageresponse"
+      "target": "schemas_ingestion_navpageresponse",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports",
@@ -59785,9 +59785,9 @@
       "source_file": "api/schemas/ingestion.py",
       "source_location": "L169",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_ingestion_rationale_169",
-      "target": "schemas_ingestion_navselectrequest"
+      "target": "schemas_ingestion_navselectrequest",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports",
@@ -59837,9 +59837,9 @@
       "source_file": "api/schemas/ingestion.py",
       "source_location": "L175",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_ingestion_rationale_175",
-      "target": "schemas_ingestion_navselectresponse"
+      "target": "schemas_ingestion_navselectresponse",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports",
@@ -59900,9 +59900,9 @@
       "source_file": "api/schemas/ingestion.py",
       "source_location": "L187",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_ingestion_rationale_187",
-      "target": "schemas_ingestion_jsonstepitem"
+      "target": "schemas_ingestion_jsonstepitem",
+      "confidence_score": 1.0
     },
     {
       "relation": "rationale_for",
@@ -59940,9 +59940,9 @@
       "source_file": "api/schemas/ingestion.py",
       "source_location": "L197",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_ingestion_rationale_197",
-      "target": "schemas_ingestion_jsontaskitem"
+      "target": "schemas_ingestion_jsontaskitem",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports",
@@ -60002,9 +60002,9 @@
       "source_file": "api/schemas/ingestion.py",
       "source_location": "L222",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_ingestion_rationale_222",
-      "target": "schemas_ingestion_jsonprincipleitem"
+      "target": "schemas_ingestion_jsonprincipleitem",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports",
@@ -60054,9 +60054,9 @@
       "source_file": "api/schemas/ingestion.py",
       "source_location": "L238",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_ingestion_rationale_238",
-      "target": "schemas_ingestion_jsoningestionrequest"
+      "target": "schemas_ingestion_jsoningestionrequest",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports",
@@ -65260,9 +65260,9 @@
       "source_file": "api/routes/ingestions.py",
       "source_location": "L69",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "routes_ingestions_rationale_69",
-      "target": "routes_ingestions_sanitise_filename"
+      "target": "routes_ingestions_sanitise_filename",
+      "confidence_score": 1.0
     },
     {
       "relation": "rationale_for",
@@ -65300,9 +65300,9 @@
       "source_file": "api/routes/ingestions.py",
       "source_location": "L86",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "routes_ingestions_rationale_86",
-      "target": "routes_ingestions_create_ingestion"
+      "target": "routes_ingestions_create_ingestion",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -65363,9 +65363,9 @@
       "source_file": "api/routes/ingestions.py",
       "source_location": "L157",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "routes_ingestions_rationale_157",
-      "target": "routes_ingestions_list_ingestions"
+      "target": "routes_ingestions_list_ingestions",
+      "confidence_score": 1.0
     },
     {
       "relation": "rationale_for",
@@ -65445,9 +65445,9 @@
       "source_file": "api/routes/ingestions.py",
       "source_location": "L191",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "routes_ingestions_rationale_191",
-      "target": "routes_ingestions_get_ingestion_status"
+      "target": "routes_ingestions_get_ingestion_status",
+      "confidence_score": 1.0
     },
     {
       "relation": "rationale_for",
@@ -65485,9 +65485,9 @@
       "source_file": "api/routes/ingestions.py",
       "source_location": "L223",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "routes_ingestions_rationale_223",
-      "target": "routes_ingestions_select_chunks"
+      "target": "routes_ingestions_select_chunks",
+      "confidence_score": 1.0
     },
     {
       "relation": "rationale_for",
@@ -65525,9 +65525,9 @@
       "source_file": "api/routes/ingestions.py",
       "source_location": "L285",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "routes_ingestions_rationale_285",
-      "target": "routes_ingestions_list_candidates"
+      "target": "routes_ingestions_list_candidates",
+      "confidence_score": 1.0
     },
     {
       "relation": "rationale_for",
@@ -65565,9 +65565,9 @@
       "source_file": "api/routes/ingestions.py",
       "source_location": "L309",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "routes_ingestions_rationale_309",
-      "target": "routes_ingestions_review_candidate"
+      "target": "routes_ingestions_review_candidate",
+      "confidence_score": 1.0
     },
     {
       "relation": "rationale_for",
@@ -65627,9 +65627,9 @@
       "source_file": "api/routes/ingestions.py",
       "source_location": "L361",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "routes_ingestions_rationale_361",
-      "target": "routes_ingestions_build_task"
+      "target": "routes_ingestions_build_task",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -65700,9 +65700,9 @@
       "source_file": "api/routes/ingestions.py",
       "source_location": "L378",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "routes_ingestions_rationale_378",
-      "target": "routes_ingestions_build_steps"
+      "target": "routes_ingestions_build_steps",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -65762,9 +65762,9 @@
       "source_file": "api/routes/ingestions.py",
       "source_location": "L411",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "routes_ingestions_rationale_411",
-      "target": "routes_ingestions_commit_candidate"
+      "target": "routes_ingestions_commit_candidate",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -65824,9 +65824,9 @@
       "source_file": "api/routes/ingestions.py",
       "source_location": "L526",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "routes_ingestions_rationale_526",
-      "target": "routes_ingestions_commit_batch"
+      "target": "routes_ingestions_commit_batch",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -65855,9 +65855,9 @@
       "source_file": "api/routes/ingestions.py",
       "source_location": "L639",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "routes_ingestions_rationale_639",
-      "target": "routes_ingestions_promote_candidate"
+      "target": "routes_ingestions_promote_candidate",
+      "confidence_score": 1.0
     },
     {
       "relation": "rationale_for",
@@ -65886,9 +65886,9 @@
       "source_file": "api/routes/ingestions.py",
       "source_location": "L693",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "routes_ingestions_rationale_693",
-      "target": "routes_ingestions_normalise_url"
+      "target": "routes_ingestions_normalise_url",
+      "confidence_score": 1.0
     },
     {
       "relation": "rationale_for",
@@ -65926,9 +65926,9 @@
       "source_file": "api/routes/ingestions.py",
       "source_location": "L710",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "routes_ingestions_rationale_710",
-      "target": "routes_ingestions_create_html_ingestion"
+      "target": "routes_ingestions_create_html_ingestion",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -65978,9 +65978,9 @@
       "source_file": "api/routes/ingestions.py",
       "source_location": "L768",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "routes_ingestions_rationale_768",
-      "target": "routes_ingestions_list_nav_pages"
+      "target": "routes_ingestions_list_nav_pages",
+      "confidence_score": 1.0
     },
     {
       "relation": "rationale_for",
@@ -66018,9 +66018,9 @@
       "source_file": "api/routes/ingestions.py",
       "source_location": "L796",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "routes_ingestions_rationale_796",
-      "target": "routes_ingestions_select_nav_pages"
+      "target": "routes_ingestions_select_nav_pages",
+      "confidence_score": 1.0
     },
     {
       "relation": "rationale_for",
@@ -66069,9 +66069,9 @@
       "source_file": "api/routes/ingestions.py",
       "source_location": "L862",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "routes_ingestions_rationale_862",
-      "target": "routes_ingestions_canonical_json"
+      "target": "routes_ingestions_canonical_json",
+      "confidence_score": 1.0
     },
     {
       "relation": "rationale_for",
@@ -66119,9 +66119,9 @@
       "source_file": "api/routes/ingestions.py",
       "source_location": "L872",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "routes_ingestions_rationale_872",
-      "target": "routes_ingestions_create_json_ingestion"
+      "target": "routes_ingestions_create_json_ingestion",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -66923,9 +66923,9 @@
       "source_file": "api/services/lifecycle.py",
       "source_location": "L54",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "services_lifecycle_rationale_54",
-      "target": "services_lifecycle_assert_can_edit"
+      "target": "services_lifecycle_assert_can_edit",
+      "confidence_score": 1.0
     },
     {
       "relation": "rationale_for",
@@ -66953,9 +66953,9 @@
       "source_file": "api/services/lifecycle.py",
       "source_location": "L63",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "services_lifecycle_rationale_63",
-      "target": "services_lifecycle_assert_can_mutate_refs"
+      "target": "services_lifecycle_assert_can_mutate_refs",
+      "confidence_score": 1.0
     },
     {
       "relation": "rationale_for",
@@ -66973,9 +66973,9 @@
       "source_file": "api/services/lifecycle.py",
       "source_location": "L72",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "services_lifecycle_rationale_72",
-      "target": "services_lifecycle_assert_can_submit"
+      "target": "services_lifecycle_assert_can_submit",
+      "confidence_score": 1.0
     },
     {
       "relation": "rationale_for",
@@ -67003,9 +67003,9 @@
       "source_file": "api/services/lifecycle.py",
       "source_location": "L90",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "services_lifecycle_rationale_90",
-      "target": "services_lifecycle_assert_can_confirm"
+      "target": "services_lifecycle_assert_can_confirm",
+      "confidence_score": 1.0
     },
     {
       "relation": "rationale_for",
@@ -67053,9 +67053,9 @@
       "source_file": "api/services/lifecycle.py",
       "source_location": "L129",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "services_lifecycle_rationale_129",
-      "target": "services_lifecycle_assert_can_revise"
+      "target": "services_lifecycle_assert_can_revise",
+      "confidence_score": 1.0
     },
     {
       "relation": "rationale_for",
@@ -67083,9 +67083,9 @@
       "source_file": "api/services/lifecycle.py",
       "source_location": "L138",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "services_lifecycle_rationale_138",
-      "target": "services_lifecycle_assert_can_return"
+      "target": "services_lifecycle_assert_can_return",
+      "confidence_score": 1.0
     },
     {
       "relation": "rationale_for",
@@ -67113,9 +67113,9 @@
       "source_file": "api/services/lifecycle.py",
       "source_location": "L151",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "services_lifecycle_rationale_151",
-      "target": "services_lifecycle_assert_can_deprecate"
+      "target": "services_lifecycle_assert_can_deprecate",
+      "confidence_score": 1.0
     },
     {
       "relation": "rationale_for",
@@ -67143,9 +67143,9 @@
       "source_file": "api/services/lifecycle.py",
       "source_location": "L162",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "services_lifecycle_rationale_162",
-      "target": "services_lifecycle_assert_can_retire"
+      "target": "services_lifecycle_assert_can_retire",
+      "confidence_score": 1.0
     },
     {
       "relation": "rationale_for",
@@ -67173,9 +67173,9 @@
       "source_file": "api/services/lifecycle.py",
       "source_location": "L178",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "services_lifecycle_rationale_178",
-      "target": "services_lifecycle_assert_no_foreign_claim"
+      "target": "services_lifecycle_assert_no_foreign_claim",
+      "confidence_score": 1.0
     },
     {
       "relation": "rationale_for",
@@ -67193,9 +67193,9 @@
       "source_file": "api/services/lifecycle.py",
       "source_location": "L201",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "services_lifecycle_rationale_201",
-      "target": "services_lifecycle_assert_domain_active"
+      "target": "services_lifecycle_assert_domain_active",
+      "confidence_score": 1.0
     },
     {
       "relation": "rationale_for",
@@ -67223,9 +67223,9 @@
       "source_file": "api/services/lifecycle.py",
       "source_location": "L220",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "services_lifecycle_rationale_220",
-      "target": "services_lifecycle_assert_domain_access"
+      "target": "services_lifecycle_assert_domain_access",
+      "confidence_score": 1.0
     },
     {
       "relation": "rationale_for",
@@ -69307,9 +69307,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L7",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_archive_blueprinted_io",
-      "target": "platform_sessions_archive_session_2026_06_16_sprint_14_ingestion_ux_overhaul_preferences_html_ordering_branding"
+      "target": "platform_sessions_archive_session_2026_06_16_sprint_14_ingestion_ux_overhaul_preferences_html_ordering_branding",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -69317,9 +69317,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L26",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_archive_blueprinted_io",
-      "target": "platform_sessions_archive_session_2026_06_12_repo_housekeeping_core_clone_readmes_ci_fix"
+      "target": "platform_sessions_archive_session_2026_06_12_repo_housekeeping_core_clone_readmes_ci_fix",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -69787,9 +69787,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1486",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_archive_blueprinted_io",
-      "target": "platform_sessions_archive_session_close_out_2026_05_13_1486"
+      "target": "platform_sessions_archive_session_close_out_2026_05_13_1486",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -69797,9 +69797,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1548",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_archive_blueprinted_io",
-      "target": "platform_sessions_archive_session_close_out_2026_05_13_1548"
+      "target": "platform_sessions_archive_session_close_out_2026_05_13_1548",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -69807,9 +69807,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1608",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_archive_blueprinted_io",
-      "target": "platform_sessions_archive_session_close_out_2026_05_13_1608"
+      "target": "platform_sessions_archive_session_close_out_2026_05_13_1608",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -69817,9 +69817,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1658",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_archive_blueprinted_io",
-      "target": "platform_sessions_archive_session_close_out_2026_05_13_1658"
+      "target": "platform_sessions_archive_session_close_out_2026_05_13_1658",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -69827,9 +69827,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1715",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_archive_blueprinted_io",
-      "target": "platform_sessions_archive_session_close_out_2026_05_13_1715"
+      "target": "platform_sessions_archive_session_close_out_2026_05_13_1715",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -69887,9 +69887,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L9",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_06_16_sprint_14_ingestion_ux_overhaul_preferences_html_ordering_branding",
-      "target": "platform_sessions_archive_decisions"
+      "target": "platform_sessions_archive_decisions",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -69897,9 +69897,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L14",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_06_16_sprint_14_ingestion_ux_overhaul_preferences_html_ordering_branding",
-      "target": "platform_sessions_archive_done"
+      "target": "platform_sessions_archive_done",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -69907,9 +69907,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L21",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_06_16_sprint_14_ingestion_ux_overhaul_preferences_html_ordering_branding",
-      "target": "platform_sessions_archive_next"
+      "target": "platform_sessions_archive_next",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -69947,9 +69947,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L28",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_06_12_repo_housekeeping_core_clone_readmes_ci_fix",
-      "target": "platform_sessions_archive_decisions_28"
+      "target": "platform_sessions_archive_decisions_28",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -69957,9 +69957,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L32",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_06_12_repo_housekeeping_core_clone_readmes_ci_fix",
-      "target": "platform_sessions_archive_done_32"
+      "target": "platform_sessions_archive_done_32",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -69967,9 +69967,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L39",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_06_12_repo_housekeeping_core_clone_readmes_ci_fix",
-      "target": "platform_sessions_archive_broken_incomplete"
+      "target": "platform_sessions_archive_broken_incomplete",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -69977,9 +69977,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L43",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_06_12_repo_housekeeping_core_clone_readmes_ci_fix",
-      "target": "platform_sessions_archive_next_43"
+      "target": "platform_sessions_archive_next_43",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -69997,9 +69997,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L50",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_06_11_sprint_13_analytics_dashboard_production_db_migrations",
-      "target": "platform_sessions_archive_decisions_50"
+      "target": "platform_sessions_archive_decisions_50",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -70007,9 +70007,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L55",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_06_11_sprint_13_analytics_dashboard_production_db_migrations",
-      "target": "platform_sessions_archive_done_55"
+      "target": "platform_sessions_archive_done_55",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -70017,9 +70017,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L62",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_06_11_sprint_13_analytics_dashboard_production_db_migrations",
-      "target": "platform_sessions_archive_broken_incomplete_62"
+      "target": "platform_sessions_archive_broken_incomplete_62",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -70027,9 +70027,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L65",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_06_11_sprint_13_analytics_dashboard_production_db_migrations",
-      "target": "platform_sessions_archive_next_65"
+      "target": "platform_sessions_archive_next_65",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -70037,9 +70037,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L72",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_06_11_sprint_12_follow_ups_frontend_page_envelope_worker_ingestion_deploy",
-      "target": "platform_sessions_archive_decisions_72"
+      "target": "platform_sessions_archive_decisions_72",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -70047,9 +70047,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L76",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_06_11_sprint_12_follow_ups_frontend_page_envelope_worker_ingestion_deploy",
-      "target": "platform_sessions_archive_done_76"
+      "target": "platform_sessions_archive_done_76",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -70057,9 +70057,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L83",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_06_11_sprint_12_follow_ups_frontend_page_envelope_worker_ingestion_deploy",
-      "target": "platform_sessions_archive_broken_incomplete_83"
+      "target": "platform_sessions_archive_broken_incomplete_83",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -70067,9 +70067,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L86",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_06_11_sprint_12_follow_ups_frontend_page_envelope_worker_ingestion_deploy",
-      "target": "platform_sessions_archive_next_86"
+      "target": "platform_sessions_archive_next_86",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -70117,9 +70117,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L93",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_06_11_sprint_12_pagination_worker_split",
-      "target": "platform_sessions_archive_decisions_93"
+      "target": "platform_sessions_archive_decisions_93",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -70127,9 +70127,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L98",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_06_11_sprint_12_pagination_worker_split",
-      "target": "platform_sessions_archive_done_98"
+      "target": "platform_sessions_archive_done_98",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -70137,9 +70137,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L106",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_06_11_sprint_12_pagination_worker_split",
-      "target": "platform_sessions_archive_broken_incomplete_106"
+      "target": "platform_sessions_archive_broken_incomplete_106",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -70147,9 +70147,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L111",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_06_11_sprint_12_pagination_worker_split",
-      "target": "platform_sessions_archive_next_111"
+      "target": "platform_sessions_archive_next_111",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -70197,9 +70197,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L116",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_06_10_sprint_11_ci_hardening_dependency_audit",
-      "target": "platform_sessions_archive_decisions_116"
+      "target": "platform_sessions_archive_decisions_116",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -70207,9 +70207,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L120",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_06_10_sprint_11_ci_hardening_dependency_audit",
-      "target": "platform_sessions_archive_done_120"
+      "target": "platform_sessions_archive_done_120",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -70217,9 +70217,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L127",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_06_10_sprint_11_ci_hardening_dependency_audit",
-      "target": "platform_sessions_archive_broken_incomplete_127"
+      "target": "platform_sessions_archive_broken_incomplete_127",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -70227,9 +70227,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L133",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_06_10_sprint_11_ci_hardening_dependency_audit",
-      "target": "platform_sessions_archive_next_133"
+      "target": "platform_sessions_archive_next_133",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -70277,9 +70277,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L140",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_06_10_sprint_11_hardening_complete",
-      "target": "platform_sessions_archive_decisions_140"
+      "target": "platform_sessions_archive_decisions_140",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -70287,9 +70287,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L147",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_06_10_sprint_11_hardening_complete",
-      "target": "platform_sessions_archive_done_147"
+      "target": "platform_sessions_archive_done_147",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -70297,9 +70297,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L161",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_06_10_sprint_11_hardening_complete",
-      "target": "platform_sessions_archive_broken_incomplete_161"
+      "target": "platform_sessions_archive_broken_incomplete_161",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -70307,9 +70307,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L167",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_06_10_sprint_11_hardening_complete",
-      "target": "platform_sessions_archive_next_167"
+      "target": "platform_sessions_archive_next_167",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -70357,9 +70357,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L174",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_06_09_fable_5_review_documentation_graphify_wiring",
-      "target": "platform_sessions_archive_decisions_174"
+      "target": "platform_sessions_archive_decisions_174",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -70367,9 +70367,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L179",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_06_09_fable_5_review_documentation_graphify_wiring",
-      "target": "platform_sessions_archive_done_179"
+      "target": "platform_sessions_archive_done_179",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -70377,9 +70377,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L185",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_06_09_fable_5_review_documentation_graphify_wiring",
-      "target": "platform_sessions_archive_next_185"
+      "target": "platform_sessions_archive_next_185",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -70417,9 +70417,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L192",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_06_09_sprint_10_machine_auth_audit_log_cli",
-      "target": "platform_sessions_archive_decisions_192"
+      "target": "platform_sessions_archive_decisions_192",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -70427,9 +70427,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L201",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_06_09_sprint_10_machine_auth_audit_log_cli",
-      "target": "platform_sessions_archive_done_201"
+      "target": "platform_sessions_archive_done_201",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -70437,9 +70437,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L211",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_06_09_sprint_10_machine_auth_audit_log_cli",
-      "target": "platform_sessions_archive_next_211"
+      "target": "platform_sessions_archive_next_211",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -70487,9 +70487,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L218",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_06_06_ci_auto_fix_pipeline",
-      "target": "platform_sessions_archive_decisions_218"
+      "target": "platform_sessions_archive_decisions_218",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -70497,9 +70497,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L226",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_06_06_ci_auto_fix_pipeline",
-      "target": "platform_sessions_archive_done_226"
+      "target": "platform_sessions_archive_done_226",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -70507,9 +70507,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L233",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_06_06_ci_auto_fix_pipeline",
-      "target": "platform_sessions_archive_next_233"
+      "target": "platform_sessions_archive_next_233",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -70567,9 +70567,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L240",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_29_task_diff_view_23_3",
-      "target": "platform_sessions_archive_decisions_240"
+      "target": "platform_sessions_archive_decisions_240",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -70577,9 +70577,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L245",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_29_task_diff_view_23_3",
-      "target": "platform_sessions_archive_done_245"
+      "target": "platform_sessions_archive_done_245",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -70587,9 +70587,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L252",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_29_task_diff_view_23_3",
-      "target": "platform_sessions_archive_next_252"
+      "target": "platform_sessions_archive_next_252",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -70637,9 +70637,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L259",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_06_05_relationships_screen_23_9",
-      "target": "platform_sessions_archive_decisions_259"
+      "target": "platform_sessions_archive_decisions_259",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -70647,9 +70647,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L264",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_06_05_relationships_screen_23_9",
-      "target": "platform_sessions_archive_done_264"
+      "target": "platform_sessions_archive_done_264",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -70657,9 +70657,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L274",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_06_05_relationships_screen_23_9",
-      "target": "platform_sessions_archive_next_274"
+      "target": "platform_sessions_archive_next_274",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -70697,9 +70697,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L281",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_29_startup_hook_embedding_html_worker_tests_two_bug_fixes",
-      "target": "platform_sessions_archive_decisions_281"
+      "target": "platform_sessions_archive_decisions_281",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -70707,9 +70707,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L285",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_29_startup_hook_embedding_html_worker_tests_two_bug_fixes",
-      "target": "platform_sessions_archive_done_285"
+      "target": "platform_sessions_archive_done_285",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -70717,9 +70717,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L293",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_29_startup_hook_embedding_html_worker_tests_two_bug_fixes",
-      "target": "platform_sessions_archive_next_293"
+      "target": "platform_sessions_archive_next_293",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -70737,9 +70737,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L300",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_29_estimate_review_ui_11_5a",
-      "target": "platform_sessions_archive_decisions_300"
+      "target": "platform_sessions_archive_decisions_300",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -70747,9 +70747,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L305",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_29_estimate_review_ui_11_5a",
-      "target": "platform_sessions_archive_done_305"
+      "target": "platform_sessions_archive_done_305",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -70757,9 +70757,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L312",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_29_estimate_review_ui_11_5a",
-      "target": "platform_sessions_archive_next_312"
+      "target": "platform_sessions_archive_next_312",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -70777,9 +70777,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L319",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_29_admin_notifications_test_coverage",
-      "target": "platform_sessions_archive_decisions_319"
+      "target": "platform_sessions_archive_decisions_319",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -70787,9 +70787,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L323",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_29_admin_notifications_test_coverage",
-      "target": "platform_sessions_archive_done_323"
+      "target": "platform_sessions_archive_done_323",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -70797,9 +70797,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L328",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_29_admin_notifications_test_coverage",
-      "target": "platform_sessions_archive_next_328"
+      "target": "platform_sessions_archive_next_328",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -70837,9 +70837,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L335",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_29_e2e_verification_empty_error_detail_fix",
-      "target": "platform_sessions_archive_decisions_335"
+      "target": "platform_sessions_archive_decisions_335",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -70847,9 +70847,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L339",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_29_e2e_verification_empty_error_detail_fix",
-      "target": "platform_sessions_archive_done_339"
+      "target": "platform_sessions_archive_done_339",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -70857,9 +70857,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L345",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_29_e2e_verification_empty_error_detail_fix",
-      "target": "platform_sessions_archive_next_345"
+      "target": "platform_sessions_archive_next_345",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -70897,9 +70897,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L352",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_29_ci_fix_duplicate_migration_id_stale_tests_starlette_cve",
-      "target": "platform_sessions_archive_decisions_352"
+      "target": "platform_sessions_archive_decisions_352",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -70907,9 +70907,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L356",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_29_ci_fix_duplicate_migration_id_stale_tests_starlette_cve",
-      "target": "platform_sessions_archive_done_356"
+      "target": "platform_sessions_archive_done_356",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -70917,9 +70917,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L362",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_29_ci_fix_duplicate_migration_id_stale_tests_starlette_cve",
-      "target": "platform_sessions_archive_next_362"
+      "target": "platform_sessions_archive_next_362",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -70957,9 +70957,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L369",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_27_triage_extraction_split_11_5a",
-      "target": "platform_sessions_archive_decisions_369"
+      "target": "platform_sessions_archive_decisions_369",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -70967,9 +70967,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L376",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_27_triage_extraction_split_11_5a",
-      "target": "platform_sessions_archive_done_376"
+      "target": "platform_sessions_archive_done_376",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -70977,9 +70977,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L388",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_27_triage_extraction_split_11_5a",
-      "target": "platform_sessions_archive_next_388"
+      "target": "platform_sessions_archive_next_388",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -71017,9 +71017,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L395",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_27_platform_ci_fix_design_system_migration",
-      "target": "platform_sessions_archive_decisions_395"
+      "target": "platform_sessions_archive_decisions_395",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -71027,9 +71027,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L399",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_27_platform_ci_fix_design_system_migration",
-      "target": "platform_sessions_archive_done_399"
+      "target": "platform_sessions_archive_done_399",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -71037,9 +71037,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L413",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_27_platform_ci_fix_design_system_migration",
-      "target": "platform_sessions_archive_next_413"
+      "target": "platform_sessions_archive_next_413",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -71077,9 +71077,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L420",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_18_design_system_implementation_tokens_shell_tables_badges",
-      "target": "platform_sessions_archive_decisions_420"
+      "target": "platform_sessions_archive_decisions_420",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -71087,9 +71087,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L427",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_18_design_system_implementation_tokens_shell_tables_badges",
-      "target": "platform_sessions_archive_done_427"
+      "target": "platform_sessions_archive_done_427",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -71097,9 +71097,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L434",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_18_design_system_implementation_tokens_shell_tables_badges",
-      "target": "platform_sessions_archive_next_434"
+      "target": "platform_sessions_archive_next_434",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -71137,9 +71137,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L441",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_18_llm_ingestion_pipeline_repair",
-      "target": "platform_sessions_archive_decisions_441"
+      "target": "platform_sessions_archive_decisions_441",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -71147,9 +71147,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L448",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_18_llm_ingestion_pipeline_repair",
-      "target": "platform_sessions_archive_done_448"
+      "target": "platform_sessions_archive_done_448",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -71157,9 +71157,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L457",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_18_llm_ingestion_pipeline_repair",
-      "target": "platform_sessions_archive_next_457"
+      "target": "platform_sessions_archive_next_457",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -71197,9 +71197,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L464",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_18_ci_fix_playwright_dockerfile",
-      "target": "platform_sessions_archive_decisions_464"
+      "target": "platform_sessions_archive_decisions_464",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -71207,9 +71207,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L469",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_18_ci_fix_playwright_dockerfile",
-      "target": "platform_sessions_archive_done_469"
+      "target": "platform_sessions_archive_done_469",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -71217,9 +71217,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L473",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_18_ci_fix_playwright_dockerfile",
-      "target": "platform_sessions_archive_next_473"
+      "target": "platform_sessions_archive_next_473",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -71257,9 +71257,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L480",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_18_admin_users_tab_ci_fix",
-      "target": "platform_sessions_archive_decisions_480"
+      "target": "platform_sessions_archive_decisions_480",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -71267,9 +71267,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L486",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_18_admin_users_tab_ci_fix",
-      "target": "platform_sessions_archive_done_486"
+      "target": "platform_sessions_archive_done_486",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -71277,9 +71277,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L496",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_18_admin_users_tab_ci_fix",
-      "target": "platform_sessions_archive_next_496"
+      "target": "platform_sessions_archive_next_496",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -71317,9 +71317,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L503",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_18_bug_fixes_ingestion_delete",
-      "target": "platform_sessions_archive_decisions_503"
+      "target": "platform_sessions_archive_decisions_503",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -71327,9 +71327,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L508",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_18_bug_fixes_ingestion_delete",
-      "target": "platform_sessions_archive_done_508"
+      "target": "platform_sessions_archive_done_508",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -71337,9 +71337,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L516",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_18_bug_fixes_ingestion_delete",
-      "target": "platform_sessions_archive_next_516"
+      "target": "platform_sessions_archive_next_516",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -71377,9 +71377,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L523",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_18_admin_settings_test_connection_model_picker",
-      "target": "platform_sessions_archive_decisions_523"
+      "target": "platform_sessions_archive_decisions_523",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -71387,9 +71387,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L529",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_18_admin_settings_test_connection_model_picker",
-      "target": "platform_sessions_archive_done_529"
+      "target": "platform_sessions_archive_done_529",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -71397,9 +71397,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L534",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_18_admin_settings_test_connection_model_picker",
-      "target": "platform_sessions_archive_broken_incomplete_534"
+      "target": "platform_sessions_archive_broken_incomplete_534",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -71407,9 +71407,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L538",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_18_admin_settings_test_connection_model_picker",
-      "target": "platform_sessions_archive_next_538"
+      "target": "platform_sessions_archive_next_538",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -71457,9 +71457,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L545",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_18_admin_page_system_settings_per_job_llm_resolver",
-      "target": "platform_sessions_archive_decisions_545"
+      "target": "platform_sessions_archive_decisions_545",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -71467,9 +71467,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L552",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_18_admin_page_system_settings_per_job_llm_resolver",
-      "target": "platform_sessions_archive_done_552"
+      "target": "platform_sessions_archive_done_552",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -71477,9 +71477,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L562",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_18_admin_page_system_settings_per_job_llm_resolver",
-      "target": "platform_sessions_archive_next_562"
+      "target": "platform_sessions_archive_next_562",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -71527,9 +71527,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L569",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_18_ingestion_ui_notifications",
-      "target": "platform_sessions_archive_decisions_569"
+      "target": "platform_sessions_archive_decisions_569",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -71537,9 +71537,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L576",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_18_ingestion_ui_notifications",
-      "target": "platform_sessions_archive_done_576"
+      "target": "platform_sessions_archive_done_576",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -71547,9 +71547,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L582",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_18_ingestion_ui_notifications",
-      "target": "platform_sessions_archive_next_582"
+      "target": "platform_sessions_archive_next_582",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -71587,9 +71587,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L589",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_18_draft_edit_shortcut_small_fixes",
-      "target": "platform_sessions_archive_decisions_589"
+      "target": "platform_sessions_archive_decisions_589",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -71597,9 +71597,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L593",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_18_draft_edit_shortcut_small_fixes",
-      "target": "platform_sessions_archive_done_593"
+      "target": "platform_sessions_archive_done_593",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -71607,9 +71607,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L596",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_18_draft_edit_shortcut_small_fixes",
-      "target": "platform_sessions_archive_next_596"
+      "target": "platform_sessions_archive_next_596",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -71637,9 +71637,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L603",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_18_workflow_ref_management_ui_backend_500_fix",
-      "target": "platform_sessions_archive_decisions_603"
+      "target": "platform_sessions_archive_decisions_603",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -71647,9 +71647,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L609",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_18_workflow_ref_management_ui_backend_500_fix",
-      "target": "platform_sessions_archive_done_609"
+      "target": "platform_sessions_archive_done_609",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -71657,9 +71657,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L615",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_18_workflow_ref_management_ui_backend_500_fix",
-      "target": "platform_sessions_archive_next_615"
+      "target": "platform_sessions_archive_next_615",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -71697,9 +71697,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L622",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_18_workflow_principle_revise_flow_dialog_fix",
-      "target": "platform_sessions_archive_decisions_622"
+      "target": "platform_sessions_archive_decisions_622",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -71707,9 +71707,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L628",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_18_workflow_principle_revise_flow_dialog_fix",
-      "target": "platform_sessions_archive_done_628"
+      "target": "platform_sessions_archive_done_628",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -71717,9 +71717,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L639",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_18_workflow_principle_revise_flow_dialog_fix",
-      "target": "platform_sessions_archive_next_639"
+      "target": "platform_sessions_archive_next_639",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -71757,9 +71757,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L646",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_17_task_revise_flow",
-      "target": "platform_sessions_archive_decisions_646"
+      "target": "platform_sessions_archive_decisions_646",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -71767,9 +71767,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L653",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_17_task_revise_flow",
-      "target": "platform_sessions_archive_done_653"
+      "target": "platform_sessions_archive_done_653",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -71777,9 +71777,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L664",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_17_task_revise_flow",
-      "target": "platform_sessions_archive_next_664"
+      "target": "platform_sessions_archive_next_664",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -71817,9 +71817,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L671",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_17_search_review_queue_claim_enforcement",
-      "target": "platform_sessions_archive_decisions_671"
+      "target": "platform_sessions_archive_decisions_671",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -71827,9 +71827,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L677",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_17_search_review_queue_claim_enforcement",
-      "target": "platform_sessions_archive_done_677"
+      "target": "platform_sessions_archive_done_677",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -71837,9 +71837,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L686",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_17_search_review_queue_claim_enforcement",
-      "target": "platform_sessions_archive_next_686"
+      "target": "platform_sessions_archive_next_686",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -71887,9 +71887,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L693",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_17_workflow_and_principle_screens",
-      "target": "platform_sessions_archive_decisions_693"
+      "target": "platform_sessions_archive_decisions_693",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -71897,9 +71897,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L697",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_17_workflow_and_principle_screens",
-      "target": "platform_sessions_archive_done_697"
+      "target": "platform_sessions_archive_done_697",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -71907,9 +71907,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L706",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_17_workflow_and_principle_screens",
-      "target": "platform_sessions_archive_next_706"
+      "target": "platform_sessions_archive_next_706",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -71947,9 +71947,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L713",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_17_docs_restructure_task_create_confirm_flow",
-      "target": "platform_sessions_archive_decisions_713"
+      "target": "platform_sessions_archive_decisions_713",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -71957,9 +71957,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L718",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_17_docs_restructure_task_create_confirm_flow",
-      "target": "platform_sessions_archive_done_718"
+      "target": "platform_sessions_archive_done_718",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -71967,9 +71967,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L726",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_17_docs_restructure_task_create_confirm_flow",
-      "target": "platform_sessions_archive_next_726"
+      "target": "platform_sessions_archive_next_726",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -71997,9 +71997,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L733",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_16_ci_recovery",
-      "target": "platform_sessions_archive_decisions_733"
+      "target": "platform_sessions_archive_decisions_733",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -72007,9 +72007,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L737",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_16_ci_recovery",
-      "target": "platform_sessions_archive_done_737"
+      "target": "platform_sessions_archive_done_737",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -72017,9 +72017,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L748",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_2026_05_16_ci_recovery",
-      "target": "platform_sessions_archive_next_748"
+      "target": "platform_sessions_archive_next_748",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -72107,9 +72107,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L787",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_16_task_detail_screen_dev_seed_script",
-      "target": "platform_sessions_archive_completed_787"
+      "target": "platform_sessions_archive_completed_787",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -72117,9 +72117,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L801",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_16_task_detail_screen_dev_seed_script",
-      "target": "platform_sessions_archive_incomplete_or_broken_801"
+      "target": "platform_sessions_archive_incomplete_or_broken_801",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -72127,9 +72127,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L809",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_16_task_detail_screen_dev_seed_script",
-      "target": "platform_sessions_archive_decisions_made_809"
+      "target": "platform_sessions_archive_decisions_made_809",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -72137,9 +72137,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L817",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_16_task_detail_screen_dev_seed_script",
-      "target": "platform_sessions_archive_test_revised_commits_817"
+      "target": "platform_sessions_archive_test_revised_commits_817",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -72147,9 +72147,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L821",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_16_task_detail_screen_dev_seed_script",
-      "target": "platform_sessions_archive_next_session_should_start_from_821"
+      "target": "platform_sessions_archive_next_session_should_start_from_821",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -72217,9 +72217,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L848",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_16_task_list_screen_search_py_final_fix",
-      "target": "platform_sessions_archive_completed_848"
+      "target": "platform_sessions_archive_completed_848",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -72227,9 +72227,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L864",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_16_task_list_screen_search_py_final_fix",
-      "target": "platform_sessions_archive_incomplete_or_broken_864"
+      "target": "platform_sessions_archive_incomplete_or_broken_864",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -72237,9 +72237,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L868",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_16_task_list_screen_search_py_final_fix",
-      "target": "platform_sessions_archive_decisions_made_868"
+      "target": "platform_sessions_archive_decisions_made_868",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -72247,9 +72247,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L872",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_16_task_list_screen_search_py_final_fix",
-      "target": "platform_sessions_archive_test_revised_commits_872"
+      "target": "platform_sessions_archive_test_revised_commits_872",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -72257,9 +72257,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L876",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_16_task_list_screen_search_py_final_fix",
-      "target": "platform_sessions_archive_next_session_should_start_from_876"
+      "target": "platform_sessions_archive_next_session_should_start_from_876",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -72267,9 +72267,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L885",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_16_task_list_screen_search_py_final_fix",
-      "target": "platform_sessions_archive_watch_out_for_885"
+      "target": "platform_sessions_archive_watch_out_for_885",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -72337,9 +72337,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L895",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_16_v4_4_v4_5_backend_refactor_dissolve_facts_concepts_procedure_fields",
-      "target": "platform_sessions_archive_completed_895"
+      "target": "platform_sessions_archive_completed_895",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -72347,9 +72347,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L911",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_16_v4_4_v4_5_backend_refactor_dissolve_facts_concepts_procedure_fields",
-      "target": "platform_sessions_archive_incomplete_or_broken_911"
+      "target": "platform_sessions_archive_incomplete_or_broken_911",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -72357,9 +72357,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L915",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_16_v4_4_v4_5_backend_refactor_dissolve_facts_concepts_procedure_fields",
-      "target": "platform_sessions_archive_decisions_made_915"
+      "target": "platform_sessions_archive_decisions_made_915",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -72367,9 +72367,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L921",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_16_v4_4_v4_5_backend_refactor_dissolve_facts_concepts_procedure_fields",
-      "target": "platform_sessions_archive_test_revised_commits_921"
+      "target": "platform_sessions_archive_test_revised_commits_921",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -72377,9 +72377,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L929",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_16_v4_4_v4_5_backend_refactor_dissolve_facts_concepts_procedure_fields",
-      "target": "platform_sessions_archive_next_session_should_start_from_929"
+      "target": "platform_sessions_archive_next_session_should_start_from_929",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -72387,9 +72387,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L943",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_16_v4_4_v4_5_backend_refactor_dissolve_facts_concepts_procedure_fields",
-      "target": "platform_sessions_archive_watch_out_for_943"
+      "target": "platform_sessions_archive_watch_out_for_943",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -72457,9 +72457,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L953",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_15_infrastructure_debugging_db_recovery_auth_roles",
-      "target": "platform_sessions_archive_completed_953"
+      "target": "platform_sessions_archive_completed_953",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -72467,9 +72467,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L973",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_15_infrastructure_debugging_db_recovery_auth_roles",
-      "target": "platform_sessions_archive_incomplete_or_broken_973"
+      "target": "platform_sessions_archive_incomplete_or_broken_973",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -72477,9 +72477,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L977",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_15_infrastructure_debugging_db_recovery_auth_roles",
-      "target": "platform_sessions_archive_decisions_made_977"
+      "target": "platform_sessions_archive_decisions_made_977",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -72487,9 +72487,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L981",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_15_infrastructure_debugging_db_recovery_auth_roles",
-      "target": "platform_sessions_archive_test_revised_commits_981"
+      "target": "platform_sessions_archive_test_revised_commits_981",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -72497,9 +72497,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L985",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_15_infrastructure_debugging_db_recovery_auth_roles",
-      "target": "platform_sessions_archive_next_session_should_start_from_985"
+      "target": "platform_sessions_archive_next_session_should_start_from_985",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -72507,9 +72507,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1002",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_15_infrastructure_debugging_db_recovery_auth_roles",
-      "target": "platform_sessions_archive_watch_out_for_1002"
+      "target": "platform_sessions_archive_watch_out_for_1002",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -72577,9 +72577,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1013",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_15_auth_flow_debugging",
-      "target": "platform_sessions_archive_completed_1013"
+      "target": "platform_sessions_archive_completed_1013",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -72597,9 +72597,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1047",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_15_auth_flow_debugging",
-      "target": "platform_sessions_archive_incomplete_or_broken_1047"
+      "target": "platform_sessions_archive_incomplete_or_broken_1047",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -72607,9 +72607,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1056",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_15_auth_flow_debugging",
-      "target": "platform_sessions_archive_decisions_made_1056"
+      "target": "platform_sessions_archive_decisions_made_1056",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -72627,9 +72627,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1078",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_15_auth_flow_debugging",
-      "target": "platform_sessions_archive_next_session_should_start_from_1078"
+      "target": "platform_sessions_archive_next_session_should_start_from_1078",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -72637,9 +72637,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1082",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_15_auth_flow_debugging",
-      "target": "platform_sessions_archive_watch_out_for_1082"
+      "target": "platform_sessions_archive_watch_out_for_1082",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -72697,9 +72697,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1032",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_completed_1013",
-      "target": "platform_sessions_archive_codeblock_1"
+      "target": "platform_sessions_archive_codeblock_1",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -72747,9 +72747,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1092",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_15_housekeeping_setup_docs_and_machine_move_prep",
-      "target": "platform_sessions_archive_completed_1092"
+      "target": "platform_sessions_archive_completed_1092",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -72757,9 +72757,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1096",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_15_housekeeping_setup_docs_and_machine_move_prep",
-      "target": "platform_sessions_archive_incomplete_or_broken_1096"
+      "target": "platform_sessions_archive_incomplete_or_broken_1096",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -72767,9 +72767,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1100",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_15_housekeeping_setup_docs_and_machine_move_prep",
-      "target": "platform_sessions_archive_decisions_made_1100"
+      "target": "platform_sessions_archive_decisions_made_1100",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -72777,9 +72777,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1104",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_15_housekeeping_setup_docs_and_machine_move_prep",
-      "target": "platform_sessions_archive_test_revised_commits_1104"
+      "target": "platform_sessions_archive_test_revised_commits_1104",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -72787,9 +72787,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1108",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_15_housekeeping_setup_docs_and_machine_move_prep",
-      "target": "platform_sessions_archive_next_session_should_start_from_1108"
+      "target": "platform_sessions_archive_next_session_should_start_from_1108",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -72797,9 +72797,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1123",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_15_housekeeping_setup_docs_and_machine_move_prep",
-      "target": "platform_sessions_archive_watch_out_for_1123"
+      "target": "platform_sessions_archive_watch_out_for_1123",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -72857,9 +72857,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1132",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_15_sprint_8_frontend_scaffold_and_pkce_auth",
-      "target": "platform_sessions_archive_completed_1132"
+      "target": "platform_sessions_archive_completed_1132",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -72867,9 +72867,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1169",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_15_sprint_8_frontend_scaffold_and_pkce_auth",
-      "target": "platform_sessions_archive_incomplete_or_broken_1169"
+      "target": "platform_sessions_archive_incomplete_or_broken_1169",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -72877,9 +72877,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1176",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_15_sprint_8_frontend_scaffold_and_pkce_auth",
-      "target": "platform_sessions_archive_decisions_made_1176"
+      "target": "platform_sessions_archive_decisions_made_1176",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -72887,9 +72887,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1183",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_15_sprint_8_frontend_scaffold_and_pkce_auth",
-      "target": "platform_sessions_archive_test_revised_commits_1183"
+      "target": "platform_sessions_archive_test_revised_commits_1183",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -72897,9 +72897,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1187",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_15_sprint_8_frontend_scaffold_and_pkce_auth",
-      "target": "platform_sessions_archive_next_session_should_start_from_1187"
+      "target": "platform_sessions_archive_next_session_should_start_from_1187",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -72907,9 +72907,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1200",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_15_sprint_8_frontend_scaffold_and_pkce_auth",
-      "target": "platform_sessions_archive_watch_out_for_1200"
+      "target": "platform_sessions_archive_watch_out_for_1200",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -72977,9 +72977,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1210",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_15_task_order_spec_gap_fix",
-      "target": "platform_sessions_archive_completed_1210"
+      "target": "platform_sessions_archive_completed_1210",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -72987,9 +72987,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1218",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_15_task_order_spec_gap_fix",
-      "target": "platform_sessions_archive_incomplete_or_broken_1218"
+      "target": "platform_sessions_archive_incomplete_or_broken_1218",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -72997,9 +72997,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1222",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_15_task_order_spec_gap_fix",
-      "target": "platform_sessions_archive_decisions_made_1222"
+      "target": "platform_sessions_archive_decisions_made_1222",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73007,9 +73007,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1227",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_15_task_order_spec_gap_fix",
-      "target": "platform_sessions_archive_test_revised_commits_1227"
+      "target": "platform_sessions_archive_test_revised_commits_1227",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73017,9 +73017,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1231",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_15_task_order_spec_gap_fix",
-      "target": "platform_sessions_archive_next_session_should_start_from_1231"
+      "target": "platform_sessions_archive_next_session_should_start_from_1231",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73027,9 +73027,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1240",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_15_task_order_spec_gap_fix",
-      "target": "platform_sessions_archive_watch_out_for_1240"
+      "target": "platform_sessions_archive_watch_out_for_1240",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73097,9 +73097,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1248",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_14_sprint_6_html_and_json_ingestion",
-      "target": "platform_sessions_archive_completed_1248"
+      "target": "platform_sessions_archive_completed_1248",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73107,9 +73107,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1262",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_14_sprint_6_html_and_json_ingestion",
-      "target": "platform_sessions_archive_incomplete_or_broken_1262"
+      "target": "platform_sessions_archive_incomplete_or_broken_1262",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73117,9 +73117,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1266",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_14_sprint_6_html_and_json_ingestion",
-      "target": "platform_sessions_archive_decisions_made_1266"
+      "target": "platform_sessions_archive_decisions_made_1266",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73127,9 +73127,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1272",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_14_sprint_6_html_and_json_ingestion",
-      "target": "platform_sessions_archive_test_revised_commits_1272"
+      "target": "platform_sessions_archive_test_revised_commits_1272",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73137,9 +73137,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1276",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_14_sprint_6_html_and_json_ingestion",
-      "target": "platform_sessions_archive_next_session_should_start_from_1276"
+      "target": "platform_sessions_archive_next_session_should_start_from_1276",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73147,9 +73147,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1289",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_14_sprint_6_html_and_json_ingestion",
-      "target": "platform_sessions_archive_watch_out_for_1289"
+      "target": "platform_sessions_archive_watch_out_for_1289",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73217,9 +73217,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1299",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_14_sprint_6_ingestion_pipeline_full_sprint",
-      "target": "platform_sessions_archive_completed_1299"
+      "target": "platform_sessions_archive_completed_1299",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73227,9 +73227,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1322",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_14_sprint_6_ingestion_pipeline_full_sprint",
-      "target": "platform_sessions_archive_incomplete_or_broken_1322"
+      "target": "platform_sessions_archive_incomplete_or_broken_1322",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73237,9 +73237,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1329",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_14_sprint_6_ingestion_pipeline_full_sprint",
-      "target": "platform_sessions_archive_decisions_made_1329"
+      "target": "platform_sessions_archive_decisions_made_1329",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73247,9 +73247,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1337",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_14_sprint_6_ingestion_pipeline_full_sprint",
-      "target": "platform_sessions_archive_test_revised_commits_1337"
+      "target": "platform_sessions_archive_test_revised_commits_1337",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73257,9 +73257,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1341",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_14_sprint_6_ingestion_pipeline_full_sprint",
-      "target": "platform_sessions_archive_next_session_should_start_from_1341"
+      "target": "platform_sessions_archive_next_session_should_start_from_1341",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73267,9 +73267,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1355",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_14_sprint_6_ingestion_pipeline_full_sprint",
-      "target": "platform_sessions_archive_watch_out_for_1355"
+      "target": "platform_sessions_archive_watch_out_for_1355",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73337,9 +73337,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1368",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_14",
-      "target": "platform_sessions_archive_completed_1368"
+      "target": "platform_sessions_archive_completed_1368",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73347,9 +73347,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1383",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_14",
-      "target": "platform_sessions_archive_incomplete_or_broken_1383"
+      "target": "platform_sessions_archive_incomplete_or_broken_1383",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73357,9 +73357,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1387",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_14",
-      "target": "platform_sessions_archive_decisions_made_1387"
+      "target": "platform_sessions_archive_decisions_made_1387",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73367,9 +73367,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1393",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_14",
-      "target": "platform_sessions_archive_test_revised_commits_1393"
+      "target": "platform_sessions_archive_test_revised_commits_1393",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73377,9 +73377,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1397",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_14",
-      "target": "platform_sessions_archive_next_session_should_start_from_1397"
+      "target": "platform_sessions_archive_next_session_should_start_from_1397",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73387,9 +73387,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1405",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_14",
-      "target": "platform_sessions_archive_watch_out_for_1405"
+      "target": "platform_sessions_archive_watch_out_for_1405",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73457,9 +73457,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1416",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_13",
-      "target": "platform_sessions_archive_completed_1416"
+      "target": "platform_sessions_archive_completed_1416",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73467,9 +73467,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1436",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_13",
-      "target": "platform_sessions_archive_incomplete_or_broken_1436"
+      "target": "platform_sessions_archive_incomplete_or_broken_1436",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73477,9 +73477,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1440",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_13",
-      "target": "platform_sessions_archive_decisions_made_1440"
+      "target": "platform_sessions_archive_decisions_made_1440",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73487,9 +73487,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1450",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_13",
-      "target": "platform_sessions_archive_test_revised_commits_1450"
+      "target": "platform_sessions_archive_test_revised_commits_1450",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73497,9 +73497,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1456",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_13",
-      "target": "platform_sessions_archive_next_session_should_start_from_1456"
+      "target": "platform_sessions_archive_next_session_should_start_from_1456",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73507,9 +73507,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1472",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_13",
-      "target": "platform_sessions_archive_watch_out_for_1472"
+      "target": "platform_sessions_archive_watch_out_for_1472",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73577,9 +73577,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1488",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_13_1486",
-      "target": "platform_sessions_archive_completed_1488"
+      "target": "platform_sessions_archive_completed_1488",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73587,9 +73587,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1509",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_13_1486",
-      "target": "platform_sessions_archive_incomplete_or_broken_1509"
+      "target": "platform_sessions_archive_incomplete_or_broken_1509",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73597,9 +73597,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1513",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_13_1486",
-      "target": "platform_sessions_archive_decisions_made_1513"
+      "target": "platform_sessions_archive_decisions_made_1513",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73607,9 +73607,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1519",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_13_1486",
-      "target": "platform_sessions_archive_test_revised_commits_1519"
+      "target": "platform_sessions_archive_test_revised_commits_1519",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73617,9 +73617,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1531",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_13_1486",
-      "target": "platform_sessions_archive_next_session_should_start_from_1531"
+      "target": "platform_sessions_archive_next_session_should_start_from_1531",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73627,9 +73627,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1539",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_13_1486",
-      "target": "platform_sessions_archive_watch_out_for_1539"
+      "target": "platform_sessions_archive_watch_out_for_1539",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73637,9 +73637,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1550",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_13_1548",
-      "target": "platform_sessions_archive_completed_1550"
+      "target": "platform_sessions_archive_completed_1550",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73647,9 +73647,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1562",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_13_1548",
-      "target": "platform_sessions_archive_incomplete_or_broken_1562"
+      "target": "platform_sessions_archive_incomplete_or_broken_1562",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73657,9 +73657,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1568",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_13_1548",
-      "target": "platform_sessions_archive_decisions_made_1568"
+      "target": "platform_sessions_archive_decisions_made_1568",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73667,9 +73667,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1574",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_13_1548",
-      "target": "platform_sessions_archive_test_revised_commits_1574"
+      "target": "platform_sessions_archive_test_revised_commits_1574",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73677,9 +73677,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1586",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_13_1548",
-      "target": "platform_sessions_archive_next_session_should_start_from_1586"
+      "target": "platform_sessions_archive_next_session_should_start_from_1586",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73687,9 +73687,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1600",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_13_1548",
-      "target": "platform_sessions_archive_watch_out_for_1600"
+      "target": "platform_sessions_archive_watch_out_for_1600",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73697,9 +73697,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1610",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_13_1608",
-      "target": "platform_sessions_archive_completed_1610"
+      "target": "platform_sessions_archive_completed_1610",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73707,9 +73707,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1622",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_13_1608",
-      "target": "platform_sessions_archive_incomplete_or_broken_1622"
+      "target": "platform_sessions_archive_incomplete_or_broken_1622",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73717,9 +73717,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1626",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_13_1608",
-      "target": "platform_sessions_archive_decisions_made_1626"
+      "target": "platform_sessions_archive_decisions_made_1626",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73727,9 +73727,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1632",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_13_1608",
-      "target": "platform_sessions_archive_test_revised_commits_1632"
+      "target": "platform_sessions_archive_test_revised_commits_1632",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73737,9 +73737,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1636",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_13_1608",
-      "target": "platform_sessions_archive_next_session_should_start_from_1636"
+      "target": "platform_sessions_archive_next_session_should_start_from_1636",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73747,9 +73747,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1650",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_13_1608",
-      "target": "platform_sessions_archive_watch_out_for_1650"
+      "target": "platform_sessions_archive_watch_out_for_1650",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73757,9 +73757,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1660",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_13_1658",
-      "target": "platform_sessions_archive_completed_1660"
+      "target": "platform_sessions_archive_completed_1660",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73767,9 +73767,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1678",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_13_1658",
-      "target": "platform_sessions_archive_incomplete_or_broken_1678"
+      "target": "platform_sessions_archive_incomplete_or_broken_1678",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73777,9 +73777,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1682",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_13_1658",
-      "target": "platform_sessions_archive_decisions_made_1682"
+      "target": "platform_sessions_archive_decisions_made_1682",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73787,9 +73787,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1688",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_13_1658",
-      "target": "platform_sessions_archive_test_revised_commits_1688"
+      "target": "platform_sessions_archive_test_revised_commits_1688",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73797,9 +73797,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1692",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_13_1658",
-      "target": "platform_sessions_archive_next_session_should_start_from_1692"
+      "target": "platform_sessions_archive_next_session_should_start_from_1692",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73807,9 +73807,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1706",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_13_1658",
-      "target": "platform_sessions_archive_watch_out_for_1706"
+      "target": "platform_sessions_archive_watch_out_for_1706",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73817,9 +73817,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1717",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_13_1715",
-      "target": "platform_sessions_archive_completed_1717"
+      "target": "platform_sessions_archive_completed_1717",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73827,9 +73827,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1735",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_13_1715",
-      "target": "platform_sessions_archive_incomplete_or_broken_1735"
+      "target": "platform_sessions_archive_incomplete_or_broken_1735",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73837,9 +73837,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1739",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_13_1715",
-      "target": "platform_sessions_archive_decisions_made_1739"
+      "target": "platform_sessions_archive_decisions_made_1739",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73847,9 +73847,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1751",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_13_1715",
-      "target": "platform_sessions_archive_test_revised_commits_1751"
+      "target": "platform_sessions_archive_test_revised_commits_1751",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73857,9 +73857,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1755",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_13_1715",
-      "target": "platform_sessions_archive_next_session_should_start_from_1755"
+      "target": "platform_sessions_archive_next_session_should_start_from_1755",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -73867,9 +73867,9 @@
       "source_file": "SESSIONS_ARCHIVE.md",
       "source_location": "L1768",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_archive_session_close_out_2026_05_13_1715",
-      "target": "platform_sessions_archive_watch_out_for_1768"
+      "target": "platform_sessions_archive_watch_out_for_1768",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -74007,9 +74007,9 @@
       "source_file": "SPRINTS.md",
       "source_location": "L7",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sprints_sprint_history_blueprinted_io",
-      "target": "platform_sprints_sprint_15_agent_ingestion_path_demo_readiness"
+      "target": "platform_sprints_sprint_15_agent_ingestion_path_demo_readiness",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -74167,9 +74167,9 @@
       "source_file": "SESSIONS.md",
       "source_location": "L6",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_active_session_blueprinted_io",
-      "target": "platform_sessions_session_2026_07_24_sprint_15_agent_ingestion_path_demo_readiness"
+      "target": "platform_sessions_session_2026_07_24_sprint_15_agent_ingestion_path_demo_readiness",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -74187,9 +74187,9 @@
       "source_file": "SESSIONS.md",
       "source_location": "L8",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_session_2026_07_24_sprint_15_agent_ingestion_path_demo_readiness",
-      "target": "platform_sessions_decisions"
+      "target": "platform_sessions_decisions",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -74197,9 +74197,9 @@
       "source_file": "SESSIONS.md",
       "source_location": "L14",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_session_2026_07_24_sprint_15_agent_ingestion_path_demo_readiness",
-      "target": "platform_sessions_done"
+      "target": "platform_sessions_done",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -74207,9 +74207,9 @@
       "source_file": "SESSIONS.md",
       "source_location": "L21",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_session_2026_07_24_sprint_15_agent_ingestion_path_demo_readiness",
-      "target": "platform_sessions_broken_incomplete"
+      "target": "platform_sessions_broken_incomplete",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -74217,9 +74217,9 @@
       "source_file": "SESSIONS.md",
       "source_location": "L24",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "platform_sessions_session_2026_07_24_sprint_15_agent_ingestion_path_demo_readiness",
-      "target": "platform_sessions_next"
+      "target": "platform_sessions_next",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -80897,9 +80897,9 @@
       "source_file": "docs/requirements.md",
       "source_location": "L1032",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "docs_requirements_11_10_html_ingestion",
-      "target": "docs_requirements_source_acceptance_1032"
+      "target": "docs_requirements_source_acceptance_1032",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -80917,9 +80917,9 @@
       "source_file": "docs/requirements.md",
       "source_location": "L1052",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "docs_requirements_11_10_html_ingestion",
-      "target": "docs_requirements_chunk_metadata_1052"
+      "target": "docs_requirements_chunk_metadata_1052",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -80927,9 +80927,9 @@
       "source_file": "docs/requirements.md",
       "source_location": "L1060",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "docs_requirements_11_10_html_ingestion",
-      "target": "docs_requirements_duplicate_detection_1060"
+      "target": "docs_requirements_duplicate_detection_1060",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -80937,9 +80937,9 @@
       "source_file": "docs/requirements.md",
       "source_location": "L1064",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "docs_requirements_11_10_html_ingestion",
-      "target": "docs_requirements_failure_modes_1064"
+      "target": "docs_requirements_failure_modes_1064",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -81047,9 +81047,9 @@
       "source_file": "docs/requirements.md",
       "source_location": "L1130",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "docs_requirements_11_12_json_ingestion",
-      "target": "docs_requirements_duplicate_detection_1130"
+      "target": "docs_requirements_duplicate_detection_1130",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -82427,9 +82427,9 @@
       "source_file": ".claude/plans/sprint-15-agent-ingestion.plan.md",
       "source_location": "L1",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "claude_plans_sprint_15_agent_ingestion_plan_md",
-      "target": "plans_sprint_15_agent_ingestion_plan_plan_sprint_15_agent_ingestion_path_demo_readiness"
+      "target": "plans_sprint_15_agent_ingestion_plan_plan_sprint_15_agent_ingestion_path_demo_readiness",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -82437,9 +82437,9 @@
       "source_file": ".claude/plans/sprint-15-agent-ingestion.plan.md",
       "source_location": "L7",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "plans_sprint_15_agent_ingestion_plan_plan_sprint_15_agent_ingestion_path_demo_readiness",
-      "target": "plans_sprint_15_agent_ingestion_plan_decision_record_autonomous_documented_per_session_protocol"
+      "target": "plans_sprint_15_agent_ingestion_plan_decision_record_autonomous_documented_per_session_protocol",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -82447,9 +82447,9 @@
       "source_file": ".claude/plans/sprint-15-agent-ingestion.plan.md",
       "source_location": "L17",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "plans_sprint_15_agent_ingestion_plan_plan_sprint_15_agent_ingestion_path_demo_readiness",
-      "target": "plans_sprint_15_agent_ingestion_plan_summary"
+      "target": "plans_sprint_15_agent_ingestion_plan_summary",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -82457,9 +82457,9 @@
       "source_file": ".claude/plans/sprint-15-agent-ingestion.plan.md",
       "source_location": "L25",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "plans_sprint_15_agent_ingestion_plan_plan_sprint_15_agent_ingestion_path_demo_readiness",
-      "target": "plans_sprint_15_agent_ingestion_plan_sub_decisions_estimated_maintainer_s_choice"
+      "target": "plans_sprint_15_agent_ingestion_plan_sub_decisions_estimated_maintainer_s_choice",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -82467,9 +82467,9 @@
       "source_file": ".claude/plans/sprint-15-agent-ingestion.plan.md",
       "source_location": "L38",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "plans_sprint_15_agent_ingestion_plan_plan_sprint_15_agent_ingestion_path_demo_readiness",
-      "target": "plans_sprint_15_agent_ingestion_plan_patterns_to_mirror"
+      "target": "plans_sprint_15_agent_ingestion_plan_patterns_to_mirror",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -82477,9 +82477,9 @@
       "source_file": ".claude/plans/sprint-15-agent-ingestion.plan.md",
       "source_location": "L47",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "plans_sprint_15_agent_ingestion_plan_plan_sprint_15_agent_ingestion_path_demo_readiness",
-      "target": "plans_sprint_15_agent_ingestion_plan_files_to_change"
+      "target": "plans_sprint_15_agent_ingestion_plan_files_to_change",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -82487,9 +82487,9 @@
       "source_file": ".claude/plans/sprint-15-agent-ingestion.plan.md",
       "source_location": "L57",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "plans_sprint_15_agent_ingestion_plan_plan_sprint_15_agent_ingestion_path_demo_readiness",
-      "target": "plans_sprint_15_agent_ingestion_plan_tasks"
+      "target": "plans_sprint_15_agent_ingestion_plan_tasks",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -82497,9 +82497,9 @@
       "source_file": ".claude/plans/sprint-15-agent-ingestion.plan.md",
       "source_location": "L81",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "plans_sprint_15_agent_ingestion_plan_plan_sprint_15_agent_ingestion_path_demo_readiness",
-      "target": "plans_sprint_15_agent_ingestion_plan_validation"
+      "target": "plans_sprint_15_agent_ingestion_plan_validation",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -82507,9 +82507,9 @@
       "source_file": ".claude/plans/sprint-15-agent-ingestion.plan.md",
       "source_location": "L92",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "plans_sprint_15_agent_ingestion_plan_plan_sprint_15_agent_ingestion_path_demo_readiness",
-      "target": "plans_sprint_15_agent_ingestion_plan_risks"
+      "target": "plans_sprint_15_agent_ingestion_plan_risks",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -82517,9 +82517,9 @@
       "source_file": ".claude/plans/sprint-15-agent-ingestion.plan.md",
       "source_location": "L99",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "plans_sprint_15_agent_ingestion_plan_plan_sprint_15_agent_ingestion_path_demo_readiness",
-      "target": "plans_sprint_15_agent_ingestion_plan_acceptance"
+      "target": "plans_sprint_15_agent_ingestion_plan_acceptance",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -82527,9 +82527,9 @@
       "source_file": ".claude/plans/sprint-15-agent-ingestion.plan.md",
       "source_location": "L58",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "plans_sprint_15_agent_ingestion_plan_tasks",
-      "target": "plans_sprint_15_agent_ingestion_plan_task_1_producer_role"
+      "target": "plans_sprint_15_agent_ingestion_plan_task_1_producer_role",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -82537,9 +82537,9 @@
       "source_file": ".claude/plans/sprint-15-agent-ingestion.plan.md",
       "source_location": "L62",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "plans_sprint_15_agent_ingestion_plan_tasks",
-      "target": "plans_sprint_15_agent_ingestion_plan_task_2_role_gate_accepts_agent_roles"
+      "target": "plans_sprint_15_agent_ingestion_plan_task_2_role_gate_accepts_agent_roles",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -82547,9 +82547,9 @@
       "source_file": ".claude/plans/sprint-15-agent-ingestion.plan.md",
       "source_location": "L66",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "plans_sprint_15_agent_ingestion_plan_tasks",
-      "target": "plans_sprint_15_agent_ingestion_plan_task_3_submit_domain_semantics_for_machine_producers"
+      "target": "plans_sprint_15_agent_ingestion_plan_task_3_submit_domain_semantics_for_machine_producers",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -82557,9 +82557,9 @@
       "source_file": ".claude/plans/sprint-15-agent-ingestion.plan.md",
       "source_location": "L71",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "plans_sprint_15_agent_ingestion_plan_tasks",
-      "target": "plans_sprint_15_agent_ingestion_plan_task_4_tests"
+      "target": "plans_sprint_15_agent_ingestion_plan_task_4_tests",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -82567,9 +82567,9 @@
       "source_file": ".claude/plans/sprint-15-agent-ingestion.plan.md",
       "source_location": "L78",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "plans_sprint_15_agent_ingestion_plan_tasks",
-      "target": "plans_sprint_15_agent_ingestion_plan_task_5_spec"
+      "target": "plans_sprint_15_agent_ingestion_plan_task_5_spec",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -82577,9 +82577,9 @@
       "source_file": ".claude/plans/sprint-15-agent-ingestion.plan.md",
       "source_location": "L82",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "plans_sprint_15_agent_ingestion_plan_validation",
-      "target": "plans_sprint_15_agent_ingestion_plan_codeblock_1"
+      "target": "plans_sprint_15_agent_ingestion_plan_codeblock_1",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -87811,5 +87811,5 @@
       "source_file": "tests/test_analytics.py"
     }
   ],
-  "built_at_commit": "51af0c43fde573f1bf038e204bce4abf9a6f780f"
+  "built_at_commit": "acf33542c64a676259269a6e56f6f14658fc8d59"
 }

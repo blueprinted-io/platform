@@ -1,16 +1,16 @@
 # Graph Report - platform  (2026-07-25)
 
 ## Corpus Check
-- 160 files · ~147,653 words
+- 160 files · ~147,462 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 3247 nodes · 5523 edges · 277 communities (256 shown, 21 thin omitted)
+- 3247 nodes · 5523 edges · 276 communities (255 shown, 21 thin omitted)
 - Extraction: 89% EXTRACTED · 11% INFERRED · 0% AMBIGUOUS · INFERRED: 580 edges (avg confidence: 0.74)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `51af0c43`
+- Built from commit: `acf33542`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -268,7 +268,6 @@
 - [[_COMMUNITY_Community 273|Community 273]]
 - [[_COMMUNITY_Community 274|Community 274]]
 - [[_COMMUNITY_Community 275|Community 275]]
-- [[_COMMUNITY_Community 276|Community 276]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `make_token()` - 234 edges
@@ -300,7 +299,7 @@
 - **Analytics test helper functions for task lifecycle** — tests_test_analytics_create_task_helper, tests_test_analytics_submit_task_helper, tests_test_analytics_confirm_task_helper, tests_test_analytics_return_task_helper [EXTRACTED 1.00]
 - **Analytics integration test suite (9 tests)** — tests_test_analytics_test_dashboard_requires_auth, tests_test_analytics_test_dashboard_viewer_can_access, tests_test_analytics_test_contributor_stats_count_own_records, tests_test_analytics_test_recently_returned, tests_test_analytics_test_reviewer_queue_depth, tests_test_analytics_test_reviewer_queue_excludes_own, tests_test_analytics_test_admin_section_present, tests_test_analytics_test_admin_confirmed_30d, tests_test_analytics_test_reviewed_at_set_on_confirm [EXTRACTED 1.00]
 
-## Communities (277 total, 21 thin omitted)
+## Communities (276 total, 21 thin omitted)
 
 ### Community 0 - "Ingestion Tests"
 Cohesion: 0.03
@@ -323,8 +322,8 @@ Cohesion: 0.17
 Nodes (12): Session Close-Out — ARQ pool wiring + Sprint 7 Search and Embeddings, Session Close-Out — Sprint 2: Authentik setup (OIDC groups, OAuth2 provider), No-machine-can-confirm enforcement phased: Sprints 4-9 require human OIDC JWT (sufficient as machine credentials don't exist); Sprint 10 adds explicit machine-credential rejection, Domain filter excludes facts/concepts entirely when ?domain=X — they surface implicitly through tasks; S608 false-positive suppressed for hardcoded SQL configs, Session Close-Out — Sprint 1: Platform scaffold, Session Close-Out — Sprint 3: test suite written (Facts, Concepts, Tasks, Principles, Workflows), Session Close-Out — Sprint 4: Domain enforcement, Session Close-Out — Sprint 4: ORM models, lifecycle, routes (+4 more)
 
 ### Community 5 - "Triage and Audit Concepts"
-Cohesion: 0.11
-Nodes (28): Agent Role Prefix — agent: prefix distinguishes machine from human credentials, Audit Log — append-only privileged operation trail (§9.6), Admin Break-Glass Confirm, CI Auto-fix Pipeline — event-driven GitHub Actions using synthetic.new GLM-5.1, Ingestion pipeline (triage → extraction), Iterative Ingestion — primary model; 2-5 chunk batches per pass, Machine Auth — API keys and OIDC client credentials (Sprint 10), No Machine Can Confirm — absolute constraint on govern record lifecycle (+20 more)
+Cohesion: 0.09
+Nodes (34): Agent Role Prefix — agent: prefix distinguishes machine from human credentials, Audit Log — append-only privileged operation trail (§9.6), Admin Break-Glass Confirm, CI Auto-fix Pipeline — event-driven GitHub Actions using synthetic.new GLM-5.1, Ingestion pipeline (triage → extraction), Iterative Ingestion — primary model; 2-5 chunk batches per pass, Knowledge Hierarchy — Domain > Workflows > Tasks + Principles, Machine Auth — API keys and OIDC client credentials (Sprint 10) (+26 more)
 
 ### Community 6 - "Workflow and Task Schemas"
 Cohesion: 0.15
@@ -352,7 +351,7 @@ Nodes (21): BaseModel, admin_health(), disable_domain(), enable_domain(), _get_d
 
 ### Community 12 - "Lifecycle and Review"
 Cohesion: 0.07
-Nodes (44): Domain Enforcement (§7.3), confirm_task(), create_task(), deprecate_task(), _get_task(), Fetch a Task with all sub-resources loaded., Fetch a Task with all sub-resources loaded., retire_task() (+36 more)
+Nodes (43): Domain Enforcement (§7.3), confirm_task(), create_task(), deprecate_task(), _get_task(), Fetch a Task with all sub-resources loaded., Fetch a Task with all sub-resources loaded., retire_task() (+35 more)
 
 ### Community 13 - "CI and Graph Decisions"
 Cohesion: 0.18
@@ -411,8 +410,8 @@ Cohesion: 0.12
 Nodes (16): 9.5 Record Taxonomy, Assessments — Removed from v1, code:block10 (principles), code:block11 (tasks), code:block12 (maps), code:block13 (workflows), code:block14 (relationships), code:block8 (facts) (+8 more)
 
 ### Community 27 - "Community 27"
-Cohesion: 0.12
-Nodes (27): Base, Shared declarative base for all ORM models., DeclarativeBase, LifecycleMixin, Shared identity and lifecycle columns inherited by all governed record tables., Domain, Domain and UserDomain ORM models.  §7.1 — domain registry and user assignment, UserDomain (+19 more)
+Cohesion: 0.11
+Nodes (28): Base, Shared declarative base for all ORM models., DeclarativeBase, LifecycleMixin, Shared identity and lifecycle columns inherited by all governed record tables., Domain, Domain and UserDomain ORM models.  §7.1 — domain registry and user assignment, UserDomain (+20 more)
 
 ### Community 28 - "Community 28"
 Cohesion: 0.04
@@ -1229,10 +1228,6 @@ Nodes (6): Session — draft edit shortcut + small fixes, Session — ingestion 
 ### Community 274 - "Community 274"
 Cohesion: 0.40
 Nodes (4): ConfirmRequest, Shared lifecycle response schema for all governed record types.  §9.1 — identity, Optional body for confirm endpoints.      justification is required (non-empty), Optional body for confirm endpoints.      justification is required (non-empty)
-
-### Community 276 - "Community 276"
-Cohesion: 0.47
-Nodes (6): Knowledge Hierarchy — Domain > Workflows > Tasks + Principles, Principle schema, Record Taxonomy (Principles/Tasks/Workflows/Relationships), Relationship Kind Taxonomy (empty in v1), Task schema with steps/actions/images, Workflow schema with task refs and principle refs
 
 ## Ambiguous Edges - Review These
 - `Authentik OIDC Provider` → `Blueprinted.io Brand Logo`  [AMBIGUOUS]

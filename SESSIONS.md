@@ -17,6 +17,9 @@ Format and rules: docs/session_protocol.md
 - `tests/test_agent_ingestion.py` — 5 tests: end-to-end producer path, cross-domain waiver, machine-cannot-confirm (403), consumer-agent-cannot-ingest (403). Full suite 371 pass; ruff clean; mypy (api/cli/workers) clean.
 - Spec `requirements.md` v4.11 → v4.12 documenting the role, permissions, and domain waiver.
 - Corrected the stale Sprint 14 "In progress" status line in SPRINTS.md to Complete.
+- CI/ops (post-sprint): patched app advisories (js-yaml, postcss) and platform pip-audit advisories (json-repair 0.60.1, msgpack 1.2.1) — all CI green.
+- Repaired the CI auto-fix bot: dead model → `syn:large:text` alias; hardened `fix_ci.py` against placeholder/invalid model output (reject echoed template, validate pyproject TOML before `uv lock`). Rotated `SYNTHETIC_API_KEY` (done by operator).
+- Verified the auto-fix bot end to end via a throwaway canary — it produced correct fix PRs on both the pip-audit and ruff strategies; canary and bot PRs cleaned up.
 
 ### Broken / Incomplete
 - Pre-existing mypy errors remain in `seed/` and `tests/` (8 total) — outside CI's `api/ cli/ workers/` scope, so CI is unaffected. Not introduced this sprint; not fixed this sprint.
