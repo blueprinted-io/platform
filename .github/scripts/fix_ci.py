@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-CI auto-fix using synthetic.new GLM-5.1.
+CI auto-fix using synthetic.new (model via the syn:large:text routing alias).
 Usage: python fix_ci.py <run_id> <repo> <head_sha>
 
 Fetches CI failure logs, asks the model to fix them, applies the changes.
@@ -21,7 +21,7 @@ from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 API_KEY = os.environ["SYNTHETIC_API_KEY"]
-MODEL = "hf:zai-org/GLM-5.1"
+MODEL = "syn:large:text"  # synthetic.new alias — auto-routes to the latest recommended large text model
 API_URL = "https://api.synthetic.new/openai/v1/chat/completions"
 MAX_LOG_CHARS = 8_000
 MAX_FILE_CHARS = 4_000
