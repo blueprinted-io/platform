@@ -135,11 +135,23 @@ def _safe_target(path: str) -> Path | None:
     return None
 
 
+# Guard against models that echo the response template literally instead of
+# returning real content (observed with the syn:large:text alias). Writing these
+# would corrupt the target file — e.g. an invalid pyproject.toml that breaks uv lock.
+_PLACEHOLDER_MARKERS = (
+    "<full updated file content>",
+    "<full corrected file content>",
+)
+
+
 def apply_files(files: list[dict]) -> list[str]:
     changed = []
     for f in files:
         path, content = f.get("path", ""), f.get("content", "")
         if not path or not content or "..." in path:
+            continue
+        if any(marker in content for marker in _PLACEHOLDER_MARKERS):
+            log(f"  SKIPPED (model returned placeholder, not real content): {path}")
             continue
         target = _safe_target(path)
         if target is None:
@@ -173,6 +185,14 @@ def fix_pip_audit(logs: str) -> list[str]:
     response = call_model(prompt)
     changed = apply_files(parse_json_fix(response))
     if "pyproject.toml" in changed:
+        import tomllib
+
+        try:
+            tomllib.loads(Path("pyproject.toml").read_text())
+        except tomllib.TOMLDecodeError as exc:
+            log(f"  updated pyproject.toml is not valid TOML ({exc}); reverting")
+            subprocess.run(["git", "checkout", "--", "pyproject.toml"], check=False)
+            return []
         log("  running uv lock...")
         subprocess.run(["uv", "lock"], check=True)
         changed.append("uv.lock")
