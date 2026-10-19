@@ -14,7 +14,7 @@ dependencies = [
     "sqlalchemy[asyncio]==2.0.41",
     "alembic==1.15.2",
     "asyncpg==0.30.0",
-    "psycopg2-binary==2.9.10",
+    "psycopg2-binary==2.9.13",
     # Structured logging
     "structlog==25.3.0",
     # Background jobs
@@ -23,11 +23,11 @@ dependencies = [
     # CLI
     "typer==0.15.2",
     # Rate limiting
-    "slowapi==0.1.9",
+    "slowapi==0.1.10",
     # Security headers
     "secure==1.0.1",
     # JWT verification (RS256 via OIDC)
-    "PyJWT[crypto]==2.15.0",
+    "PyJWT[crypto]==2.15.1",
     # Async HTTP (ingestion pipeline uses the versioned API)
     "httpx==0.28.1",
     # Vector storage and semantic search
@@ -36,11 +36,11 @@ dependencies = [
     "json-repair==0.60.1",
     # PDF extraction (§11.9, §4.1) — AGPL3, see operator deployment notes
     "pymupdf==1.25.5",
-    "python-multipart==0.0.31",
+    "python-multipart==0.0.32",
     # HTML rendering (§11.10, §4.1) — requires `playwright install chromium` post-install
     "playwright==1.48.0",
     # Cryptography (pinned to fix GHSA-537c-gmf6-5ccf; bumped for PYSEC-2026-3552/3553/3554)
-    "cryptography==50.0.0",
+    "cryptography==50.0.2",
 ]
 
 [project.scripts]
@@ -59,7 +59,7 @@ dev = [
     "asgi-lifespan==2.1.0",
     "ruff==0.11.9",
     "mypy==1.15.0",
-    "pip-audit==2.9.0",
+    "pip-audit==2.10.1",
     "pip>=26.2",
     # Type stubs
     "types-redis==4.6.0.20241004",
